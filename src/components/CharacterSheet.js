@@ -21,7 +21,7 @@ const CharacterSheet = ({ character, onUpdate, onChangeTab }) => {
 
     const toggleToken = (type, index) => {
         const key = type === 'blessure' ? 'tokensBlessure' : 'tokensFatigue';
-        const max = type === 'blessure' ? 5 : 8;
+        const max = type === 'blessure' ? 5 : 9;
         const curr = character[key];
         onUpdate({ ...character, [key]: index < curr ? index : Math.min(index + 1, max) });
     };
@@ -287,7 +287,13 @@ const CharacterSheet = ({ character, onUpdate, onChangeTab }) => {
                                 <div className="text-xs font-semibold text-viking-brown dark:text-viking-parchment mb-1">BLESSURES</div>
                                 <div className="flex flex-wrap gap-1">
                                     {[0,1,2,3,4].map(i => (
-                                        <div key={i} onClick={() => toggleToken('blessure',i)} className={`w-7 h-7 rounded border-2 cursor-pointer transition-all ${i < character.tokensBlessure ? 'bg-viking-danger border-viking-danger' : i === 0 ? 'border-dashed border-viking-leather dark:border-viking-bronze' : 'border-viking-leather dark:border-viking-bronze hover:border-viking-danger'} ${i === 4 ? 'border-red-800' : ''}`} title={i === 0 ? 'Gratuit' : i === 4 ? 'KO' : ''} />
+                                        <div key={i} onClick={() => toggleToken('blessure',i)} className={`w-7 h-7 rounded border-2 cursor-pointer transition-all ${
+                                            i < character.tokensBlessure 
+                                                ? i === 4 ? 'bg-viking-danger border-amber-800' : 'bg-viking-danger border-viking-danger' 
+                                                : i === 0 
+                                                    ? 'border-dashed border-viking-leather dark:border-viking-bronze hover:border-viking-danger dark:hover:border-viking-danger' 
+                                                    : i === 4 ? 'border-amber-800 hover:border-viking-danger dark:hover:border-viking-danger'  : 'border-viking-leather dark:border-viking-bronze hover:border-viking-danger dark:hover:border-viking-danger'
+                                        }`} title={i === 0 ? 'Gratuit' : i === 4 ? 'KO' : ''} />
                                     ))}
                                 </div>
                             </div>
@@ -303,29 +309,31 @@ const CharacterSheet = ({ character, onUpdate, onChangeTab }) => {
                                                 onClick={() => toggleToken('fatigue',i)}
                                                 className={`w-6 h-6 rounded border-2 cursor-pointer transition-all ${
                                                     i < character.tokensFatigue 
-                                                        ? 'bg-viking-leather border-viking-leather' 
+                                                        ? i === 8 ? 'bg-viking-leather border-amber-800' : 'bg-viking-leather border-viking-leather' 
                                                         : i === 0 
-                                                            ? 'border-dashed border-viking-leather dark:border-viking-bronze'  // SEUL 0 en pointillé
-                                                            : 'border-solid border-viking-leather dark:border-viking-bronze hover:border-viking-bronze'
-                                                } ${i === 8 ? 'border-amber-800' : ''}`} 
-                                                title={i === 0 ? 'Gratuit (buffer)' : i === 8 ? '+4 succès' : `+${getFatigueMalus(i)} succès requis`} 
+                                                            ? 'border-dashed border-viking-leather dark:border-viking-bronze hover:border-viking-danger dark:hover:border-viking-danger'  // SEUL 0 en pointillé
+                                                            : i === 8 ? 'border-solid border-amber-800 hover:border-viking-danger dark:hover:border-viking-danger' : 'border-solid border-viking-leather dark:border-viking-bronze hover:border-viking-danger dark:hover:border-viking-danger'
+                                                }`}
+                                                title={i === 0 ? 'Gratuit (buffer)' : i === 8 ? 'Épuisé (+5 succès)' : `+${getFatigueMalus(i)} succès requis`}
                                             />
                                         ))}
                                     </div>
                                     <div className="flex gap-1 justify-center">
-                                        <div className="w-6"></div>
-                                        {[3,5,7,9].map(i => (
+                                        <div className="w-6 h-6"></div>
+                                        <div className="w-6 h-6"></div>
+                                        {[3,5,7].map(i => (
                                             <div 
                                                 key={i} 
                                                 onClick={() => toggleToken('fatigue',i)} 
                                                 className={`w-6 h-6 rounded border-2 cursor-pointer transition-all ${
                                                     i < character.tokensFatigue 
                                                         ? 'bg-viking-leather border-viking-leather' 
-                                                        : 'border-solid border-viking-leather dark:border-viking-bronze hover:border-viking-bronze'
-                                                } ${i === 9 ? 'border-amber-800' : ''}`}
-                                                title={i === 9 ? 'Épuisé (+5 succès)' : `+${getFatigueMalus(i)} succès requis`}
+                                                        : 'border-solid border-viking-leather dark:border-viking-bronze hover:border-viking-danger dark:hover:border-viking-danger'
+                                                }`}
+                                                title={`+${getFatigueMalus(i)} succès requis`}
                                             />
                                         ))}
+                                        <div className="w-6 h-6"></div>
                                     </div>
                                 </div>
                             </div>

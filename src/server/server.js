@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
+const https = require('https');
 const http = require('http');
 const { Server } = require('socket.io');
 const { initDatabase, closeDb } = require('./db');
@@ -12,12 +13,23 @@ const charactersRouter = require('./routes/characters');
 const diceRouter = require('./routes/dice');
 const combatRouter = require('./routes/combat');
 const compression = require('compression');
+const fs = require("node:fs");
+
 
 const app = express();
 app.disable('x-powered-by');
 app.use(compression());
+let server;
+if(process.env.NODE_ENV !== 'production') {
+    server = http.createServer(app);
+} else {
+    const https_options = {
+        key: fs.readFileSync(process.env.SSL_KEY_PATH),
+        cert: fs.readFileSync(process.env.SSL_CERT_PATH),
+    };
+    server = https.createServer(https_options, app);
+}
 
-const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
         origin: "*",

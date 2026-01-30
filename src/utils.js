@@ -56,7 +56,7 @@ const getBlessureMalus = (tokens) => {
 };
 
 const getFatigueMalus = (tokens) => {
-    if (tokens === 0 || tokens === 1) return 0; // Index 0 et 1 gratuits
+    if (tokens === 0 || tokens === 1) return 0; // Index 0 gratuit
     if (tokens === 2) return 1; // +1
     if (tokens === 3 || tokens === 4) return 2; // +2
     if (tokens === 5 || tokens === 6) return 3; // +3
