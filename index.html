@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pure Vikings - Système Pure Saga</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Eagle+Lake&family=Grenze+Gotisch:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        viking: {
+                            // Un gris fer pour les armes/boutons secondaires
+                            iron: '#454545',
+                            // Une variante sombre du cuir pour les fonds
+                            'leather-dark': '#5D4037',
+                            // Une variante éclatante du bronze pour les hover
+                            'bronze-light': '#FFD700',
+                            // Couleurs actuelles
+                            brown: '#3E2723',
+                            leather: '#8D6E63',
+                            bronze: '#D4AF37',
+                            parchment: '#F5E6D3',
+                            danger: '#C62828',
+                            success: '#2E7D32',
+                            text: '#1B1B1B'
+                        }
+                    },
+                    boxShadow: {
+                        'viking-bold': '0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                    },
+                    fontFamily: {
+                        // Pour les titres et les noms de compétences
+                        viking: ['"Eagle Lake"', 'Georgia', 'serif'],
+                        // Pour les textes de lecture et chiffres
+                        vikingText: ['"Grenze Gotisch"', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- React & Babel -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Socket.IO -->
+    <script src="/socket.io/socket.io.js"></script>
+    
+    <!-- Animations CSS -->
+    <style>
+        @keyframes slide-in-right {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        .animate-slide-in-right {
+            animation: slide-in-right 0.3s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- Data -->
+    <script src="./src/data.js" type="text/babel"></script>
+    
+    <!-- Utils -->
+    <script src="./src/utils.js" type="text/babel"></script>
+    <script src="./src/traitBonuses.js" type="text/babel"></script>
+    <script src="./src/useSocket.js" type="text/babel"></script>
+    
+    <!-- Components -->
+    <script src="./src/components/ThemeToggle.js" type="text/babel"></script>
+    <script src="./src/components/CharacterCreation.js" type="text/babel"></script>
+    <script src="./src/components/CharacterSheet.js" type="text/babel"></script>
+    <script src="./src/components/DiceModal.js" type="text/babel"></script>
+    <script src="./src/components/EditModals.js" type="text/babel"></script>
+    <script src="./src/components/EvolutionModal.js" type="text/babel"></script>
+    <script src="./src/components/CharacterListModal.js" type="text/babel"></script>
+    <script src="./src/components/RunesTab.js" type="text/babel"></script>
+    <script src="./src/components/InventoryTab.js" type="text/babel"></script>
+    <script src="./src/components/ToastNotifications.js" type="text/babel"></script>
+    <script src="./src/components/HistoryPanel.js" type="text/babel"></script>
+    <script src="./src/components/CombatPanel.js" type="text/babel"></script>
+    <script src="./src/components/TargetSelectionModal.js" type="text/babel"></script>
+    <script src="./src/components/AttackModal.js" type="text/babel"></script>
+    <script src="./src/components/NPCAttackModal.js" type="text/babel"></script>
+    <script src="./src/components/GMDiceModal.js" type="text/babel"></script>
+    <script src="./src/components/ConfirmModal.js" type="text/babel"></script>
+    <script src="./src/components/AttackValidationQueue.js" type="text/babel"></script>
+    <script src="./src/components/GMView.js" type="text/babel"></script>
+    
+    <!-- Main App -->
+    <script src="./src/App.js" type="text/babel"></script>
+    <script src="./src/AppRouter.js" type="text/babel"></script>
+    
+    <!-- Mount -->
+    <script type="text/babel">
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<AppRouter />);
+    </script>
+</body>
+</html>
