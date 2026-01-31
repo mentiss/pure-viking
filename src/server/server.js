@@ -76,6 +76,15 @@ io.on('connection', (socket) => {
         io.emit('online-characters-update', Array.from(onlineCharacters.values()));
         console.log(`📝 Character loaded: ${data.name} (${data.characterId})`);
     });
+
+    socket.on('character-left', (charId) => {
+        if(charId) {
+            onlineCharacters.delete(charId);
+        }
+
+        io.emit('online-characters-update', Array.from(onlineCharacters.values()));
+        console.log('🔌 Character left :', socket.id);
+    });
     
     socket.on('disconnect', () => {
         // Retirer les persos de ce socket
@@ -118,7 +127,9 @@ app.get('*', (req, res) => {
     if (req.path.startsWith('/api')) {
         return res.status(404).json({ error: 'API endpoint not found' });
     }
-    res.sendFile(path.join(__dirname, '../../index.html'));
+    if(process.env.NODE_ENV === 'production') {
+        res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+    }
 });
 
 // Error handler

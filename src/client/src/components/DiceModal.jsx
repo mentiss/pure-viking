@@ -1,4 +1,14 @@
 // DiceModal.js - Modale lanceur de dés avec JETS SAGA
+import React, { useState, useEffect } from "react";
+import {
+    countSuccesses, formatSkillName,
+    getBestCharacteristic, getBlessureMalus,
+    getExplosionThreshold, getFatigueMalus,
+    getSuccessThreshold,
+    rollDice
+} from "../tools/utils.js";
+import getTraitBonuses from "../tools/traitBonuses.js";
+import {CARACNAMES} from "../tools/data.js";
 
 const DiceModal = ({ character, isBerserk, context, onClose, onUpdate }) => {
     const { useState, useEffect } = React;
@@ -603,3 +613,5 @@ const DiceModal = ({ character, isBerserk, context, onClose, onUpdate }) => {
         </div>
     );
 };
+
+export default DiceModal;

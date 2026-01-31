@@ -4,7 +4,7 @@
 // COMPÉTENCES (35 compétences)
 // ============================================
 
-const COMPETENCES = [
+export const COMPETENCES = [
     { 
         name: "Combat CàC armé",
         caracs: ["force", "agilite"],
@@ -206,7 +206,7 @@ const COMPETENCES = [
 // TRAITS ET BACKGROUNDS (60+ traits)
 // ============================================
 
-const TRAITS = [
+export const TRAITS = [
     {
         name: "Bons réflexes",
         description: "Vous avez naturellement d'excellents réflexes et pouvez réagir avec une rapidité surprenante, même lorsque vous êtes pris au dépourvu.",
@@ -253,7 +253,7 @@ const TRAITS = [
     {
         name: "Borgne",
         description: "Vous avez sacrifié un œil (ou l'avez perdu au combat). Cette blessure inspire la crainte ou le respect, car beaucoup y voient la marque d'Odin lui-même et vous pensent sous protection divine.",
-        effects: { description: "Intimidation (+1 suc auto), Perception (-1 suc auto), +1 SAGA totale" },
+        effects: { description: "Intimidation (+1 suc auto), Perception (-1 suc auto)", sagaBonus: 1 },
         requirements: { force: 2, charisme: 2 },
         incompatible: ["Aveugle", "Vue perçante"]
     },
@@ -268,7 +268,7 @@ const TRAITS = [
     {
         name: "Volva",
         description: "Vous possédez la rare connaissance des runes et savez manipuler le heidl pour éveiller leur magie. Souvent craint et respecté, cet art est traditionnellement féminin. Vous savez enchanter des objets ou lancer des rituels.",
-        effects: { description: "Livre de sort (8pts). Chance (+1 suc auto)" },
+        effects: { description: "Chance (+1 suc auto)", runePoints: 8 },
         requirements: { chance: 2 },
         requiresSkill: { "Divination": 3, "Folklore": 2 },
         incompatible: ["Foudre de guerre", "Huskarl", "Berserk", "Marin", "Godi"]
@@ -305,7 +305,7 @@ const TRAITS = [
     {
         name: "Leader né",
         description: "Guerrier charismatique, vous maîtrisez les runes orales (Galdr) pour hurler des ordres qui galvanisent vos troupes ou terrifient vos ennemis au cœur de la mêlée.",
-        effects: { actions: 1, description: "Livre de sort (3pts)" },
+        effects: { actions: 1, runePoints: 3 },
         requirements: { charisme: 2 },
         incompatible: ["Berserk", "Aveugle", "Godi", "Foudre de guerre", "Duelliste"]
     },
@@ -355,7 +355,7 @@ const TRAITS = [
     {
         name: "Sanglant",
         description: "Vous avez la fâcheuse tendance à démembrer vos ennemis. Vos exactions rendent les cadavres méconnaissables et vous donnent une réputation terrifiante.",
-        effects: { description: "+1 token blessure sur dégâts, +1 SAGA totale, Charisme (-1 suc auto)" },
+        effects: { description: "+1 token blessure sur dégâts, Charisme (-1 suc auto)", sagaBonus: 1 },
         requirements: { force: 3 },
         incompatible: ["Grand guérisseur", "Lien avec les Landvættir", "Sous le regard de Freyr"]
     },
@@ -369,14 +369,14 @@ const TRAITS = [
     {
         name: "Noble lignée",
         description: "Le sang des Jarls coule dans vos veines. Même si votre famille a perdu son influence, vous gardez une prestance et un statut naturel qui imposent le respect.",
-        effects: { description: "Charisme (+1 suc auto), +1 SAGA totale" },
+        effects: { description: "Charisme (+1 suc auto)", sagaBonus: 1 },
         requirements: {},
         incompatible: ["Berserk", "Ancien esclave", "Langue de serpent", "Dette de sang", "Serment rompu", "Porte-poisse", "Marqué par les Nornes", "Né sous mauvais augure", "Dernier de la lignée", "Bâtard reconnu", "Orphelin aguerri", "Sang de troll"]
     },
     {
         name: "Grand guérisseur",
         description: "Formé à soigner les plaies de guerre les plus hideuses, vous avez acquis votre renommée en sauvant la vie d'un personnage important.",
-        effects: { description: "+1 SAGA totale, Soin (-1 tokens de blessure gratuit)" },
+        effects: { description: "Soin (-1 tokens de blessure gratuit)", sagaBonus: 1 },
         requiresSkill: { "Docteur": 2 },
         incompatible: ["Force de géant", "Sanglant", "Duelliste", "Serment rompu", "Porte-poisse", "Né sous mauvais augure"]
     },
@@ -391,7 +391,7 @@ const TRAITS = [
         name: "Langue de serpent",
         description: "Menteur pathologique et séducteur invétéré, vous n'avez aucun scrupule à manipuler les gens. Votre éloquence est votre meilleure arme.",
         effects: { description: "Charisme (+2 suc auto)" },
-        requirements: {},
+        requirements: { agilite: 2},
         incompatible: ["Noble lignée", "Skald", "Godi", "Tueur de monstre", "Sous le regard de Tyr", "Connaissance des runes", "Vaurien"]
     },
     {
@@ -423,20 +423,6 @@ const TRAITS = [
         incompatible: []
     },
     {
-        name: "Forme de loup",
-        description: "Un esprit animal sommeille en vous. Vous pouvez vous transformer partiellement, gagnant la rapidité du loup, mais la bête cherche parfois à prendre le contrôle.",
-        effects: { actions: 2, description: "Perception (+1 suc auto), +1 SAGA totale. Forme: Action +2" },
-        requirements: {},
-        incompatible: []
-    },
-    {
-        name: "Forme d'ours",
-        description: "Lié à l'esprit de l'ours, vous pouvez adopter sa résistance et sa férocité, communiquant avec ses semblables au prix d'une lutte intérieure constante.",
-        effects: { armure: 2, description: "Perception (+1 suc auto), +1 SAGA totale. Forme: Armure +2, CàC (+1 suc auto)" },
-        requirements: {},
-        incompatible: []
-    },
-    {
         name: "Divorcé",
         description: "Votre mariage arrangé fut un échec retentissant. L'union a été dissoute pour incompatibilité, vous laissant une certaine débrouillardise solitaire.",
         effects: { description: "Survie (+1 suc auto)" },
@@ -460,7 +446,7 @@ const TRAITS = [
     {
         name: "Banni",
         description: "Jugé coupable par le Thing, vous êtes un hors-la-loi. Vous ne pouvez revenir sur vos terres natales qu'en conquérant, ce qui vous a appris à survivre en marge.",
-        effects: { description: "Survie (+1 suc auto), +1 SAGA totale" },
+        effects: { description: "Survie (+1 suc auto)", sagaBonus: 1 },
         requirements: { chance: 1 },
         incompatible: []
     },
@@ -509,7 +495,7 @@ const TRAITS = [
     {
         name: "Insaisissable",
         description: "Anguille sur le champ de bataille, vous misez tout sur la mobilité, refusant les armures lourdes qui vous ralentiraient.",
-        effects: { seuil: 1, description: "Esquive (+1 suc auto). Si Armure légère/nulle: SEUIL +1 contre CàC" },
+        effects: { seuil: 1, description: "Si Armure légère/nulle: SEUIL +1 contre CàC" },
         requirements: { agilite: 3 },
         incompatible: ["Peau dure", "Berserk", "Huskarl", "Force de géant", "Foudre de guerre", "Taille imposante"]
     },
@@ -530,14 +516,14 @@ const TRAITS = [
     {
         name: "Connaissance des runes",
         description: "Vous avez appris ou avez eu une révélation pendant un rêve sur la signification et l'utilisation des Runes. Votre savoir vous permet de maîtriser en partie les runes et leurs pouvoirs.",
-        effects: { description: "Livre de sort (5pts)" },
+        effects: { runePoints: 5 },
         requiresSkill: { "Folklore": 3 },
         incompatible: ["Langue de serpent", "Vaurien"]
     },
     {
         name: "Marqué par les Nornes",
         description: "Une marque physique singulière (difformité, tache de naissance, hétérochromie, six doigts) présente depuis ta naissance trahit que les Nornes ont tissé un destin exceptionnel pour toi. Tu es promis à la grandeur ou à la tragédie, mais jamais à l'oubli.",
-        effects: { description: "+2 SAGA totale, Chance (+1 suc auto), Charisme (-1 suc auto). Obligation narrative MJ" },
+        effects: { sagaBonus: 2, description: "Chance (+1 suc auto), Charisme (-1 suc auto). Obligation narrative MJ" },
         requirements: {},
         incompatible: ["Ancien esclave", "Sang de troll", "Noble lignée", "Né sous mauvais augure", "Porte-poisse"]
     },
@@ -558,7 +544,7 @@ const TRAITS = [
     {
         name: "Survivant miraculeux",
         description: "Tu as survécu à quelque chose qui aurait dû te tuer : noyade, incendie, chute de falaise, massacre. Ton corps porte les cicatrices mais ton esprit refuse de céder.",
-        effects: { armure: 1, description: "Armure +1 (peau endurcie), Survie (+1 suc auto), +1 SAGA totale" },
+        effects: { armure: 1, description: "Armure +1 (peau endurcie), Survie (+1 suc auto)", sagaBonus: 1 },
         requirements: { force: 2, chance: 2 },
         incompatible: ["Peau dure"]
     },
@@ -572,7 +558,7 @@ const TRAITS = [
     {
         name: "Tueur de monstre",
         description: "Tu as tué une créature légendaire : ours colossal, loup immense aux yeux de braise, géant de glace. Tu portes un trophée bien visible.",
-        effects: { description: "Intimidation (+1 suc auto), +1 SAGA totale" },
+        effects: { description: "Intimidation (+1 suc auto)", sagaBonus: 1 },
         requirements: { force: 3 },
         requiresSkill: { "Combat CàC": 3 },
         incompatible: ["Langue de serpent"]
@@ -580,42 +566,42 @@ const TRAITS = [
     {
         name: "Sous le regard d'Odin",
         description: "Le Père-de-Tout semble t'observer. Les corbeaux te suivent, tes intuitions se révèlent justes. Coïncidence ou faveur du dieu borgne ?",
-        effects: { description: "Intelligence (+1 suc auto), +1 SAGA totale" },
+        effects: { description: "Intelligence (+1 suc auto)", sagaBonus: 1 },
         requirements: { intelligence: 2 },
         incompatible: ["Godi", "Berserk", "Sous le regard de Thor", "Sous le regard de Tyr", "Sous le regard de Freyr", "Sous le regard de Freyja", "Sous le regard de Loki"]
     },
     {
         name: "Sous le regard de Thor",
         description: "Le Tonnerre semble te protéger. Tu as survécu à des orages mortels. Tes coups frappent avec une force surprenante.",
-        effects: { description: "Force (+1 suc auto), +1 SAGA totale" },
+        effects: { description: "Force (+1 suc auto)", sagaBonus: 1 },
         requirements: { force: 3 },
         incompatible: ["Godi", "Sous le regard d'Odin", "Sous le regard de Tyr", "Sous le regard de Freyr", "Sous le regard de Freyja", "Sous le regard de Loki"]
     },
     {
         name: "Sous le regard de Tyr",
         description: "Tu es un parangon d'honneur et de courage. Ton bras ne tremble jamais, même face à la mort certaine. Tyr le Manchot semble guider ta lame.",
-        effects: { description: "Agilité (+1 suc auto), +1 SAGA totale" },
+        effects: { description: "Agilité (+1 suc auto)", sagaBonus: 1 },
         requirements: { agilite: 2 },
         incompatible: ["Godi", "Langue de serpent", "Berserk", "Sous le regard d'Odin", "Sous le regard de Thor", "Sous le regard de Freyr", "Sous le regard de Freyja", "Sous le regard de Loki"]
     },
     {
         name: "Sous le regard de Freyr",
         description: "La fertilité et la prospérité te suivent. Tes champs donnent mieux, les animaux t'aiment, les affaires prospèrent. Le Seigneur des Récoltes te bénit.",
-        effects: { description: "Charisme (+1 suc auto), +1 SAGA totale" },
+        effects: { description: "Charisme (+1 suc auto)", sagaBonus: 1 },
         requirements: { charisme: 2 },
         incompatible: ["Godi", "Sanglant", "Sous le regard d'Odin", "Sous le regard de Thor", "Sous le regard de Tyr", "Sous le regard de Freyja", "Sous le regard de Loki"]
     },
     {
         name: "Sous le regard de Freyja",
         description: "La Maîtresse de la Magie et de la Beauté t'a remarqué. Tu es charismatique, ton intuition troublante, tes perceptions dépassent le commun.",
-        effects: { description: "Perception (+1 suc auto), +1 SAGA totale" },
+        effects: { description: "Perception (+1 suc auto)", sagaBonus: 1 },
         requirements: { perception: 2 },
         incompatible: ["Godi", "Sous le regard d'Odin", "Sous le regard de Thor", "Sous le regard de Tyr", "Sous le regard de Freyr", "Sous le regard de Loki"]
     },
     {
         name: "Sous le regard de Loki",
         description: "Le Dieu du Chaos et de la Ruse trouve ton existence amusante. Les coïncidences impossibles se multiplient : corde qui cède, ennemi qui trébuche. Chance pure ou manipulation divine ?",
-        effects: { description: "Chance (+1 suc auto), +1 SAGA totale" },
+        effects: { description: "Chance (+1 suc auto)", sagaBonus: 1 },
         requirements: { chance: 2 },
         incompatible: ["Godi", "Sous le regard d'Odin", "Sous le regard de Thor", "Sous le regard de Tyr", "Sous le regard de Freyr", "Sous le regard de Freyja"]
     },
@@ -657,14 +643,14 @@ const TRAITS = [
     {
         name: "Dernier de la lignée",
         description: "Dernier descendant d'une famille autrefois puissante. Le poids de perpétuer le nom repose sur tes épaules. Chaque échec est une trahison envers tes ancêtres.",
-        effects: { description: "+1 SAGA totale, Chance (-1 suc auto). Obligation narrative: pressions familiales/ennemis anciens" },
+        effects: { description: "Chance (-1 suc auto). Obligation narrative: pressions familiales/ennemis anciens", sagaBonus: 1 },
         requirements: { charisme: 2 },
         incompatible: ["Orphelin aguerri", "Ancien esclave", "Bâtard reconnu", "Noble lignée"]
     },
     {
         name: "Bâtard reconnu",
         description: "Enfant illégitime d'un noble. Ton père t'a reconnu publiquement, te donnant son nom mais pas son héritage. Les héritiers légitimes te méprisent.",
-        effects: { description: "+1 SAGA totale" },
+        effects: { sagaBonus: 1 },
         requirements: {},
         incompatible: ["Noble lignée", "Ancien esclave", "Orphelin aguerri", "Dernier de la lignée"]
     },
@@ -688,7 +674,7 @@ const TRAITS = [
 // RUNES (24 runes du Futhark)
 // ============================================
 
-const RUNES = [
+export const RUNES = [
     { symbol: "ᚠ", name: "Fehu", letter: "F", literal: "Bétail", esoteric: "Argent, richesse" },
     { symbol: "ᚢ", name: "Uruz", letter: "U", literal: "Aurochs", esoteric: "Force, virilité" },
     { symbol: "ᚦ", name: "Thurisaz", letter: "Th", literal: "Thor, Géant", esoteric: "Monstre, démon, chaos" },
@@ -719,7 +705,7 @@ const RUNES = [
 // NOMS DE CARACTÉRISTIQUES
 // ============================================
 
-const CARACNAMES = {
+export const CARACNAMES = {
     force: "Force",
     agilite: "Agilité",
     perception: "Perception",
@@ -732,7 +718,7 @@ const CARACNAMES = {
 // OBJETS / ÉQUIPEMENT
 // ============================================
 
-const ITEMS = [
+export const ITEMS = [
     // ARMES 1 MAIN
     {
         name: "Hache",
@@ -944,5 +930,43 @@ const ITEMS = [
     {
         name: "Once d'argent",
         category: "item"
+    }
+];
+
+// Templates NPCs
+export const NPC_TEMPLATES = [
+    {
+        name: 'Bandit',
+        blessure: 0,
+        blessureMax: 5,
+        armure: 1,
+        seuil: 1,
+        actionsMax: 1,
+        attaques: [
+            { name: 'Hache', succes: 6, explosion: 10, degats: 2 }
+        ]
+    },
+    {
+        name: 'Guerrier',
+        blessure: 0,
+        blessureMax: 5,
+        armure: 3,
+        seuil: 1,
+        actionsMax: 2,
+        attaques: [
+            { name: 'Épée', succes: 5, explosion: 9, degats: 2 },
+            { name: 'Bouclier (coup)', succes: 6, explosion: 10, degats: 1 }
+        ]
+    },
+    {
+        name: 'Loup',
+        blessure: 0,
+        blessureMax: 4,
+        armure: 0,
+        seuil: 2,
+        actionsMax: 2,
+        attaques: [
+            { name: 'Morsure', succes: 5, explosion: 9, degats: 2 }
+        ]
     }
 ];

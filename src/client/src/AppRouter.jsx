@@ -1,5 +1,10 @@
 // AppRouter.js - Router principal
 
+import React, {useState, useEffect} from "react";
+import GMView from "./components/GMView";
+import App from "./App";
+import {loadTheme, saveTheme} from "./tools/utils";
+
 const AppRouter = () => {
     const { useState, useEffect } = React;
     const [darkMode, setDarkMode] = useState(false);
@@ -34,10 +39,12 @@ const AppRouter = () => {
     };
     
     // Route /mj → GMView
-    if (currentPath === '/mj') {
+    if (currentPath === '/mj' || currentPath === '/gm') {
         return <GMView darkMode={darkMode} onToggleDarkMode={toggleDarkMode} />;
     }
     
     // Route / → App normal
     return <App darkMode={darkMode} onToggleDarkMode={toggleDarkMode} />;
 };
+
+export default AppRouter;

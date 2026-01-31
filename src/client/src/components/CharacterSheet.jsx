@@ -1,4 +1,17 @@
 // CharacterSheet.js - Fiche de personnage (LAYOUT CORRIGÉ V3)
+import React, { useState, useEffect } from "react";
+import DiceModal from './DiceModal';
+import EditModals from './EditModals';
+import EvolutionModal from './EvolutionModal';
+import {
+    formatExplosion, formatFullName,
+    formatSkillName,
+    getBestCharacteristic,
+    getBlessureMalus,
+    getFatigueMalus,
+    getSuccessThreshold
+} from "../tools/utils.js";
+import {CARACNAMES, TRAITS} from "../tools/data.js";
 
 const CharacterSheet = ({ character, onUpdate, onChangeTab }) => {
     console.log('[Render] CharacterSheet Fatigue:', character?.tokensFatigue);
@@ -381,3 +394,5 @@ const CharacterSheet = ({ character, onUpdate, onChangeTab }) => {
         </div>
     );
 };
+
+export default CharacterSheet;

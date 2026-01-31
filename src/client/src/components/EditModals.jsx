@@ -1,5 +1,10 @@
 // EditModals.js - Modales d'édition (Ajout compétences/traits)
 
+
+import React, { useState, useEffect } from "react";
+import {CARACNAMES, COMPETENCES, TRAITS} from "../tools/data.js";
+import {getSkillExamples, isSpecializableSkill} from "../tools/utils.js";
+
 const EditModals = ({ type, character, onClose, onUpdate }) => {
     const { useState } = React;
     
@@ -12,7 +17,7 @@ const EditModals = ({ type, character, onClose, onUpdate }) => {
 };
 
 // Modal Ajout Compétence
-const AddSkillModal = ({ character, onClose, onUpdate }) => {
+export const AddSkillModal = ({ character, onClose, onUpdate }) => {
     const { useState } = React;
     const [search, setSearch] = useState('');
     const [selected, setSelected] = useState(null);
@@ -171,7 +176,7 @@ const AddSkillModal = ({ character, onClose, onUpdate }) => {
 };
 
 // Modal Ajout Trait
-const AddTraitModal = ({ character, onClose, onUpdate }) => {
+export const AddTraitModal = ({ character, onClose, onUpdate }) => {
     const { useState } = React;
     const [selected, setSelected] = useState(null);
     const [traitSearch, setTraitSearch] = useState('');
@@ -328,3 +333,5 @@ const AddTraitModal = ({ character, onClose, onUpdate }) => {
         </div>
     );
 };
+
+export default EditModals;

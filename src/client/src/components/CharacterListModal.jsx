@@ -1,4 +1,5 @@
 // CharacterListModal.js - Modal de sélection de personnage
+import React, { useState, useEffect } from "react";
 
 const CharacterListModal = ({ currentCharId, onClose, onSelect }) => {
     const { useState, useEffect } = React;
@@ -118,3 +119,5 @@ const CharacterListModal = ({ currentCharId, onClose, onSelect }) => {
         </div>
     );
 };
+
+export default CharacterListModal;

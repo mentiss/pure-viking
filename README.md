@@ -52,14 +52,14 @@ pure-vikings-v3/
 │   │   │   └── dice.js       # API historique dés
 │   │   └── init-db.js        # Script initialisation
 │   ├── components/           # Composants React
-│   │   ├── CharacterSheet.js
-│   │   ├── CharacterCreation.js
-│   │   ├── DiceModal.js
-│   │   ├── EditModals.js
-│   │   ├── EvolutionModal.js
-│   │   ├── ThemeToggle.js
-│   │   └── RunesTab.js
-│   ├── App.js                # Application principale
+│   │   ├── CharacterSheet.jsx
+│   │   ├── CharacterCreation.jsx
+│   │   ├── DiceModal.jsx
+│   │   ├── EditModals.jsx
+│   │   ├── EvolutionModal.jsx
+│   │   ├── ThemeToggle.jsx
+│   │   └── RunesTab.jsx
+│   ├── App.jsx                # Application principale
 │   ├── data.js               # Compétences, traits, runes
 │   └── utils.js              # Fonctions utilitaires
 ├── database/                 # Base SQLite (gitignore)
@@ -137,7 +137,7 @@ npm run init-db    # Réinitialiser DB
 - **schema.sql** : Schéma complet de la DB
 - **db.js** : Logique initialisation (ne charge schéma que si DB n'existe pas)
 - **characters.js** : API avec helpers loadFullCharacter/saveFullCharacter
-- **App.js** : Gestion connexion backend, sauvegarde auto
+- **App.jsx** : Gestion connexion backend, sauvegarde auto
 
 ## ⚠️ Notes Importantes
 

@@ -1,4 +1,5 @@
 // AttackValidationQueue.js - File validation attaques pour MJ
+import React, { useState, useEffect } from "react";
 
 const AttackValidationQueue = ({ pendingAttacks, combatState, onValidate, onReject }) => {
     const { useState } = React;
@@ -151,3 +152,5 @@ const AttackValidationCard = ({ attack, combatState, onValidate, onReject, isEdi
         </div>
     );
 };
+
+export default AttackValidationQueue;

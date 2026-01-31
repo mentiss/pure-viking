@@ -1,5 +1,13 @@
 // GMView.js - Interface Maître du Jeu
 
+import React, { useState, useEffect } from "react";
+import './../tools/data.js';
+import AttackValidationQueue from './AttackValidationQueue';
+import GMDiceModal from './GMDiceModal';
+import {NPC_TEMPLATES} from "../tools/data.js";
+import {useSocket} from "../context/SocketContext.jsx";
+
+
 // Composant Card Combattant (vue MJ)
 const CombatantCardGM = ({ combatant, isActive, onUpdate, onRemove, onEdit, onDragStart, onDragOver, onDragEnd, combatActive, onNPCAttack }) => {
     const isPlayer = combatant.type === 'player';
@@ -187,43 +195,6 @@ const CombatantCardGM = ({ combatant, isActive, onUpdate, onRemove, onEdit, onDr
     );
 };
 
-// Templates NPCs
-const NPC_TEMPLATES = [
-    {
-        name: 'Bandit',
-        blessure: 0,
-        blessureMax: 5,
-        armure: 1,
-        seuil: 1,
-        actionsMax: 1,
-        attaques: [
-            { name: 'Hache', succes: 6, explosion: 10, degats: 2 }
-        ]
-    },
-    {
-        name: 'Guerrier',
-        blessure: 0,
-        blessureMax: 5,
-        armure: 3,
-        seuil: 1,
-        actionsMax: 2,
-        attaques: [
-            { name: 'Épée', succes: 5, explosion: 9, degats: 2 },
-            { name: 'Bouclier (coup)', succes: 6, explosion: 10, degats: 1 }
-        ]
-    },
-    {
-        name: 'Loup',
-        blessure: 0,
-        blessureMax: 4,
-        armure: 0,
-        seuil: 2,
-        actionsMax: 2,
-        attaques: [
-            { name: 'Morsure', succes: 5, explosion: 9, degats: 2 }
-        ]
-    }
-];
 
 // Modal Ajout NPC
 const AddNPCModal = ({ onClose, onAdd }) => {
@@ -1230,3 +1201,5 @@ const GMView = ({ darkMode, onToggleDarkMode }) => {
         </div>
     );
 };
+
+export default GMView;

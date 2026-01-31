@@ -1,5 +1,7 @@
 // TargetSelectionModal.js - Sélection cible après jet d'attaque
 
+import React, {useState} from "react";
+
 const TargetSelectionModal = ({ combatState, attackerCombatant, rollResult, character, onConfirm, onClose }) => {
     const { useState } = React;
     
@@ -43,9 +45,7 @@ const TargetSelectionModal = ({ combatState, attackerCombatant, rollResult, char
         const mr = Math.max(0, successes - targetThreshold); // Marge de réussite
         
         const rawDamage = weaponToUse.degats + mr;
-        const finalDamage = Math.max(0, rawDamage - (target.armure || 0));
-        
-        return finalDamage;
+        return Math.max(0, rawDamage - (target.armure || 0));
     };
     
     const suggestedDamage = selectedTarget ? calculateDamage(selectedTarget) : 0;
@@ -181,7 +181,7 @@ const TargetSelectionModal = ({ combatState, attackerCombatant, rollResult, char
                             <input
                                 type="number"
                                 min="0"
-                                value={customDamage !== null ? customDamage : suggestedDamage}
+                                value={customDamage ?? suggestedDamage}
                                 onChange={(e) => setCustomDamage(parseInt(e.target.value) || 0)}
                                 className="w-full px-3 py-2 border rounded text-viking-brown dark:text-viking-parchment dark:bg-gray-700"
                             />
@@ -209,3 +209,5 @@ const TargetSelectionModal = ({ combatState, attackerCombatant, rollResult, char
         </div>
     );
 };
+
+export default TargetSelectionModal;

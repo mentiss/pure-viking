@@ -23,7 +23,7 @@
 Les corrections suivantes nécessitent des modifications dans plusieurs fichiers. Voici le guide :
 
 ### 4. Dark Mode
-**Fichier** : `src/App.js` ligne ~169
+**Fichier** : `src/App.jsx` ligne ~169
 **Problème** : `setDarkMode is not a function`
 **Solution** : Vérifier que ThemeToggle reçoit bien `onToggle={toggleDarkMode}`
 ```jsx
@@ -31,7 +31,7 @@ Les corrections suivantes nécessitent des modifications dans plusieurs fichiers
 ```
 
 ### 5. Token Fatigue Visual
-**Fichier** : `src/components/CharacterSheet.js` ligne ~330
+**Fichier** : `src/components/CharacterSheet.jsx` ligne ~330
 **Problème** : Index 0 ET 1 affichés en pointillés
 **Solution** : Ne mettre `border-dashed` QUE sur index 0
 ```jsx
@@ -53,7 +53,7 @@ Les corrections suivantes nécessitent des modifications dans plusieurs fichiers
 ```
 
 ### 6. Nouvelle Compétence = 3 SAGA
-**Fichier** : `src/components/EvolutionModal.js` ligne ~10
+**Fichier** : `src/components/EvolutionModal.jsx` ligne ~10
 **Problème** : `newSkill: 1`
 **Solution** : Changer en `newSkill: 3`
 ```javascript
@@ -68,7 +68,7 @@ const costs = {
 ```
 
 ### 7. Bouton Copier URL
-**Fichier** : `src/App.js` ou `src/components/CharacterSheet.js`
+**Fichier** : `src/App.jsx` ou `src/components/CharacterSheet.jsx`
 **Ajouter** : Dans le header, après le code d'accès
 ```jsx
 {character && character.accessUrl && (
@@ -102,7 +102,7 @@ app.get('/:url', (req, res, next) => {
 });
 ```
 
-**Fichier Frontend** : `src/App.js` dans `useEffect` au chargement
+**Fichier Frontend** : `src/App.jsx` dans `useEffect` au chargement
 ```javascript
 useEffect(() => {
   const urlPath = window.location.pathname.substring(1); // Enlever le /
@@ -135,7 +135,7 @@ useEffect(() => {
 ```
 
 ### 9. Code Éditable
-**Fichier** : `src/components/CharacterSheet.js` dans la section Info Générale (mode édition)
+**Fichier** : `src/components/CharacterSheet.jsx` dans la section Info Générale (mode édition)
 **Ajouter** : Input pour modifier le code
 ```jsx
 {editMode && (
@@ -170,7 +170,7 @@ if (req.body.accessUrl) {
 ```
 
 ### 10. Code Custom à la Création
-**Fichier** : `src/components/CharacterCreation.js`
+**Fichier** : `src/components/CharacterCreation.jsx`
 **Ajouter** : Input pour code personnalisé (optionnel)
 ```jsx
 // Dans le state
@@ -216,9 +216,9 @@ while (db.prepare('SELECT id FROM characters WHERE access_url = ?').get(finalUrl
 ```
 
 ### 11. Menu Sélection Personnages
-**Fichier** : `src/App.js` + nouveau composant `CharacterListModal.js`
+**Fichier** : `src/App.jsx` + nouveau composant `CharacterListModal.jsx`
 
-**Dans App.js** : Ajouter bouton dans header
+**Dans App.jsx** : Ajouter bouton dans header
 ```jsx
 {mode === 'sheet' && (
   <button 
@@ -230,7 +230,7 @@ while (db.prepare('SELECT id FROM characters WHERE access_url = ?').get(finalUrl
 )}
 ```
 
-**Nouveau fichier** : `src/components/CharacterListModal.js`
+**Nouveau fichier** : `src/components/CharacterListModal.jsx`
 ```jsx
 const CharacterListModal = ({ currentCharId, onClose, onSelect }) => {
   const { useState, useEffect } = React;
@@ -311,13 +311,13 @@ const CharacterListModal = ({ currentCharId, onClose, onSelect }) => {
 - Malus fatigue (déjà correct dans utils.js)
 
 ### ⚠️ À Appliquer Manuellement
-1. Dark mode (1 ligne App.js)
-2. Token fatigue visuel (1 section CharacterSheet.js)
-3. newSkill cost (1 ligne EvolutionModal.js)
-4. Bouton copier URL (ajout App.js)
+1. Dark mode (1 ligne App.jsx)
+2. Token fatigue visuel (1 section CharacterSheet.jsx)
+3. newSkill cost (1 ligne EvolutionModal.jsx)
+4. Bouton copier URL (ajout App.jsx)
 5. Accès direct URL (backend + frontend)
-6. Code éditable (CharacterSheet.js + backend)
-7. Code custom création (CharacterCreation.js + backend)
+6. Code éditable (CharacterSheet.jsx + backend)
+7. Code custom création (CharacterCreation.jsx + backend)
 8. Menu sélection persos (nouveau composant)
 
 ## 🚀 INSTALLATION
@@ -341,10 +341,10 @@ npm run dev
 ## 📝 FICHIERS MODIFIÉS
 - ✅ `src/data.js` (remplacé par version complète)
 - ✅ `src/utils.js` (fils/fille corrigé)
-- ⚠️ `src/App.js` (dark mode + URL + menu)
-- ⚠️ `src/components/CharacterSheet.js` (tokens + copier + code éditable)
-- ⚠️ `src/components/EvolutionModal.js` (newSkill cost)
-- ⚠️ `src/components/CharacterCreation.js` (code custom)
+- ⚠️ `src/App.jsx` (dark mode + URL + menu)
+- ⚠️ `src/components/CharacterSheet.jsx` (tokens + copier + code éditable)
+- ⚠️ `src/components/EvolutionModal.jsx` (newSkill cost)
+- ⚠️ `src/components/CharacterCreation.jsx` (code custom)
 - ⚠️ `src/server/server.js` (route URL)
 - ⚠️ `src/server/routes/characters.js` (validation)
-- ⚠️ **NOUVEAU** `src/components/CharacterListModal.js`
+- ⚠️ **NOUVEAU** `src/components/CharacterListModal.jsx`

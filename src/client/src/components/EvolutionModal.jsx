@@ -1,5 +1,9 @@
 // EvolutionModal.js - Modal d'évolution (Dépense SAGA)
 
+import React, { useState, useEffect } from "react";
+import {formatSkillName, getSkillExamples, isSpecializableSkill} from "../tools/utils.js";
+import {CARACNAMES, COMPETENCES, TRAITS} from "../tools/data.js";
+
 const EvolutionModal = ({ character, onClose, onUpdate }) => {
     const { useState } = React;
     
@@ -389,3 +393,5 @@ const EvolutionModal = ({ character, onClose, onUpdate }) => {
         </div>
     );
 };
+
+export default EvolutionModal;

@@ -1,4 +1,5 @@
 // traitBonuses.js - Calcul des bonus/malus de traits sur jets
+import {TRAITS} from "./data.js";
 
 const getTraitBonuses = (character, rollType, rollTarget) => {
     const bonuses = {
@@ -325,3 +326,5 @@ const getTraitBonuses = (character, rollType, rollTarget) => {
     
     return bonuses;
 };
+
+export default getTraitBonuses;

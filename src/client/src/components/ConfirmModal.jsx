@@ -1,4 +1,5 @@
 // ConfirmModal.js - Modal de confirmation générique
+import React, { useState, useEffect } from "react";
 
 const ConfirmModal = ({ title, message, onConfirm, onCancel, confirmText = 'Confirmer', cancelText = 'Annuler', danger = false }) => {
     return (
@@ -34,3 +35,6 @@ const ConfirmModal = ({ title, message, onConfirm, onCancel, confirmText = 'Conf
         </div>
     );
 };
+
+
+export default ConfirmModal;

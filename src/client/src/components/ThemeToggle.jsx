@@ -1,4 +1,5 @@
 // ThemeToggle.js - Composant toggle mode nuit
+import React from 'react';
 
 const ThemeToggle = ({ darkMode, onToggle }) => {
     return (
@@ -19,3 +20,5 @@ const ThemeToggle = ({ darkMode, onToggle }) => {
         </button>
     );
 };
+
+export default ThemeToggle;

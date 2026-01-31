@@ -1,5 +1,7 @@
 // GMDiceModal.js - Lanceur de dés simple pour MJ
 
+import React, { useState, useEffect } from "react";
+
 const GMDiceModal = ({ onClose, darkMode }) => {
     const { useState } = React;
     
@@ -167,3 +169,5 @@ const GMDiceModal = ({ onClose, darkMode }) => {
         </div>
     );
 };
+
+export default GMDiceModal;

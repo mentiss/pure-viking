@@ -1,43 +1,45 @@
 // utils.js - Fonctions utilitaires
 
 // Stockage local
-const saveCharacter = (character) => {
+import {COMPETENCES} from "./data.js";
+
+export const saveCharacter = (character) => {
     localStorage.setItem('pureVikingsCharacter', JSON.stringify(character));
 };
 
-const loadCharacter = () => {
+export const loadCharacter = () => {
     const saved = localStorage.getItem('pureVikingsCharacter');
     return saved ? JSON.parse(saved) : null;
 };
 
-const deleteCharacter = () => {
+export const deleteCharacter = () => {
     localStorage.removeItem('pureVikingsCharacter');
 };
 
 // Gestion du thème
-const saveTheme = (isDark) => {
+export const saveTheme = (isDark) => {
     localStorage.setItem('pureVikingsTheme', isDark ? 'dark' : 'light');
 };
 
-const loadTheme = () => {
+export const loadTheme = () => {
     return localStorage.getItem('pureVikingsTheme') === 'dark';
 };
 
 // Calculs de jeu
-const getExplosionThreshold = (level) => {
+export const getExplosionThreshold = (level) => {
     if (level <= 2) return [10];
     if (level <= 4) return [9, 10];
     return [8, 9, 10];
 };
 
-const getSuccessThreshold = (level) => {
+export const getSuccessThreshold = (level) => {
     if (level === 0 || level === 1) return 7;
     if (level === 2) return 6;
     if (level === 3 || level === 4) return 5;
     return 4;
 };
 
-const getBestCharacteristic = (character, skill) => {
+export const getBestCharacteristic = (character, skill) => {
     const comp = COMPETENCES.find(c => c.name === skill.name);
     if (!comp) return { name: 'force', level: 2 };
     
@@ -49,13 +51,13 @@ const getBestCharacteristic = (character, skill) => {
         : { name: comp.caracs[1], level: val2 };
 };
 
-const getBlessureMalus = (tokens) => {
+export const getBlessureMalus = (tokens) => {
     if (tokens === 0 || tokens === 1) return 0; // Premier gratuit
     if (tokens === 5) return 0; // KO, pas de jet
     return tokens - 1;
 };
 
-const getFatigueMalus = (tokens) => {
+export const getFatigueMalus = (tokens) => {
     if (tokens === 0 || tokens === 1) return 0; // Index 0 gratuit
     if (tokens === 2) return 1; // +1
     if (tokens === 3 || tokens === 4) return 2; // +2
@@ -65,7 +67,7 @@ const getFatigueMalus = (tokens) => {
 };
 
 // Système de dés
-const rollDice = (count, explosionThreshold) => {
+export const rollDice = (count, explosionThreshold) => {
     const results = [];
     let currentRoll = [];
     
@@ -85,12 +87,12 @@ const rollDice = (count, explosionThreshold) => {
     return results;
 };
 
-const countSuccesses = (diceResults, threshold) => {
+export const countSuccesses = (diceResults, threshold) => {
     return diceResults.filter(d => d >= threshold).length;
 };
 
 // Validation
-const canSelectTrait = (character, trait, maxTraits = 4) => {
+export const canSelectTrait = (character, trait, maxTraits = 4) => {
     const isSelected = character.traits.some(t => t.name === trait.name);
     
     // Vérifier la limite max
@@ -117,7 +119,7 @@ const canSelectTrait = (character, trait, maxTraits = 4) => {
 };
 
 // Formatage
-const formatFullName = (character) => {
+export const formatFullName = (character) => {
     const base = character.prenom;
     const surname = character.surnom ? ` "${character.surnom}"` : '';
     const parentType = character.sexe === 'homme' ? 'fils' : 'fille';
@@ -125,24 +127,24 @@ const formatFullName = (character) => {
     return base + surname + parent;
 };
 
-const formatExplosion = (level) => {
+export const formatExplosion = (level) => {
     const threshold = getExplosionThreshold(level);
     return threshold.join(', ');
 };
 
 // Compétences qui peuvent être prises plusieurs fois avec spécialisations différentes
-const SPECIALIZABLE_SKILLS = [
+export const SPECIALIZABLE_SKILLS = [
     "Combat CàC armé",
     "Combat à distance",
     "Langue orale",
     "Langue écrite"
 ];
 
-const isSpecializableSkill = (skillName) => {
+export const isSpecializableSkill = (skillName) => {
     return SPECIALIZABLE_SKILLS.includes(skillName);
 };
 
-const getSkillExamples = (skillName) => {
+export const getSkillExamples = (skillName) => {
     const examples = {
         "Combat CàC armé": "Hache, Épée, Lance, Masse, Marteau",
         "Combat à distance": "Arc, Javelot, Fronde, Hache de jet",
@@ -153,7 +155,7 @@ const getSkillExamples = (skillName) => {
 };
 
 // Format d'affichage d'une compétence avec spécialisation
-const formatSkillName = (skill) => {
+export const formatSkillName = (skill) => {
     if (!skill) return '';
     const base = skill.name;
     const spec = skill.specialization ? ` (${skill.specialization})` : '';

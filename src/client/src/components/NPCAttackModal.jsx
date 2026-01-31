@@ -1,4 +1,5 @@
 // NPCAttackModal.js - Modal attaque NPC avec sélection attaque
+import React, { useState, useEffect } from "react";
 
 const NPCAttackModal = ({ npc, combatState, onClose, onAttackSubmitted }) => {
     const { useState } = React;
@@ -217,3 +218,5 @@ const NPCDiceRoll = ({ attack, onClose, onRollComplete, npcName }) => {
         </div>
     );
 };
+
+export default NPCAttackModal;

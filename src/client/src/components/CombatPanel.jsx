@@ -1,4 +1,8 @@
 // CombatPanel.js - Panneau combat côté joueurs
+import React, { useState, useEffect } from "react";
+import AttackModal from "./AttackModal";
+import DiceModal from "./DiceModal.jsx";
+import {useSocket} from "../context/SocketContext.jsx";
 
 const CombatPanel = ({ character, onUpdateCharacter, onOpenDice }) => {
     const { useState, useEffect } = React;
@@ -343,7 +347,7 @@ const CombatPanel = ({ character, onUpdateCharacter, onOpenDice }) => {
 };
 
 // Modal Posture Défensive
-const PostureDefensiveModal = ({ character, isBerserk, onClose, onActivate }) => {
+export const PostureDefensiveModal = ({ character, isBerserk, onClose, onActivate }) => {
     const { useState } = React;
     const [type, setType] = useState('passif');
     const [showDiceModal, setShowDiceModal] = useState(false);
@@ -488,3 +492,5 @@ const PostureDefensiveModal = ({ character, isBerserk, onClose, onActivate }) =>
         </div>
     );
 };
+
+export default CombatPanel;

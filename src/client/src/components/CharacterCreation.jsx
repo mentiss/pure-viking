@@ -1,4 +1,13 @@
 // CharacterCreation.js - Composant de création de personnage
+import React, { useState, useEffect } from "react";
+import {
+    canSelectTrait, formatExplosion,
+    formatFullName,
+    formatSkillName,
+    getSkillExamples,
+    getSuccessThreshold, isSpecializableSkill
+} from "../tools/utils.js";
+import {CARACNAMES, COMPETENCES, RUNES, TRAITS} from "../tools/data.js";
 
 const CharacterCreation = ({ onComplete }) => {
     const { useState } = React;
@@ -622,7 +631,7 @@ const CharacterCreation = ({ onComplete }) => {
                             <div key={rune.name} className="p-3 bg-white dark:bg-viking-brown border-2 border-viking-leather dark:border-viking-bronze rounded-lg text-center">
                                 <div className="text-4xl mb-2">{rune.symbol}</div>
                                 <div className="font-semibold text-sm text-viking-brown dark:text-viking-parchment mb-1">{rune.name}</div>
-                                <div className="text-xs text-viking-leather dark:text-viking-bronze mb-2">{rune.meaning}</div>
+                                <div className="text-xs text-viking-leather dark:text-viking-bronze mb-2">{rune.literal}</div>
                                 <div className="flex items-center justify-center gap-2 mb-2">
                                     <button
                                         onClick={() => changeRuneLevel(rune.name, -1)}
@@ -879,3 +888,5 @@ const CharacterCreation = ({ onComplete }) => {
         </div>
     );
 };
+
+export default CharacterCreation;

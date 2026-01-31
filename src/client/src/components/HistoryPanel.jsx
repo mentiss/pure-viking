@@ -1,4 +1,6 @@
 // HistoryPanel.js - Panneau latéral historique jets de dés
+import React, { useState, useEffect } from "react";
+import {useSocket} from "../context/SocketContext.jsx";
 
 const HistoryPanel = ({ isOpen, onClose }) => {
     const { useState, useEffect } = React;
@@ -210,3 +212,5 @@ const HistoryPanel = ({ isOpen, onClose }) => {
         </>
     );
 };
+
+export default HistoryPanel;

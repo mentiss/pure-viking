@@ -1,4 +1,17 @@
 // App.js - Application principale (AVEC BACKEND)
+import React, {useState, useEffect} from "react";
+import {formatFullName} from "./tools/utils";
+import ThemeToggle from "./components/ThemeToggle";
+import CharacterCreation from "./components/CharacterCreation";
+import CharacterSheet from "./components/CharacterSheet";
+import DiceModal from "./components/DiceModal";
+import RunesTab from "./components/RunesTab";
+import InventoryTab from "./components/InventoryTab";
+import CharacterListModal from "./components/CharacterListModal";
+import ToastNotifications from "./components/ToastNotifications";
+import CombatPanel from "./components/CombatPanel";
+import HistoryPanel from "./components/HistoryPanel";
+import {useSocket} from "./context/SocketContext.jsx";
 
 const App = ({ darkMode, onToggleDarkMode }) => {
     const { useState, useEffect } = React;
@@ -20,6 +33,8 @@ const App = ({ darkMode, onToggleDarkMode }) => {
     const [runeTitle] = useState(() => runesTitles[Math.floor(Math.random() * runesTitles.length)]);
 
     useEffect(() => {
+        let isCancel = false;
+
         // Restaurer onglet depuis hash (#inventaire, #runes, etc.)
         const hash = window.location.hash.substring(1); // Enlever le #
         if (hash && ['fiche', 'dice', 'runes', 'inventaire', 'historique'].includes(hash)) {
@@ -32,25 +47,25 @@ const App = ({ darkMode, onToggleDarkMode }) => {
         if (urlPath && urlPath !== '' && !urlPath.startsWith('api') && !urlPath.startsWith('src')) {
             // Tenter de charger le personnage par URL
             fetch(`/api/characters/by-url/${urlPath}`)
-                .then(res => {
-                    if (res.ok) return res.json();
-                    throw new Error('Not found');
-                })
+                .then(res => res.ok ? res.json() : Promise.reject('Not found'))
                 .then(data => {
-                    setCharacter(data);
-                    setCharacterId(data.id);
-                    localStorage.setItem('currentCharacterId', data.id);
-                    setMode('sheet');
-                    // Nettoyer l'URL pour éviter confusion
-                    //window.history.replaceState({}, '', '/');
+                    if(!isCancel) {
+                        setCharacter(data);
+                        setCharacterId(data.id);
+                        localStorage.setItem('currentCharacterId', data.id);
+                        setMode('sheet');
+                    }
                 })
                 .catch(() => {
-                    // URL invalide, charger normalement
-                    loadCharacterFromBackend();
+                   if(!isCancel) loadCharacterFromBackend();
                 });
         } else {
             // Charger le personnage depuis backend normalement
             loadCharacterFromBackend();
+        }
+
+        return () => {
+            isCancel = true;
         }
     }, []);
     
@@ -69,6 +84,12 @@ const App = ({ darkMode, onToggleDarkMode }) => {
                 agilite: character.agilite || 1,
                 actionsMax: character.actionsDisponibles || 1
             });
+        }
+
+        return () => {
+            if(socket && character?.id) {
+                socket.emit('character-left', character.id);
+            }
         }
     }, [socket, character?.id, mode]);
     
@@ -527,3 +548,5 @@ const App = ({ darkMode, onToggleDarkMode }) => {
         </div>
     );
 };
+
+export default App;

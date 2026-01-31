@@ -1,4 +1,6 @@
 // InventoryTab.js - Gestion inventaire/équipement
+import React, { useState, useEffect } from "react";
+import {CARACNAMES, ITEMS} from "../tools/data.js";
 
 const InventoryTab = ({ character, onUpdate }) => {
     const { useState } = React;
@@ -956,3 +958,5 @@ const EditItemModal = ({ character, item, onClose, onUpdate }) => {
         </div>
     );
 };
+
+export default InventoryTab;

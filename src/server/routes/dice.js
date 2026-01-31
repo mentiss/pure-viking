@@ -60,6 +60,7 @@ router.post('/roll', (req, res) => {
         const io = req.app.get('io');
         if (io) {
             io.emit('dice-roll', rollData);
+            console.log(`[SERVER] Sending dice-roll event broadcast to ${io.sockets.sockets.size} clients`);
         }
         
         res.status(201).json(rollData);

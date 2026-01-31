@@ -1,14 +1,18 @@
 // ToastNotifications.js - Toast notifications pour jets de dés
+import React, {useState, useEffect} from "react";
+import {useSocket} from "../context/SocketContext.jsx";
 
 const ToastNotifications = ({ onViewHistory }) => {
     const { useState, useEffect } = React;
     const [toasts, setToasts] = useState([]);
-    
+    const socket = useSocket();
+
     useEffect(() => {
-        // Connexion Socket.IO
-        const socket = io();
+        if (!socket) return;
+
         
         socket.on('dice-roll', (rollData) => {
+            console.log(`[SOCKET] Received dice roll: ${rollData}`);
             const toast = {
                 id: Date.now(),
                 ...rollData,
@@ -24,7 +28,7 @@ const ToastNotifications = ({ onViewHistory }) => {
         });
         
         return () => socket.disconnect();
-    }, []);
+    }, [socket]);
     
     const removeToast = (id) => {
         setToasts(prev => prev.filter(t => t.id !== id));
@@ -116,3 +120,5 @@ const ToastNotifications = ({ onViewHistory }) => {
         </div>
     );
 };
+
+export default ToastNotifications;

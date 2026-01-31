@@ -5,7 +5,10 @@
   "main": "src/server/server.js",
   "scripts": {
     "start": "node src/server/server.js",
-    "dev": "nodemon src/server/server.js",
+    "dev": "concurrently \"npm run server-dev\" \"npm run client-dev\"",
+    "server-dev": "nodemon src/server/server.js",
+    "client-dev": "cd src/client && npm run dev",
+    "build": "cd src/client && npm run build",
     "init-db": "node src/server/init-db.js"
   },
   "keywords": [
@@ -25,6 +28,7 @@
     "socket.io": "^4.6.1"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "concurrently": "^9.2.1",
+    "nodemon": "^3.1.11"
   }
 }
