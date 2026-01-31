@@ -119,11 +119,14 @@ app.get('/api/health', (req, res) => {
 });
 
 // Static files - servir le frontend
-app.use(express.static(path.join(__dirname, '../../public')));
-app.use('/src', express.static(path.join(__dirname, '../')));
+app.use(express.static(path.join(__dirname, '../client/dist/')));
+//app.use('/src', express.static(path.join(__dirname, '../')));
 
 // Fallback pour SPA
 app.get('*', (req, res) => {
+    if (req.path.includes('.')) {
+        return res.status(404).send('File not found');
+    }
     if (req.path.startsWith('/api')) {
         return res.status(404).json({ error: 'API endpoint not found' });
     }
