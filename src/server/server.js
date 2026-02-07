@@ -7,11 +7,14 @@ const path = require('path');
 const https = require('https');
 const http = require('http');
 const { Server } = require('socket.io');
-const { initDatabase, closeDb } = require('./db');
+const { initDatabase, closeDb } = require('./utils/db');
+
+const cookieParser = require('cookie-parser');
 
 const charactersRouter = require('./routes/characters');
 const diceRouter = require('./routes/dice');
 const combatRouter = require('./routes/combat');
+const authRouter = require('./routes/auth');
 const compression = require('compression');
 const fs = require("node:fs");
 
@@ -43,6 +46,7 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser());
 
 // Logging
 app.use((req, res, next) => {
@@ -112,28 +116,37 @@ app.set('io', io);
 app.use('/api/characters', charactersRouter);
 app.use('/api/dice', diceRouter);
 app.use('/api/combat', combatRouter);
+app.use('/api/auth', authRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Static files - servir le frontend
-app.use(express.static(path.join(__dirname, '../client/dist/')));
-//app.use('/src', express.static(path.join(__dirname, '../')));
+if(process.env.NODE_ENV !== 'production') {
+    app.use('*', (req, res) => {
+        if (req.path.startsWith('/api')) {
+            return res.status(404).json({ error: 'API endpoint not found' });
+        }
+        return res.status(404).send('Use Vite dev server on port 5173');
+    });
+} else {
+    // Static files - servir le frontend
+    app.use(express.static(path.join(__dirname, '../client/dist/')));
+//
 
-// Fallback pour SPA
-app.get('*', (req, res) => {
-    if (req.path.includes('.')) {
-        return res.status(404).send('File not found');
-    }
-    if (req.path.startsWith('/api')) {
-        return res.status(404).json({ error: 'API endpoint not found' });
-    }
-    if(process.env.NODE_ENV === 'production') {
+    // Fallback pour SPA
+    app.get('*', (req, res) => {
+        if (req.path.includes('.')) {
+            return res.status(404).send('File not found');
+        }
+        if (req.path.startsWith('/api')) {
+            return res.status(404).json({ error: 'API endpoint not found' });
+        }
         res.sendFile(path.join(__dirname, '../client/dist/index.html'));
-    }
-});
+    });
+}
+
 
 // Error handler
 app.use((err, req, res, next) => {

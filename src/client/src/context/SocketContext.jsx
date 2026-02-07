@@ -11,10 +11,19 @@ export const SocketContextProvider = ({ children }) => {
         : "http://localhost:3001"; // En dev, on force le port du serveur Node
 
     useEffect(() => {
+        console.log('[SocketContextProvider] Mounting, creating socket...');
         const newSocket = io(socketUrl,{
             transports: ['websocket'],
             reconnection: true,
             reconnectionDelay: 1000
+        });
+
+        newSocket.on('connect', () => {
+            console.log('[SocketContextProvider] Socket connected:', newSocket.id);
+        });
+
+        newSocket.on('disconnect', (reason) => {
+            console.log('[SocketContextProvider] Socket disconnected:', reason);
         });
 
         setSocket(newSocket);
@@ -26,6 +35,8 @@ export const SocketContextProvider = ({ children }) => {
             }
         }
     }, []);
+
+    console.log('[SocketContextProvider] Rendering, socket:', socket ? socket.id : 'null');
 
     return (
         <SocketContext.Provider value={socket}>

@@ -2,7 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const combatState = require('../combatState');
+const combatState = require('../utils/combatState');
 
 // File attaques en attente (en mémoire)
 let pendingAttacks = [];
@@ -53,7 +53,7 @@ router.post('/validate-attack', (req, res) => {
     // Si joueur, update DB aussi
     if (target && target.type === 'player' && target.characterId) {
         try {
-            const db = require('../db').getDb();
+            const db = require('../utils/db').getDb();
             const charData = db.prepare('SELECT data FROM characters WHERE id = ?').get(target.characterId);
             
             if (charData) {

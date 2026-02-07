@@ -27,7 +27,7 @@ const ToastNotifications = ({ onViewHistory }) => {
             }, 5000);
         });
         
-        return () => socket.disconnect();
+        return () => socket.off('dice-roll');
     }, [socket]);
     
     const removeToast = (id) => {

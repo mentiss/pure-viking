@@ -2,6 +2,25 @@
 
 @config "../tailwind.config.js";
 
+/* Curseur pointer sur les éléments interactifs */
+button,
+a,
+[role="button"],
+input[type="submit"],
+input[type="button"],
+input[type="reset"],
+select,
+label[for] {
+  cursor: pointer;
+}
+
+/* Curseur par défaut sur les boutons disabled */
+button:disabled,
+input:disabled,
+select:disabled {
+  cursor: not-allowed;
+}
+
 /* Tu peux aussi remettre tes keyframes d'animation ici pour qu'elles soient globales */
 @layer base {
   @keyframes slide-in-right {

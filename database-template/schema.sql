@@ -4,6 +4,7 @@
 -- PERSONNAGES
 -- ============================================
 
+
 CREATE TABLE IF NOT EXISTS characters (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     

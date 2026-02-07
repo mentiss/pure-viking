@@ -1,5 +1,5 @@
 // init-db.js - Script d'initialisation de la base de données
-const { initDatabase, closeDb } = require('./db');
+const { initDatabase, closeDb } = require('./utils/db');
 
 console.log('');
 console.log('═══════════════════════════════════════');

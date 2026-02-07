@@ -24,18 +24,23 @@ const CharacterListModal = ({ currentCharId, onClose, onSelect }) => {
             });
     }, []);
     
-    const handleSelect = async (id) => {
-        try {
-            const res = await fetch(`/api/characters/${id}`);
-            if (!res.ok) throw new Error('Failed to load character');
-            const data = await res.json();
-            localStorage.setItem('currentCharacterId', data.id);
-            onSelect(data);
-            onClose();
-        } catch (err) {
-            console.error('Error loading character:', err);
-            alert('Erreur lors du chargement du personnage');
-        }
+    // const handleSelect = async (id) => {
+    //     try {
+    //         const res = await fetch(`/api/characters/${id}`);
+    //         if (!res.ok) throw new Error('Failed to load character');
+    //         const data = await res.json();
+    //         localStorage.setItem('currentCharacterId', data.id);
+    //         onSelect(data);
+    //         onClose();
+    //     } catch (err) {
+    //         console.error('Error loading character:', err);
+    //         alert('Erreur lors du chargement du personnage');
+    //     }
+    // };
+
+    const handleSelect = (char) => {
+        onSelect(char); // Passer le perso simplifié, pas le complet
+        onClose();
     };
     
     return (
@@ -73,7 +78,7 @@ const CharacterListModal = ({ currentCharId, onClose, onSelect }) => {
                                     return (
                                         <button
                                             key={char.id}
-                                            onClick={() => handleSelect(char.id)}
+                                            onClick={() => handleSelect(char)}
                                             className={`p-4 rounded-lg border-2 text-left transition-all ${
                                                 isCurrent
                                                     ? 'bg-viking-bronze border-viking-leather text-viking-brown'

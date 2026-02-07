@@ -1,7 +1,7 @@
 // routes/dice.js - API historique des jets de dés
 const express = require('express');
 const router = express.Router();
-const { getDb } = require('../db');
+const {getDb} = require('../utils/db');
 
 // POST /api/dice/roll - Enregistrer un jet de dés
 router.post('/roll', (req, res) => {

@@ -2,10 +2,11 @@
 const Database = require('better-sqlite3');
 const fs = require('fs');
 const path = require('path');
+const {generateAccessCode, generateAccessUrl} = require("./characters");
 
-const DB_PATH = path.join(__dirname, '../../database/pure-vikings.db');
-const DB_DIR = path.join(__dirname, '../../database');
-const SCHEMA_PATH = path.join(__dirname, '../../database-template/schema.sql');
+const DB_PATH = path.join(__dirname, '../../../database/pure-vikings.db');
+const DB_DIR = path.join(__dirname, '../../../database');
+const SCHEMA_PATH = path.join(__dirname, '../../../database-template/schema.sql');
 
 // Initialiser la base de données
 function initDatabase() {
@@ -70,26 +71,6 @@ function closeDb() {
         db = null;
         console.log('🔒 Database closed');
     }
-}
-
-// Générer un code d'accès unique (6 caractères)
-function generateAccessCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Pas de O, 0, I, 1 pour éviter confusion
-    let code = '';
-    for (let i = 0; i < 6; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return code;
-}
-
-// Générer une URL unique (slug)
-function generateAccessUrl() {
-    const adjectives = ['brave', 'fierce', 'wise', 'swift', 'strong', 'cunning', 'bold', 'mighty'];
-    const nouns = ['warrior', 'raider', 'skald', 'jarl', 'berserker', 'shield', 'axe', 'raven'];
-    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-    const noun = nouns[Math.floor(Math.random() * nouns.length)];
-    const num = Math.floor(Math.random() * 9999);
-    return `${adj}-${noun}-${num}`;
 }
 
 // Vérifier unicité et regénérer si nécessaire

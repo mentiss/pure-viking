@@ -98,12 +98,12 @@ const getTraitBonuses = (character, rollType, rollTarget) => {
         }
         
         // Grande concentration : +1 sur compétence choisie
-        if (trait.name === 'Grande concentration') {
+        if (trait.name === 'Grande concentration' && !isCaracRoll) {
             bonuses.conditional.push({
                 name: 'Grande concentration',
                 bonus: 1,
                 condition: 'Sur compétence choisie (à définir)',
-                applies: false // Le joueur doit choisir
+                applies: true // Le joueur doit choisir
             });
         }
         

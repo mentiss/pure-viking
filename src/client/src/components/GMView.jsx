@@ -6,6 +6,11 @@ import AttackValidationQueue from './AttackValidationQueue';
 import GMDiceModal from './GMDiceModal';
 import {NPC_TEMPLATES} from "../tools/data.js";
 import {useSocket} from "../context/SocketContext.jsx";
+import ThemeToggle from "./ThemeToggle.jsx";
+import NPCAttackModal from "./NPCAttackModal.jsx";
+import ToastNotifications from "./ToastNotifications.jsx";
+import HistoryPanel from "./HistoryPanel.jsx";
+import ConfirmModal from "./ConfirmModal.jsx";
 
 
 // Composant Card Combattant (vue MJ)
@@ -654,6 +659,7 @@ const RulesReference = () => {
 };
 
 const GMView = ({ darkMode, onToggleDarkMode }) => {
+    console.log('[GMView] Component rendering...');
     const { useState, useEffect } = React;
     
     const [combatState, setCombatState] = useState({
@@ -672,21 +678,30 @@ const GMView = ({ darkMode, onToggleDarkMode }) => {
     const [attackingNPC, setAttackingNPC] = useState(null);
     const [showEndCombatConfirm, setShowEndCombatConfirm] = useState(false);
     const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
-    
+
+    // Socket globale
+    const socket = useSocket();
+    console.log('[GMView] Socket from useSocket:', socket ? socket.id : 'null/undefined');
+
     // Charger état combat initial
     useEffect(() => {
+        console.log('[GMView] Mounting...');
         loadCombatState();
         loadOnlineCharacters();
         loadPendingAttacks();
+
+
+        return () => {
+            console.log('[GMView] Unmounting...');
+        };
     }, []);
     
-    // Socket globale
-    const socket = useSocket();
+
     
     // WebSocket listeners
     useEffect(() => {
         if (!socket) return;
-        
+        console.log('[GMView] Socket:', socket ? socket.id : 'null');
         const handleCombatUpdate = (state) => {
             console.log(state);
             setCombatState(state);

@@ -12,8 +12,15 @@ import ToastNotifications from "./components/ToastNotifications";
 import CombatPanel from "./components/CombatPanel";
 import HistoryPanel from "./components/HistoryPanel";
 import {useSocket} from "./context/SocketContext.jsx";
+import {useAuth} from "./context/AuthContext.jsx";
+import {useFetch} from "./hooks/useFetch.js";
+import LoginModal from "./components/LoginModal.jsx";
+import CodeModal from "./components/CodeModal.jsx";
 
 const App = ({ darkMode, onToggleDarkMode }) => {
+    const { user, loading: authLoading, logout } = useAuth();
+    const fetchWithAuth = useFetch();
+
     const { useState, useEffect } = React;
     
     const [character, setCharacter] = useState(null);
@@ -26,52 +33,76 @@ const App = ({ darkMode, onToggleDarkMode }) => {
     const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
     const [linkCopied, setLinkCopied] = useState(false);
     const [showCharMenu, setShowCharMenu] = useState(false);
+    const [selectedCharForCode, setSelectedCharForCode] = useState(null);
+    const [showCodeModal, setShowCodeModal] = useState(false);
     const [error, setError] = useState(null);
     
     // Titres en runes qui tournent
     const runesTitles = ['ᛟᛞᛁᚾ', 'ᚢᛁᚲᛁᛜ', 'ᛃᚨᚱᛚ', 'ᚢᛟᛚᚢᚨ', 'ᛊᚲᚨᛚᛞ', 'ᛈᚢᚱᛖ'];
     const [runeTitle] = useState(() => runesTitles[Math.floor(Math.random() * runesTitles.length)]);
 
+    // Socket globale unique
+    const socket = useSocket();
+
     useEffect(() => {
         let isCancel = false;
+        if (authLoading) return;
+
+        // Vérifier si on accède via URL directe (ex: /brave-warrior-1234)
+        const urlPath = window.location.pathname.substring(1); // Enlever le /
+
+        if (urlPath && urlPath !== '' && !urlPath.startsWith('api') && !urlPath.startsWith('src')) {
+            if(user && user.character.accessUrl === urlPath && !isCancel) {
+                console.log("User connected and path is correct for current character");
+                console.log(user);
+                setCharacter(user.character);
+                setCharacterId(user.character.id);
+                setMode('sheet');
+            } else {
+                console.log("User not connected and path exists");
+                // Tenter de charger le personnage par URL
+                fetch(`/api/characters/by-url/${urlPath}`)
+                    .then(res => res.ok ? res.json() : Promise.reject('Not found'))
+                    .then(data => {
+                        if(!isCancel) {
+                            setSelectedCharForCode(data);
+                            setShowCodeModal(true);
+                        } else if(!isCancel) {
+                            setMode('welcome');
+                            window.history.pushState({}, '', '/');
+                        }
+                    })
+                    .catch(() => {
+                        if(!isCancel) setMode('welcome');
+                    });
+            }
+        } else if(user) {
+            console.log("User connected and no path");
+            if(!isCancel) {
+                setCharacter(user.character);
+                setCharacterId(user.character.id);
+                setMode('sheet');
+                window.history.pushState({}, '', `/${user.character.accessUrl}`);
+                console.log('Set mod to sheet for connected user with character '+user.character.id);
+            }
+        } else {
+            console.log('Not connected and no path');
+            setMode('welcome');
+        }
 
         // Restaurer onglet depuis hash (#inventaire, #runes, etc.)
         const hash = window.location.hash.substring(1); // Enlever le #
         if (hash && ['fiche', 'dice', 'runes', 'inventaire', 'historique'].includes(hash)) {
             setActiveTab(hash);
-        }
-        
-        // Vérifier si on accède via URL directe (ex: /brave-warrior-1234)
-        const urlPath = window.location.pathname.substring(1); // Enlever le /
-        
-        if (urlPath && urlPath !== '' && !urlPath.startsWith('api') && !urlPath.startsWith('src')) {
-            // Tenter de charger le personnage par URL
-            fetch(`/api/characters/by-url/${urlPath}`)
-                .then(res => res.ok ? res.json() : Promise.reject('Not found'))
-                .then(data => {
-                    if(!isCancel) {
-                        setCharacter(data);
-                        setCharacterId(data.id);
-                        localStorage.setItem('currentCharacterId', data.id);
-                        setMode('sheet');
-                    }
-                })
-                .catch(() => {
-                   if(!isCancel) loadCharacterFromBackend();
-                });
-        } else {
-            // Charger le personnage depuis backend normalement
-            loadCharacterFromBackend();
+        } else if(mode === 'sheet') {
+            setActiveTab('fiche');
         }
 
         return () => {
             isCancel = true;
         }
-    }, []);
-    
-    // Socket globale unique
-    const socket = useSocket();
-    
+    }, [user, authLoading]);
+
     // Émettre character-loaded quand fiche chargée
     useEffect(() => {
         if (socket && character && mode === 'sheet') {
@@ -221,7 +252,7 @@ const App = ({ darkMode, onToggleDarkMode }) => {
         // Sauvegarder dans le backend
         if (characterId) {
             try {
-                await fetch(`/api/characters/${characterId}`, {
+                await fetchWithAuth(`/api/characters/${characterId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(updatedCharacter)
@@ -240,7 +271,7 @@ const App = ({ darkMode, onToggleDarkMode }) => {
                         
                         if (myCombatant) {
                             // Update combat state avec nouvelles valeurs
-                            await fetch(`/api/combat/combatant/${myCombatant.id}`, {
+                            await fetchWithAuth(`/api/combat/combatant/${myCombatant.id}`, {
                                 method: 'PUT',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
@@ -384,6 +415,19 @@ const App = ({ darkMode, onToggleDarkMode }) => {
                                             >
                                                 🗑️ Supprimer personnage
                                             </button>
+                                            <div className="border-t border-viking-leather dark:border-viking-bronze" />
+                                            <button
+                                                onClick={async () => {
+                                                    await logout();
+                                                    setCharacter(null);
+                                                    setCharacterId(null);
+                                                    setMode('welcome');
+                                                    window.history.pushState({}, '', '/');
+                                                }}
+                                                className="w-full px-4 py-2 text-left hover:bg-red-100 dark:hover:bg-red-900/30 flex items-center gap-2 text-sm transition-colors rounded-b-lg"
+                                            >
+                                                🚪 Déconnexion
+                                            </button>
                                         </div>
                                     </>
                                 )}
@@ -451,7 +495,7 @@ const App = ({ darkMode, onToggleDarkMode }) => {
                                     onClick={() => setShowCharacterList(true)}
                                     className="w-full px-6 py-4 bg-viking-parchment dark:bg-gray-800 hover:bg-viking-bronze/30 text-viking-text dark:text-viking-parchment rounded-lg font-semibold text-lg transition-colors"
                                 >
-                                    📋 Charger un personnage existant
+                                    📋 Se connecter
                                 </button>
                             </div>
                         </div>
@@ -507,11 +551,8 @@ const App = ({ darkMode, onToggleDarkMode }) => {
                     currentCharId={characterId || 0}
                     onClose={() => setShowCharacterList(false)}
                     onSelect={(char) => {
-                        setCharacter(char);
-                        setCharacterId(char.id);
-                        localStorage.setItem('currentCharacterId', char.id);
-                        setMode('sheet');
-                        setActiveTab('fiche');
+                        setSelectedCharForCode(char);
+                        setShowCodeModal(true);
                         setShowCharacterList(false);
                     }}
                 />
@@ -545,6 +586,23 @@ const App = ({ darkMode, onToggleDarkMode }) => {
                     }}
                 />
             )}
+
+            {/* Modal Code d'accès */}
+            <CodeModal
+                isOpen={showCodeModal}
+                onClose={() => {
+                    setShowCodeModal(false);
+                    setSelectedCharForCode(null);
+                }}
+                character={selectedCharForCode}
+                onSuccess={(loggedCharacter) => {
+                    setCharacter(loggedCharacter);
+                    setCharacterId(loggedCharacter.id);
+                    setMode('sheet');
+                    setActiveTab('sheet');
+                    window.history.pushState({}, '', `/${loggedCharacter.accessUrl}`);
+                }}
+            />
         </div>
     );
 };
