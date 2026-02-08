@@ -10,7 +10,7 @@ import {
 import getTraitBonuses from "../tools/traitBonuses.js";
 import {CARACNAMES} from "../tools/data.js";
 
-const DiceModal = ({ character, isBerserk, context, onClose, onUpdate }) => {
+const DiceModal = ({ character, isBerserk, context, onClose, onUpdate, sessionId = null }) => {
     const { useState, useEffect } = React;
     
     const [rollType, setRollType] = useState('carac');
@@ -38,6 +38,7 @@ const DiceModal = ({ character, isBerserk, context, onClose, onUpdate }) => {
                 body: JSON.stringify({
                     character_id: character.id,
                     character_name: characterName,
+                    session_id: sessionId,
                     roll_type: rollType,
                     roll_target: rollData.roll_target,
                     pool: rollData.pool,

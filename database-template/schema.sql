@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS characters (
     taille INTEGER,
     poids INTEGER,
     activite TEXT,
+    avatar TEXT,
     
     -- Caractéristiques (1-5)
     force INTEGER DEFAULT 2,
@@ -45,6 +46,8 @@ CREATE TABLE IF NOT EXISTS characters (
     tokens_fatigue INTEGER DEFAULT 0,
     
     -- Métadonnées
+    login_attempts INTEGER DEFAULT 0,
+    last_attempt_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_accessed DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -129,6 +132,7 @@ CREATE TABLE IF NOT EXISTS character_items (
 CREATE TABLE IF NOT EXISTS dice_history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     character_id INTEGER NOT NULL,
+    session_id INTEGER,
     roll_type TEXT NOT NULL, -- 'carac', 'skill', 'saga_heroic', 'saga_epic', 'saga_insurance'
     roll_target TEXT, -- Nom carac ou compétence
     pool INTEGER NOT NULL,
@@ -138,7 +142,8 @@ CREATE TABLE IF NOT EXISTS dice_history (
     saga_spent INTEGER DEFAULT 0,
     saga_recovered INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
+    FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE,
+    FOREIGN KEY (session_id) REFERENCES game_sessions(id) ON DELETE SET NULL
 );
 
 -- ============================================

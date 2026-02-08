@@ -1,30 +1,31 @@
 // ToastNotifications.js - Toast notifications pour jets de dés
 import React, {useState, useEffect} from "react";
-import {useSocket} from "../context/SocketContext.jsx";
+import {useSocket} from "../../context/SocketContext.jsx";
 
-const ToastNotifications = ({ onViewHistory }) => {
+const ToastNotifications = ({ onViewHistory, sessionId = null }) => {
     const { useState, useEffect } = React;
     const [toasts, setToasts] = useState([]);
     const socket = useSocket();
 
     useEffect(() => {
         if (!socket) return;
-
         
         socket.on('dice-roll', (rollData) => {
-            console.log(`[SOCKET] Received dice roll: ${rollData}`);
-            const toast = {
-                id: Date.now(),
-                ...rollData,
-                timestamp: Date.now()
-            };
-            
-            setToasts(prev => [toast, ...prev].slice(0, 3)); // Max 3 toasts
-            
-            // Auto-remove après 5 secondes
-            setTimeout(() => {
-                setToasts(prev => prev.filter(t => t.id !== toast.id));
-            }, 5000);
+            if(!sessionId || rollData.session_id === sessionId) {
+                console.log(`[SOCKET] Received dice roll: ${rollData}`);
+                const toast = {
+                    id: Date.now(),
+                    ...rollData,
+                    timestamp: Date.now()
+                };
+
+                setToasts(prev => [toast, ...prev].slice(0, 3)); // Max 3 toasts
+
+                // Auto-remove après 5 secondes
+                setTimeout(() => {
+                    setToasts(prev => prev.filter(t => t.id !== toast.id));
+                }, 5000);
+            }
         });
         
         return () => socket.off('dice-roll');

@@ -43,6 +43,7 @@ function loadFullCharacter(db, characterId) {
         taille: char.taille,
         poids: char.poids,
         activite: char.activite,
+        avatar: char.avatar,
         force: char.force,
         agilite: char.agilite,
         perception: char.perception,
@@ -69,6 +70,7 @@ function loadFullCharacter(db, characterId) {
 function saveFullCharacter(db, id, data) {
     const {
         playerName, prenom, surnom, nomParent, sexe, age, taille, poids, activite,
+        avatar,
         force, agilite, perception, intelligence, charisme, chance,
         armure, actionsDisponibles, seuilCombat,
         sagaActuelle, sagaTotale, tokensBlessure, tokensFatigue,
@@ -84,6 +86,7 @@ function saveFullCharacter(db, id, data) {
             armure = ?, actions_disponibles = ?, seuil_combat = ?,
             saga_actuelle = ?, saga_totale = ?,
             tokens_blessure = ?, tokens_fatigue = ?,
+            avatar = ?,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
     `).run(
@@ -92,7 +95,7 @@ function saveFullCharacter(db, id, data) {
         force, agilite, perception, intelligence, charisme, chance,
         armure, actionsDisponibles, seuilCombat,
         sagaActuelle, sagaTotale,
-        tokensBlessure, tokensFatigue,
+        tokensBlessure, tokensFatigue, avatar || null,
         id
     );
 

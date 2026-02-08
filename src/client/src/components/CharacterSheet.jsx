@@ -1,5 +1,5 @@
 // CharacterSheet.js - Fiche de personnage (LAYOUT CORRIGÉ V3)
-import React, { useState, useEffect } from "react";
+import React, {useState, useEffect, useCallback} from "react";
 import DiceModal from './DiceModal';
 import EditModals from './EditModals';
 import EvolutionModal from './EvolutionModal';
@@ -12,6 +12,8 @@ import {
     getSuccessThreshold
 } from "../tools/utils.js";
 import {CARACNAMES, TRAITS} from "../tools/data.js";
+import AvatarUploader from "./AvatarUploader.jsx";
+import {useSession} from "../context/SessionContext.jsx";
 
 const CharacterSheet = ({ character, onUpdate, onChangeTab }) => {
     console.log('[Render] CharacterSheet Fatigue:', character?.tokensFatigue);
@@ -23,6 +25,8 @@ const CharacterSheet = ({ character, onUpdate, onChangeTab }) => {
     const [showEditModal, setShowEditModal] = useState(null);
     const [showEvolutionModal, setShowEvolutionModal] = useState(false);
     const [diceContext, setDiceContext] = useState(null);
+    const [showAvatarUploader, setShowAvatarUploader] = useState(false);
+    const {activeGMSession} = useSession();
 
     const char = editMode ? editableChar : character;
     
@@ -129,35 +133,139 @@ const CharacterSheet = ({ character, onUpdate, onChangeTab }) => {
                         <h3 className="text-sm font-bold text-viking-brown dark:text-viking-parchment mb-2">Informations</h3>
                         {editMode ? (
                             <div className="space-y-1.5 text-xs">
-                                <div className="grid grid-cols-2 gap-1.5">
-                                    <input value={editableChar.prenom} onChange={e => setEditableChar({...editableChar, prenom: e.target.value})} placeholder="Prénom" className="px-2 py-1 border rounded text-xs bg-white dark:bg-gray-800 text-viking-text dark:text-viking-parchment" />
-                                    <input value={editableChar.surnom} onChange={e => setEditableChar({...editableChar, surnom: e.target.value})} placeholder="Surnom" className="px-2 py-1 border rounded text-xs bg-white dark:bg-gray-800 text-viking-text dark:text-viking-parchment" />
+                                <div className="flex items-start gap-4 mb-4">
+                                    {/* Avatar cliquable - même taille qu'en lecture */}
+                                    <div
+                                        onClick={() => setShowAvatarUploader(true)}
+                                        className="relative group cursor-pointer flex-shrink-0"
+                                        title={editableChar.avatar ? 'Modifier l\'avatar' : 'Ajouter un avatar'}
+                                    >
+                                        {editableChar.avatar ? (
+                                            <>
+                                                <img
+                                                    src={editableChar.avatar}
+                                                    alt="Avatar"
+                                                    className="w-20 h-20 rounded-full border-4 border-viking-bronze group-hover:opacity-75 transition-opacity"
+                                                />
+                                                <div
+                                                    className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 rounded-full">
+                                                    <span className="text-2xl">📸</span>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div
+                                                className="w-20 h-20 rounded-full border-4 border-dashed border-viking-leather dark:border-viking-bronze bg-gray-100 dark:bg-gray-800 flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-700 transition-colors">
+                                                <span className="text-2xl">📸</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Champs nom/surnom à côté de l'avatar */}
+                                    <div className="flex-1 space-y-2">
+                                        <div>
+                                            <label
+                                                className="block text-sm font-semibold text-viking-brown dark:text-viking-parchment mb-1">
+                                                Prénom *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={editableChar.prenom}
+                                                onChange={(e) => setEditableChar({
+                                                    ...editableChar,
+                                                    prenom: e.target.value
+                                                })}
+                                                className="w-full px-3 py-2 border-2 border-viking-leather dark:border-viking-bronze rounded bg-white dark:bg-gray-800 text-viking-text dark:text-viking-parchment"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label
+                                                className="block text-sm font-semibold text-viking-brown dark:text-viking-parchment mb-1">
+                                                Surnom
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={editableChar.surnom || ''}
+                                                onChange={(e) => setEditableChar({
+                                                    ...editableChar,
+                                                    surnom: e.target.value
+                                                })}
+                                                className="w-full px-3 py-2 border-2 border-viking-leather dark:border-viking-bronze rounded bg-white dark:bg-gray-800 text-viking-text dark:text-viking-parchment"
+                                                placeholder="Le Brave"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
-                                <input value={editableChar.nomParent} onChange={e => setEditableChar({...editableChar, nomParent: e.target.value})} placeholder="Parent" className="w-full px-2 py-1 border rounded text-xs bg-white dark:bg-gray-800 text-viking-text dark:text-viking-parchment" />
+                                <input value={editableChar.nomParent}
+                                       onChange={e => setEditableChar({...editableChar, nomParent: e.target.value})}
+                                       placeholder="Parent"
+                                       className="w-full px-2 py-1 border rounded text-xs bg-white dark:bg-gray-800 text-viking-text dark:text-viking-parchment"/>
                                 <div className="grid grid-cols-3 gap-1.5">
-                                    <input type="number" value={editableChar.age} onChange={e => setEditableChar({...editableChar, age: parseInt(e.target.value)||25})} placeholder="Âge" className="px-2 py-1 border rounded text-xs bg-white dark:bg-gray-800 text-viking-text dark:text-viking-parchment" />
-                                    <input type="number" value={editableChar.taille||''} onChange={e => setEditableChar({...editableChar, taille: parseInt(e.target.value)||undefined})} placeholder="Taille" className="px-2 py-1 border rounded text-xs bg-white dark:bg-gray-800 text-viking-text dark:text-viking-parchment" />
-                                    <input type="number" value={editableChar.poids||''} onChange={e => setEditableChar({...editableChar, poids: parseInt(e.target.value)||undefined})} placeholder="Poids" className="px-2 py-1 border rounded text-xs bg-white dark:bg-gray-800 text-viking-text dark:text-viking-parchment" />
+                                    <input type="number" value={editableChar.age} onChange={e => setEditableChar({
+                                        ...editableChar,
+                                        age: parseInt(e.target.value) || 25
+                                    })} placeholder="Âge"
+                                           className="px-2 py-1 border rounded text-xs bg-white dark:bg-gray-800 text-viking-text dark:text-viking-parchment"/>
+                                    <input type="number" value={editableChar.taille || ''}
+                                           onChange={e => setEditableChar({
+                                               ...editableChar,
+                                               taille: parseInt(e.target.value) || undefined
+                                           })} placeholder="Taille"
+                                           className="px-2 py-1 border rounded text-xs bg-white dark:bg-gray-800 text-viking-text dark:text-viking-parchment"/>
+                                    <input type="number" value={editableChar.poids || ''}
+                                           onChange={e => setEditableChar({
+                                               ...editableChar,
+                                               poids: parseInt(e.target.value) || undefined
+                                           })} placeholder="Poids"
+                                           className="px-2 py-1 border rounded text-xs bg-white dark:bg-gray-800 text-viking-text dark:text-viking-parchment"/>
                                 </div>
-                                <input value={editableChar.activite} onChange={e => setEditableChar({...editableChar, activite: e.target.value})} placeholder="Activité" className="w-full px-2 py-1 border rounded text-xs bg-white dark:bg-gray-800 text-viking-text dark:text-viking-parchment" />
+                                <input value={editableChar.activite}
+                                       onChange={e => setEditableChar({...editableChar, activite: e.target.value})}
+                                       placeholder="Activité"
+                                       className="w-full px-2 py-1 border rounded text-xs bg-white dark:bg-gray-800 text-viking-text dark:text-viking-parchment"/>
                                 <div className="mt-2 pt-2 border-t border-viking-leather dark:border-viking-bronze">
-                                    <label className="block text-xs text-viking-leather dark:text-viking-bronze mb-1">Code d'accès (partageable)</label>
-                                    <input 
-                                        value={editableChar.accessCode || ''} 
-                                        onChange={e => setEditableChar({...editableChar, accessCode: e.target.value.toUpperCase().substring(0,6)})}
+                                    <label className="block text-xs text-viking-leather dark:text-viking-bronze mb-1">Code
+                                        d'accès (partageable)</label>
+                                    <input
+                                        value={editableChar.accessCode || ''}
+                                        onChange={e => setEditableChar({
+                                            ...editableChar,
+                                            accessCode: e.target.value.toUpperCase().substring(0, 6)
+                                        })}
                                         placeholder="ABC123"
                                         maxLength={6}
                                         className="w-full px-2 py-1 border rounded text-xs bg-white dark:bg-gray-800 text-viking-text dark:text-viking-parchment font-mono"
                                     />
                                     <div className="text-xs text-viking-leather dark:text-viking-bronze mt-1">
-                                        Plusieurs persos peuvent avoir le même code (groupe)
+                                        Plusieurs persos peuvent avoir le même code
                                     </div>
                                 </div>
                             </div>
                         ) : (
                             <div className="text-xs space-y-1 text-viking-text dark:text-viking-parchment">
-                                <div className="font-bold text-sm">{formatFullName(char)}</div>
-                                <div>{char.playerName} | {char.sexe === 'homme' ? 'H' : 'F'}, {char.age}a{char.taille && `, ${char.taille}cm`}{char.poids && `, ${char.poids}kg`}</div>
+                                <div className="flex items-center gap-4 mb-6">
+                                    {character.avatar ? (
+                                        <img
+                                            src={character.avatar}
+                                            alt={`Avatar de ${character.prenom}`}
+                                            className="w-20 h-20 rounded-full border-4 border-viking-bronze flex-shrink-0"
+                                        />
+                                    ) : (
+                                        <div className="w-20 h-20 rounded-full border-4 border-dashed border-viking-leather dark:border-viking-bronze bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
+                                            <span className="text-3xl">👤</span>
+                                        </div>
+                                    )}
+
+                                    <div className="flex-1">
+                                        <h2 className="text-3xl font-bold text-viking-brown dark:text-viking-parchment">
+                                            {formatFullName(character)}
+                                        </h2>
+                                        <p className="text-viking-leather dark:text-viking-bronze">
+                                            {character.playerName}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div>{char.sexe === 'homme' ? 'H' : 'F'}, {char.age}a{char.taille && `, ${char.taille}cm`}{char.poids && `, ${char.poids}kg`}</div>
                                 <div>{char.activite}</div>
                             </div>
                         )}
@@ -388,9 +496,18 @@ const CharacterSheet = ({ character, onUpdate, onChangeTab }) => {
             </div>
 
             {/* Modales */}
-            {showDiceModal && <DiceModal character={character} isBerserk={false} context={diceContext} onClose={() => setShowDiceModal(false)} onUpdate={onUpdate} />}
+            {showDiceModal && <DiceModal character={character} isBerserk={false} context={diceContext} onClose={() => setShowDiceModal(false)} onUpdate={onUpdate} sessionId={activeGMSession} />}
             {showEditModal && <EditModals type={showEditModal} character={editableChar} onClose={() => setShowEditModal(null)} onUpdate={(newChar) => { setEditableChar(newChar); setShowEditModal(null); }} />}
             {showEvolutionModal && <EvolutionModal character={character} onClose={() => setShowEvolutionModal(false)} onUpdate={onUpdate} />}
+            {showAvatarUploader && (
+                <AvatarUploader
+                    currentAvatar={editableChar.avatar}
+                    onAvatarChange={(newAvatar) => {
+                        setEditableChar({...editableChar, avatar: newAvatar});
+                    }}
+                    onClose={() => setShowAvatarUploader(false)}
+                />
+            )}
         </div>
     );
 };

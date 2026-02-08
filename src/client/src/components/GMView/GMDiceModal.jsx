@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 
-const GMDiceModal = ({ onClose, darkMode }) => {
+const GMDiceModal = ({ onClose, darkMode, sessionId = null }) => {
     const { useState } = React;
     
     const [threshold, setThreshold] = useState(7);
@@ -44,6 +44,7 @@ const GMDiceModal = ({ onClose, darkMode }) => {
                 body: JSON.stringify({
                     character_id: -1,
                     character_name: 'MJ',
+                    session_id: sessionId,
                     roll_type: 'carac',
                     roll_target: 'Jet MJ',
                     pool: 3,

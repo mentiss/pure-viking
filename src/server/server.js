@@ -13,6 +13,7 @@ const cookieParser = require('cookie-parser');
 
 const charactersRouter = require('./routes/characters');
 const diceRouter = require('./routes/dice');
+const sessionsRouter = require('./routes/sessions');
 const combatRouter = require('./routes/combat');
 const authRouter = require('./routes/auth');
 const compression = require('compression');
@@ -64,7 +65,30 @@ let onlineCharacters = new Map(); // characterId -> { characterId, name, playerN
 // Socket.IO handlers
 io.on('connection', (socket) => {
     console.log('🔌 Client connected:', socket.id);
-    
+
+    // Event: GM définit la session active
+    socket.on('gm-set-active-session', (sessionId) => {
+        console.log(`[GM] Active session set to: ${sessionId}`);
+        // Broadcast à TOUS les clients pour qu'ils rejoignent la bonne room
+        io.emit('gm-session-active', sessionId);
+    });
+
+    // Event: Rejoindre une session (room)
+    socket.on('join-session', (sessionId) => {
+        if (sessionId) {
+            socket.join(`session-${sessionId}`);
+            console.log(`[Socket ${socket.id}] Joined session-${sessionId}`);
+        }
+    });
+
+    // Event: Quitter une session (room)
+    socket.on('leave-session', (sessionId) => {
+        if (sessionId) {
+            socket.leave(`session-${sessionId}`);
+            console.log(`[Socket ${socket.id}] Left session-${sessionId}`);
+        }
+    });
+
     // Événement : Un joueur charge une fiche
     socket.on('character-loaded', (data) => {
         onlineCharacters.set(data.characterId, {
@@ -113,10 +137,11 @@ app.get('/api/online-characters', (req, res) => {
 app.set('io', io);
 
 // Routes API
+app.use('/api/auth', authRouter);
 app.use('/api/characters', charactersRouter);
+app.use('/api/sessions', sessionsRouter);
 app.use('/api/dice', diceRouter);
 app.use('/api/combat', combatRouter);
-app.use('/api/auth', authRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

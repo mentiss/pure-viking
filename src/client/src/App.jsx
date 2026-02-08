@@ -1,21 +1,21 @@
 // App.js - Application principale (AVEC BACKEND)
 import React, {useState, useEffect} from "react";
 import {formatFullName} from "./tools/utils";
-import ThemeToggle from "./components/ThemeToggle";
+import ThemeToggle from "./components/shared/ThemeToggle.jsx";
 import CharacterCreation from "./components/CharacterCreation";
 import CharacterSheet from "./components/CharacterSheet";
 import DiceModal from "./components/DiceModal";
 import RunesTab from "./components/RunesTab";
 import InventoryTab from "./components/InventoryTab";
 import CharacterListModal from "./components/CharacterListModal";
-import ToastNotifications from "./components/ToastNotifications";
+import ToastNotifications from "./components/shared/ToastNotifications.jsx";
 import CombatPanel from "./components/CombatPanel";
-import HistoryPanel from "./components/HistoryPanel";
+import HistoryPanel from "./components/shared/HistoryPanel.jsx";
 import {useSocket} from "./context/SocketContext.jsx";
 import {useAuth} from "./context/AuthContext.jsx";
 import {useFetch} from "./hooks/useFetch.js";
-import LoginModal from "./components/LoginModal.jsx";
 import CodeModal from "./components/CodeModal.jsx";
+import {useSession} from "./context/SessionContext.jsx";
 
 const App = ({ darkMode, onToggleDarkMode }) => {
     const { user, loading: authLoading, logout } = useAuth();
@@ -36,6 +36,7 @@ const App = ({ darkMode, onToggleDarkMode }) => {
     const [selectedCharForCode, setSelectedCharForCode] = useState(null);
     const [showCodeModal, setShowCodeModal] = useState(false);
     const [error, setError] = useState(null);
+    const {activeGMSession, updateCharacterSessions} = useSession();
     
     // Titres en runes qui tournent
     const runesTitles = ['ᛟᛞᛁᚾ', 'ᚢᛁᚲᛁᛜ', 'ᛃᚨᚱᛚ', 'ᚢᛟᛚᚢᚨ', 'ᛊᚲᚨᛚᛞ', 'ᛈᚢᚱᛖ'];
@@ -43,6 +44,25 @@ const App = ({ darkMode, onToggleDarkMode }) => {
 
     // Socket globale unique
     const socket = useSocket();
+
+    useEffect(() => {
+        if (!character || character.id === -1) return;
+
+        const loadCharacterSessions = async () => {
+            try {
+                const response = await fetchWithAuth(`/api/characters/${character.id}/sessions`);
+                const sessions = await response.json();
+
+                console.log('[App] Character sessions:', sessions);
+                updateCharacterSessions(sessions);
+
+            } catch (error) {
+                console.error('[App] Error loading character sessions:', error);
+            }
+        };
+
+        loadCharacterSessions();
+    }, [character?.id]);
 
     useEffect(() => {
         let isCancel = false;
@@ -152,7 +172,6 @@ const App = ({ darkMode, onToggleDarkMode }) => {
             socket.off('character-update', onSocketCharacterUpdate);
         };
     }, [socket]);
-
 
     const loadCharacterFromBackend = async () => {
         try {
@@ -509,7 +528,7 @@ const App = ({ darkMode, onToggleDarkMode }) => {
                 {mode === 'sheet' && character && (
                     <>
                         {activeTab === 'fiche' && <CharacterSheet character={character} onUpdate={handleCharacterUpdate} onChangeTab={handleChangeTab} />}
-                        {activeTab === 'dice' && <DiceModal character={character} isBerserk={false} context={diceContext} onClose={() => handleChangeTab('fiche')} onUpdate={handleCharacterUpdate} />}
+                        {activeTab === 'dice' && <DiceModal character={character} isBerserk={false} context={diceContext} onClose={() => handleChangeTab('fiche')} onUpdate={handleCharacterUpdate} sessionId={activeGMSession} />}
                         {activeTab === 'runes' && <RunesTab character={character} onUpdate={handleCharacterUpdate} />}
                         {activeTab === 'inventaire' && <InventoryTab character={character} onUpdate={handleCharacterUpdate} />}
                         {activeTab === 'historique' && <div className="text-center p-8 text-viking-text dark:text-viking-parchment">Historique à venir...</div>}
@@ -570,10 +589,10 @@ const App = ({ darkMode, onToggleDarkMode }) => {
             )}
             
             {/* Toast Notifications */}
-            <ToastNotifications onViewHistory={() => setHistoryPanelOpen(true)} />
+            <ToastNotifications onViewHistory={() => setHistoryPanelOpen(true)} sessionId={activeGMSession} />
             
             {/* History Panel */}
-            <HistoryPanel isOpen={historyPanelOpen} onClose={() => setHistoryPanelOpen(false)} />
+            <HistoryPanel isOpen={historyPanelOpen} onClose={() => setHistoryPanelOpen(false)} sessionId={activeGMSession} />
             
             {/* Combat Panel */}
             {mode === 'sheet' && character && (

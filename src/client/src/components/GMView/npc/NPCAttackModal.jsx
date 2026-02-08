@@ -1,5 +1,7 @@
 // NPCAttackModal.js - Modal attaque NPC avec sélection attaque
 import React, { useState, useEffect } from "react";
+import TargetSelectionModal from "../../TargetSelectionModal.jsx";
+import {getBlessureMalus} from "../../../tools/utils.js";
 
 const NPCAttackModal = ({ npc, combatState, onClose, onAttackSubmitted }) => {
     const { useState } = React;
@@ -80,7 +82,7 @@ const NPCAttackModal = ({ npc, combatState, onClose, onAttackSubmitted }) => {
     
     // Step 2: Jet de dés custom
     if (step === 'roll') {
-        return <NPCDiceRoll attack={selectedAttack} npcName={npc.name} onClose={onClose} onRollComplete={handleRollComplete} />;
+        return <NPCDiceRoll attack={selectedAttack} npc={npc} onClose={onClose} onRollComplete={handleRollComplete} />;
     }
     
     // Step 3: Sélection cible
@@ -101,7 +103,7 @@ const NPCAttackModal = ({ npc, combatState, onClose, onAttackSubmitted }) => {
 };
 
 // Sous-composant : Jet de dés NPC custom
-const NPCDiceRoll = ({ attack, onClose, onRollComplete, npcName }) => {
+const NPCDiceRoll = ({ attack, onClose, onRollComplete, npc }) => {
     const { useState } = React;
     const [rolling, setRolling] = useState(false);
     const [result, setResult] = useState(null);
@@ -109,10 +111,19 @@ const NPCDiceRoll = ({ attack, onClose, onRollComplete, npcName }) => {
     
     const rollDice = () => {
         setRolling(true);
-        
+
+        let pool = 3;
+        const blessureMalus = getBlessureMalus(npc.blessure);
+        // if (npc.blessure === npc.blessureMax) {
+        //     //setDiceResults({ error: true, message: 'Impossible : KO / Mourant !' });
+        //     setRolling(false);
+        //     return;
+        // }
+        pool = Math.max(0, pool - blessureMalus);
+        console.log(npc, blessureMalus, pool);
         // Jet 3d10
         const rolls = [];
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < pool; i++) {
             let currentRoll = Math.floor(Math.random() * 10) + 1;
             rolls.push(currentRoll);
             
@@ -144,10 +155,10 @@ const NPCDiceRoll = ({ attack, onClose, onRollComplete, npcName }) => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     character_id: -1,
-                    character_name: npcName || 'PNJ',
+                    character_name: npc.name || 'PNJ',
                     roll_type: 'combat',
                     roll_target: attack.name,
-                    pool: 3,
+                    pool: pool,
                     threshold: attack.succes,
                     results: rolls,
                     successes,

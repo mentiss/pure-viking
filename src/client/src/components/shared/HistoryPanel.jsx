@@ -1,16 +1,20 @@
 // HistoryPanel.js - Panneau latéral historique jets de dés
 import React, { useState, useEffect } from "react";
-import {useSocket} from "../context/SocketContext.jsx";
+import {useSocket} from "../../context/SocketContext.jsx";
+import ConfirmModal from "./ConfirmModal.jsx";
 
-const HistoryPanel = ({ isOpen, onClose }) => {
+const HistoryPanel = ({ isOpen, onClose, sessionId = null }) => {
     const { useState, useEffect } = React;
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [showConfirmDelete, setShowConfirmDelete] = useState(null);
+    const [showConfirmReset, setShowConfirmReset] = useState(false);
     
     const loadHistory = async () => {
         setLoading(true);
         try {
-            const response = await fetch('/api/dice/history?limit=100');
+            const url = sessionId ? `/api/dice/history?limit=100&sessionId=${sessionId}` : `/api/dice/history?limit=100`;
+            const response = await fetch(url);
             const data = await response.json();
             setHistory(data);
         } catch (error) {
@@ -42,8 +46,6 @@ const HistoryPanel = ({ isOpen, onClose }) => {
     }, [socket]);
     
     const deleteRoll = async (id) => {
-        if (!confirm('Supprimer ce jet ?')) return;
-        
         try {
             await fetch(`/api/dice/history/${id}`, { method: 'DELETE' });
             setHistory(prev => prev.filter(h => h.id !== id));
@@ -53,10 +55,13 @@ const HistoryPanel = ({ isOpen, onClose }) => {
     };
     
     const resetHistory = async () => {
-        if (!confirm('⚠️ Supprimer TOUT l\'historique ? Cette action est irréversible.')) return;
-        
         try {
-            await fetch('/api/dice/history', { method: 'DELETE' });
+            if(sessionId) {
+                await fetch(`/api/dice/history/session/${sessionId}`, { method: 'DELETE' });
+            } else {
+                await fetch('/api/dice/history', { method: 'DELETE' });
+
+            }
             setHistory([]);
         } catch (error) {
             console.error('Error resetting history:', error);
@@ -112,7 +117,7 @@ const HistoryPanel = ({ isOpen, onClose }) => {
                         </h2>
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={resetHistory}
+                                onClick={() => setShowConfirmReset(true)}
                                 disabled={history.length === 0}
                                 className="px-2 py-1 bg-viking-leather dark:bg-gray-700 text-viking-parchment text-xs rounded hover:bg-red-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                                 title="Supprimer tout l'historique"
@@ -162,7 +167,7 @@ const HistoryPanel = ({ isOpen, onClose }) => {
                                             </div>
                                         </div>
                                         <button
-                                            onClick={() => deleteRoll(roll.id)}
+                                            onClick={() => setShowConfirmDelete(roll.id)}
                                             className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                                         >
                                             🗑️
@@ -209,6 +214,34 @@ const HistoryPanel = ({ isOpen, onClose }) => {
                     </div>
                 </div>
             </div>
+            {/* Modale confirmation suppression d'un jet */}
+            {showConfirmDelete && (
+                <ConfirmModal
+                    title="🗑️ Supprimer ce jet"
+                    message="Voulez-vous supprimer ce jet de l'historique ?"
+                    onConfirm={() => deleteRoll(showConfirmDelete)}
+                    onCancel={() => setShowConfirmDelete(null)}
+                    confirmText="Supprimer"
+                    cancelText="Annuler"
+                    danger={true}
+                />
+            )}
+
+            {/* Modale confirmation reset historique */}
+            {showConfirmReset && (
+                <ConfirmModal
+                    title="⚠️ Réinitialiser l'historique"
+                    message={sessionId
+                        ? "Voulez-vous supprimer TOUS les jets de cette session ? Cette action est irréversible."
+                        : "Voulez-vous supprimer TOUT l'historique ? Cette action est irréversible."
+                    }
+                    onConfirm={resetHistory}
+                    onCancel={() => setShowConfirmReset(false)}
+                    confirmText="Supprimer tout"
+                    cancelText="Annuler"
+                    danger={true}
+                />
+            )}
         </>
     );
 };

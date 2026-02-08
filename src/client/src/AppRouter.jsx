@@ -1,7 +1,7 @@
 // AppRouter.js - Router principal
 
 import React, {useState, useEffect} from "react";
-import GMView from "./components/GMView";
+import GMView from "./components/GMView/GMView.jsx";
 import App from "./App";
 import {loadTheme, saveTheme} from "./tools/utils";
 import CodeModal from "./components/CodeModal.jsx";

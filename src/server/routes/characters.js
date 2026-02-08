@@ -9,13 +9,14 @@ const {loadFullCharacter, generateAccessUrl, saveFullCharacter} = require("../ut
 router.get('/', (req, res) => {
     try {
         const db = getDb();
-        const characters = db.prepare('SELECT id, access_code, access_url, player_name, prenom, surnom, age, sexe, saga_actuelle, saga_totale, tokens_blessure, tokens_fatigue FROM characters ORDER BY updated_at DESC').all();
+        const characters = db.prepare('SELECT id, access_code, access_url, player_name, prenom, surnom, avatar, age, sexe, saga_actuelle, saga_totale, tokens_blessure, tokens_fatigue FROM characters ORDER BY updated_at DESC').all();
         res.json(characters.map(c => ({
             id: c.id,
             accessCode: c.access_code,
             accessUrl: c.access_url,
             playerName: c.player_name,
             name: `${c.prenom}${c.surnom ? ' "' + c.surnom + '"' : ''}`,
+            avatar: c.avatar,
             age: c.age,
             sexe: c.sexe,
             sagaActuelle: c.saga_actuelle,
@@ -25,6 +26,29 @@ router.get('/', (req, res) => {
         })));
     } catch (error) {
         console.error('Error fetching characters:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
+router.get('/:id/sessions', authenticate, requireOwnerOrGM, (req, res) => {
+    try {
+        const db = getDb();
+
+        // Récupérer les sessions auxquelles le personnage appartient
+        const sessions = db.prepare(`
+            SELECT gs.*, COUNT(sc2.character_id) as character_count
+            FROM game_sessions gs
+            INNER JOIN session_characters sc ON gs.id = sc.session_id
+            LEFT JOIN session_characters sc2 ON gs.id = sc2.session_id
+            WHERE sc.character_id = ?
+            GROUP BY gs.id
+            ORDER BY gs.updated_at DESC
+        `).all(req.params.id);
+
+        res.json(sessions);
+    } catch (error) {
+        console.error('Error fetching character sessions:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -49,6 +73,7 @@ router.get('/:id', authenticate, requireOwnerOrGM, (req, res) => {
     }
 });
 
+
 router.get('/by-url/:url', (req, res) => {
     try {
         const db = getDb();
@@ -72,6 +97,7 @@ router.get('/by-url/:url', (req, res) => {
 router.post('/', (req, res) => {
     try {
         const { playerName, prenom, surnom, nomParent, sexe, age, taille, poids, activite,
+                avatar,
                 force, agilite, perception, intelligence, charisme, chance,
                 armure, actionsDisponibles, seuilCombat,
                 sagaActuelle, sagaTotale, tokensBlessure, tokensFatigue,
@@ -111,7 +137,7 @@ router.post('/', (req, res) => {
         const result = db.prepare(`
             INSERT INTO characters (
                 access_code, access_url,
-                player_name, prenom, surnom, nom_parent, sexe, age, taille, poids, activite,
+                player_name, prenom, surnom, nom_parent, sexe, age, taille, poids, activite, avatar,
                 force, agilite, perception, intelligence, charisme, chance,
                 armure, actions_disponibles, seuil_combat,
                 saga_actuelle, saga_totale,
@@ -119,7 +145,7 @@ router.post('/', (req, res) => {
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
             code, finalUrl,
-            playerName, prenom, surnom, nomParent, sexe, age, taille, poids, activite,
+            playerName, prenom, surnom, nomParent, sexe, age, taille, poids, activite, avatar || null,
             force || 2, agilite || 2, perception || 2, intelligence || 2, charisme || 2, chance || 2,
             armure || 0, actionsDisponibles || 1, seuilCombat || 1,
             sagaActuelle || 3, sagaTotale || 3,

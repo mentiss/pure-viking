@@ -9,6 +9,7 @@ router.post('/roll', (req, res) => {
         const { 
             character_id, 
             character_name,
+            session_id,
             roll_type, 
             roll_target,
             pool, 
@@ -27,10 +28,11 @@ router.post('/roll', (req, res) => {
         const db = getDb();
         const result = db.prepare(`
             INSERT INTO dice_history 
-            (character_id, roll_type, roll_target, pool, threshold, results, successes, saga_spent, saga_recovered)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (character_id, session_id, roll_type, roll_target, pool, threshold, results, successes, saga_spent, saga_recovered)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
             character_id || null,
+            session_id || null,
             roll_type,
             roll_target || null,
             pool,
@@ -45,6 +47,7 @@ router.post('/roll', (req, res) => {
             id: result.lastInsertRowid,
             character_id,
             character_name: character_name || 'Anonyme',
+            session_id,
             roll_type,
             roll_target,
             pool,
@@ -59,8 +62,13 @@ router.post('/roll', (req, res) => {
         // Broadcast via WebSocket
         const io = req.app.get('io');
         if (io) {
-            io.emit('dice-roll', rollData);
-            console.log(`[SERVER] Sending dice-roll event broadcast to ${io.sockets.sockets.size} clients`);
+            if(session_id) {
+                io.to(`session-${session_id}`).emit('dice-roll', rollData);
+                console.log(`[SERVER] Sending dice-roll to session-${session_id}`);
+            } else {
+                io.emit('dice-roll', rollData);
+                console.log(`[SERVER] Sending dice-roll event broadcast to ${io.sockets.sockets.size} clients`);
+            }
         }
         
         res.status(201).json(rollData);
@@ -74,18 +82,31 @@ router.post('/roll', (req, res) => {
 router.get('/history/:characterId', (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 50;
+        const sessionId = req.query.sessionId;
         const db = getDb();
-        
-        const history = db.prepare(`
+
+        let query = `
             SELECT * FROM dice_history 
-            WHERE character_id = ? 
-            ORDER BY created_at DESC 
-            LIMIT ?
-        `).all(req.params.characterId, limit);
+            WHERE character_id = ?
+        `;
+
+        const params = [req.params.characterId];
+
+        // Filtrer par session
+        if (sessionId) {
+            query += ` AND session_id = ?`;
+            params.push(sessionId);
+        }
+
+        query += ` ORDER BY created_at DESC LIMIT ?`;
+        params.push(limit);
+
+        const history = db.prepare(query).all(...params);
         
         res.json(history.map(h => ({
             id: h.id,
             character_id: h.character_id,
+            session_id: h.session_id,
             roll_type: h.roll_type,
             pool: h.pool,
             threshold: h.threshold,
@@ -105,21 +126,34 @@ router.get('/history/:characterId', (req, res) => {
 router.get('/history', (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 100;
+        const sessionId = req.query.sessionId;
         const db = getDb();
-        
-        const history = db.prepare(`
+
+        let query = `
             SELECT dh.*, 
-                   COALESCE(c.prenom || ' "' || c.surnom || '"', c.prenom, 'Anonyme') as character_name,
+                   COALESCE(c.prenom || CASE WHEN c.surnom IS NOT NULL THEN ' "' || c.surnom || '"' ELSE '' END, c.prenom, 'Anonyme') as character_name,
                    c.player_name
             FROM dice_history dh
             LEFT JOIN characters c ON dh.character_id = c.id
-            ORDER BY dh.created_at DESC 
-            LIMIT ?
-        `).all(limit);
+        `;
+
+        const params = [];
+
+        // Filtrer par session si fourni
+        if (sessionId) {
+            query += ` WHERE dh.session_id = ?`;
+            params.push(sessionId);
+        }
+
+        query += ` ORDER BY dh.created_at DESC LIMIT ?`;
+        params.push(limit);
+
+        const history = db.prepare(query).all(...params);
         
         res.json(history.map(h => ({
             id: h.id,
             character_id: h.character_id,
+            session_id: h.session_id,
             character_name: h.character_name,
             player_name: h.player_name,
             roll_type: h.roll_type,
@@ -134,6 +168,22 @@ router.get('/history', (req, res) => {
         })));
     } catch (error) {
         console.error('Error fetching all dice history:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.delete('/history/session/:sessionId', (req, res) => {
+    try {
+        const db = getDb();
+        const result = db.prepare('DELETE FROM dice_history WHERE session_id = ?').run(req.params.id);
+
+        if (result.changes === 0) {
+            return res.status(404).json({ error: 'Session not found' });
+        }
+
+        res.json({ deleted: true, id: parseInt(req.params.id), count: result.changes });
+    } catch (error) {
+        console.error('Error deleting session history:', error);
         res.status(500).json({ error: error.message });
     }
 });

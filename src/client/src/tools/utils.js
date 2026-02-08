@@ -53,7 +53,7 @@ export const getBestCharacteristic = (character, skill) => {
 
 export const getBlessureMalus = (tokens) => {
     if (tokens === 0 || tokens === 1) return 0; // Premier gratuit
-    if (tokens === 5) return 0; // KO, pas de jet
+    if (tokens === 5) return 4; // KO, pas de jet
     return tokens - 1;
 };
 
