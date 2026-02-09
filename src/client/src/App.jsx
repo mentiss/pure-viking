@@ -16,6 +16,7 @@ import {useAuth} from "./context/AuthContext.jsx";
 import {useFetch} from "./hooks/useFetch.js";
 import CodeModal from "./components/CodeModal.jsx";
 import {useSession} from "./context/SessionContext.jsx";
+import SessionPlayersBar from "./components/SessionPlayersBar.jsx";
 
 const App = ({ darkMode, onToggleDarkMode }) => {
     const { user, loading: authLoading, logout } = useAuth();
@@ -37,6 +38,7 @@ const App = ({ darkMode, onToggleDarkMode }) => {
     const [showCodeModal, setShowCodeModal] = useState(false);
     const [error, setError] = useState(null);
     const {activeGMSession, updateCharacterSessions} = useSession();
+    const [activeSessionName, setActiveSessionName] = useState('');
     
     // Titres en runes qui tournent
     const runesTitles = ['ᛟᛞᛁᚾ', 'ᚢᛁᚲᛁᛜ', 'ᛃᚨᚱᛚ', 'ᚢᛟᛚᚢᚨ', 'ᛊᚲᚨᛚᛞ', 'ᛈᚢᚱᛖ'];
@@ -172,6 +174,25 @@ const App = ({ darkMode, onToggleDarkMode }) => {
             socket.off('character-update', onSocketCharacterUpdate);
         };
     }, [socket]);
+
+    useEffect(() => {
+        if (!activeGMSession) {
+            setActiveSessionName('');
+            return;
+        }
+
+        const loadSessionName = async () => {
+            try {
+                const response = await fetchWithAuth(`/api/sessions/${activeGMSession}`);
+                const session = await response.json();
+                setActiveSessionName(session.name);
+            } catch (error) {
+                console.error('Error loading session name:', error);
+            }
+        };
+
+        loadSessionName();
+    }, [activeGMSession]);
 
     const loadCharacterFromBackend = async () => {
         try {
@@ -482,58 +503,72 @@ const App = ({ darkMode, onToggleDarkMode }) => {
             )}
 
             {/* Content */}
-            <div className="max-w-7xl mx-auto p-4">
-                {error && (
-                    <div className="mb-4 p-4 bg-red-100 dark:bg-red-900/30 border-2 border-red-500 rounded-lg text-red-600 dark:text-red-400">
-                        {error}
-                        <button onClick={() => setError(null)} className="ml-2 underline">Fermer</button>
-                    </div>
+            <div className="flex">
+                {mode === 'sheet' && activeGMSession && (
+                    <SessionPlayersBar
+                        character={character}
+                        sessionId={activeGMSession}
+                        sessionName={activeSessionName}
+                    />
                 )}
+                <div className="flex-1 mx-auto p-4">
+                    {/* Barre des personnages de la session */}
 
-                {mode === 'loading' && (
-                    <div className="text-center p-8">
-                        <div className="text-2xl mb-4">⚔️</div>
-                        <div className="text-lg text-viking-text dark:text-viking-parchment">Chargement...</div>
-                    </div>
-                )}
+                    {error && (
+                        <div className="mb-4 p-4 bg-red-100 dark:bg-red-900/30 border-2 border-red-500 rounded-lg text-red-600 dark:text-red-400">
+                            {error}
+                            <button onClick={() => setError(null)} className="ml-2 underline">Fermer</button>
+                        </div>
+                    )}
 
-                {mode === 'welcome' && (
-                    <div className="max-w-2xl mx-auto mt-12">
-                        <div className="bg-white dark:bg-viking-brown rounded-lg shadow-xl p-8 border-4 border-viking-bronze">
-                            <h2 className="text-3xl font-viking font-bold text-viking-brown dark:text-viking-parchment mb-6 text-center">
-                                Bienvenue, Guerrier !
-                            </h2>
-                            <div className="space-y-4">
-                                <button
-                                    onClick={handleCreateNew}
-                                    className="w-full px-6 py-4 bg-viking-bronze hover:bg-viking-leather text-viking-brown rounded-lg font-semibold text-lg transition-colors shadow-lg"
-                                >
-                                    ⚔️ Créer un nouveau personnage
-                                </button>
-                                <button
-                                    onClick={() => setShowCharacterList(true)}
-                                    className="w-full px-6 py-4 bg-viking-parchment dark:bg-gray-800 hover:bg-viking-bronze/30 text-viking-text dark:text-viking-parchment rounded-lg font-semibold text-lg transition-colors"
-                                >
-                                    📋 Se connecter
-                                </button>
+                    {mode === 'loading' && (
+                        <div className="text-center p-8">
+                            <div className="text-2xl mb-4">⚔️</div>
+                            <div className="text-lg text-viking-text dark:text-viking-parchment">Chargement...</div>
+                        </div>
+                    )}
+
+                    {mode === 'welcome' && (
+                        <div className="max-w-2xl mx-auto mt-12">
+                            <div className="bg-white dark:bg-viking-brown rounded-lg shadow-xl p-8 border-4 border-viking-bronze">
+                                <h2 className="text-3xl font-viking font-bold text-viking-brown dark:text-viking-parchment mb-6 text-center">
+                                    Bienvenue, Guerrier !
+                                </h2>
+                                <div className="space-y-4">
+                                    <button
+                                        onClick={handleCreateNew}
+                                        className="w-full px-6 py-4 bg-viking-bronze hover:bg-viking-leather text-viking-brown rounded-lg font-semibold text-lg transition-colors shadow-lg"
+                                    >
+                                        ⚔️ Créer un nouveau personnage
+                                    </button>
+                                    <button
+                                        onClick={() => setShowCharacterList(true)}
+                                        className="w-full px-6 py-4 bg-viking-parchment dark:bg-gray-800 hover:bg-viking-bronze/30 text-viking-text dark:text-viking-parchment rounded-lg font-semibold text-lg transition-colors"
+                                    >
+                                        📋 Se connecter
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {mode === 'creation' && (
-                    <CharacterCreation onComplete={handleCreationComplete} />
-                )}
+                    {mode === 'creation' && (
+                        <CharacterCreation onComplete={handleCreationComplete} />
+                    )}
 
-                {mode === 'sheet' && character && (
-                    <>
-                        {activeTab === 'fiche' && <CharacterSheet character={character} onUpdate={handleCharacterUpdate} onChangeTab={handleChangeTab} />}
-                        {activeTab === 'dice' && <DiceModal character={character} isBerserk={false} context={diceContext} onClose={() => handleChangeTab('fiche')} onUpdate={handleCharacterUpdate} sessionId={activeGMSession} />}
-                        {activeTab === 'runes' && <RunesTab character={character} onUpdate={handleCharacterUpdate} />}
-                        {activeTab === 'inventaire' && <InventoryTab character={character} onUpdate={handleCharacterUpdate} />}
-                        {activeTab === 'historique' && <div className="text-center p-8 text-viking-text dark:text-viking-parchment">Historique à venir...</div>}
-                    </>
-                )}
+                    {mode === 'sheet' && character && (
+                        <>
+                            {activeTab === 'fiche' && <CharacterSheet character={character} onUpdate={handleCharacterUpdate} onChangeTab={handleChangeTab} />}
+                            {activeTab === 'dice' && <DiceModal character={character} isBerserk={false} context={diceContext} onClose={() => handleChangeTab('fiche')} onUpdate={handleCharacterUpdate} sessionId={activeGMSession} />}
+                            {activeTab === 'runes' && <RunesTab character={character} onUpdate={handleCharacterUpdate} />}
+                            {activeTab === 'inventaire' && <InventoryTab character={character} onUpdate={handleCharacterUpdate} />}
+                            {activeTab === 'historique' && <div className="text-center p-8 text-viking-text dark:text-viking-parchment">Historique à venir...</div>}
+                        </>
+                    )}
+
+
+                </div>
+
             </div>
 
             {/* Modal Suppression */}

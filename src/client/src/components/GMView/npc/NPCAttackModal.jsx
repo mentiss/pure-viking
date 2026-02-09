@@ -1,6 +1,6 @@
 // NPCAttackModal.js - Modal attaque NPC avec sélection attaque
 import React, { useState, useEffect } from "react";
-import TargetSelectionModal from "../../TargetSelectionModal.jsx";
+import TargetSelectionModal from "../../shared/TargetSelectionModal.jsx";
 import {getBlessureMalus} from "../../../tools/utils.js";
 
 const NPCAttackModal = ({ npc, combatState, onClose, onAttackSubmitted }) => {

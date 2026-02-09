@@ -1,7 +1,7 @@
 // AttackModal.js - Modal attaque combinée (jet + cible)
 import React, {useState, useEffect} from 'react';
 import DiceModal from './DiceModal';
-import TargetSelectionModal from './TargetSelectionModal';
+import TargetSelectionModal from './shared/TargetSelectionModal.jsx';
 
 const AttackModal = ({ character, combatState, myCombatant, onClose, onAttackSubmitted }) => {
     const { useState } = React;

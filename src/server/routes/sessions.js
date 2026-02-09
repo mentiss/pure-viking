@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const { getDb, ensureUniqueCode } = require('../utils/db');
-const { authenticate, requireGM } = require('../middlewares/auth');
+const { authenticate, requireGM, requireOwnerOrGM } = require('../middlewares/auth');
 
 // Helper: Charger session avec liste des persos
 function loadSessionWithCharacters(db, sessionId) {
@@ -77,7 +77,7 @@ router.get('/', authenticate, requireGM, (req, res) => {
 });
 
 // GET /api/sessions/:id - Détails d'une session avec liste des persos
-router.get('/:id', authenticate, requireGM, (req, res) => {
+router.get('/:id', authenticate, (req, res) => {
     try {
         const db = getDb();
         const session = loadSessionWithCharacters(db, req.params.id);
