@@ -14,6 +14,7 @@ const cookieParser = require('cookie-parser');
 const charactersRouter = require('./routes/characters');
 const diceRouter = require('./routes/dice');
 const sessionsRouter = require('./routes/sessions');
+const journalRouter = require('./routes/journal');
 const combatRouter = require('./routes/combat');
 const authRouter = require('./routes/auth');
 const compression = require('compression');
@@ -140,6 +141,7 @@ app.set('io', io);
 app.use('/api/auth', authRouter);
 app.use('/api/characters', charactersRouter);
 app.use('/api/sessions', sessionsRouter);
+app.use('/api/journal', journalRouter);
 app.use('/api/dice', diceRouter);
 app.use('/api/combat', combatRouter);
 

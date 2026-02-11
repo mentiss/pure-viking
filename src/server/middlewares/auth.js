@@ -30,7 +30,7 @@ function requireGM(req, res, next) {
 }
 
 function requireOwnerOrGM(req, res, next) {
-    const requestedCharacterId = parseInt(req.params.id);
+    const requestedCharacterId = parseInt(req.params.id || req.params.characterId);
     const characterId = req.user.characterId;
     const isGM = req.user.isGM;
 

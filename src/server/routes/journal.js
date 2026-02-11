@@ -1,0 +1,212 @@
+// routes/journal.js - API journal personnage (notes joueur + messages GM)
+const express = require('express');
+const router = express.Router();
+const { getDb } = require('../utils/db');
+const { authenticate, requireOwnerOrGM } = require('../middlewares/auth');
+
+// GET /api/journal/:characterId - Liste des entrées du journal
+// Query params: ?sessionId=X, ?type=note
+router.get('/:characterId', authenticate, requireOwnerOrGM, (req, res) => {
+    try {
+        const db = getDb();
+        const { characterId } = req.params;
+        const { sessionId, type } = req.query;
+
+        let query = `
+            SELECT 
+                cj.*,
+                gs.name as session_name
+            FROM character_journal cj
+            LEFT JOIN game_sessions gs ON cj.session_id = gs.id
+            WHERE cj.character_id = ?
+        `;
+        const params = [characterId];
+
+        if (sessionId) {
+            query += ' AND cj.session_id = ?';
+            params.push(sessionId);
+        }
+
+        if (type) {
+            query += ' AND cj.type = ?';
+            params.push(type);
+        }
+
+        query += ' ORDER BY cj.updated_at DESC';
+
+        const entries = db.prepare(query).all(...params);
+
+        res.json(entries.map(e => ({
+            id: e.id,
+            characterId: e.character_id,
+            sessionId: e.session_id,
+            sessionName: e.session_name,
+            type: e.type,
+            title: e.title,
+            body: e.body,
+            metadata: e.metadata ? JSON.parse(e.metadata) : null,
+            isRead: !!e.is_read,
+            createdAt: e.created_at,
+            updatedAt: e.updated_at
+        })));
+    } catch (error) {
+        console.error('Error fetching journal:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// POST /api/journal/:characterId - Créer une entrée
+router.post('/:characterId', authenticate, requireOwnerOrGM, (req, res) => {
+    try {
+        const db = getDb();
+        const { characterId } = req.params;
+        const { sessionId, type = 'note', title, body, metadata } = req.body;
+
+        // Vérifier que le personnage existe
+        const character = db.prepare('SELECT id FROM characters WHERE id = ?').get(characterId);
+        if (!character) {
+            return res.status(404).json({ error: 'Character not found' });
+        }
+
+        // Vérifier que la session existe si fournie
+        if (sessionId) {
+            const session = db.prepare('SELECT id FROM game_sessions WHERE id = ?').get(sessionId);
+            if (!session) {
+                return res.status(404).json({ error: 'Session not found' });
+            }
+        }
+
+        const result = db.prepare(`
+            INSERT INTO character_journal (character_id, session_id, type, title, body, metadata)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `).run(
+            characterId,
+            sessionId || null,
+            type,
+            title || null,
+            body || null,
+            metadata ? JSON.stringify(metadata) : null
+        );
+
+        // Recharger avec session_name
+        const entry = db.prepare(`
+            SELECT cj.*, gs.name as session_name
+            FROM character_journal cj
+            LEFT JOIN game_sessions gs ON cj.session_id = gs.id
+            WHERE cj.id = ?
+        `).get(result.lastInsertRowid);
+
+        res.status(201).json({
+            id: entry.id,
+            characterId: entry.character_id,
+            sessionId: entry.session_id,
+            sessionName: entry.session_name,
+            type: entry.type,
+            title: entry.title,
+            body: entry.body,
+            metadata: entry.metadata ? JSON.parse(entry.metadata) : null,
+            isRead: !!entry.is_read,
+            createdAt: entry.created_at,
+            updatedAt: entry.updated_at
+        });
+    } catch (error) {
+        console.error('Error creating journal entry:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// PUT /api/journal/:characterId/:entryId - Modifier une entrée
+router.put('/:characterId/:entryId', authenticate, requireOwnerOrGM, (req, res) => {
+    try {
+        const db = getDb();
+        const { characterId, entryId } = req.params;
+        const { title, body, isRead } = req.body;
+
+        // Vérifier que l'entrée existe et appartient au personnage
+        const entry = db.prepare(
+            'SELECT * FROM character_journal WHERE id = ? AND character_id = ?'
+        ).get(entryId, characterId);
+
+        if (!entry) {
+            return res.status(404).json({ error: 'Journal entry not found' });
+        }
+
+        // Construire l'update dynamiquement
+        const updates = [];
+        const params = [];
+
+        if (title !== undefined) {
+            updates.push('title = ?');
+            params.push(title);
+        }
+        if (body !== undefined) {
+            updates.push('body = ?');
+            params.push(body);
+        }
+        if (isRead !== undefined) {
+            updates.push('is_read = ?');
+            params.push(isRead ? 1 : 0);
+        }
+
+        if (updates.length === 0) {
+            return res.status(400).json({ error: 'No fields to update' });
+        }
+
+        updates.push('updated_at = CURRENT_TIMESTAMP');
+        params.push(entryId, characterId);
+
+        db.prepare(`
+            UPDATE character_journal 
+            SET ${updates.join(', ')}
+            WHERE id = ? AND character_id = ?
+        `).run(...params);
+
+        // Recharger
+        const updated = db.prepare(`
+            SELECT cj.*, gs.name as session_name
+            FROM character_journal cj
+            LEFT JOIN game_sessions gs ON cj.session_id = gs.id
+            WHERE cj.id = ?
+        `).get(entryId);
+
+        res.json({
+            id: updated.id,
+            characterId: updated.character_id,
+            sessionId: updated.session_id,
+            sessionName: updated.session_name,
+            type: updated.type,
+            title: updated.title,
+            body: updated.body,
+            metadata: updated.metadata ? JSON.parse(updated.metadata) : null,
+            isRead: !!updated.is_read,
+            createdAt: updated.created_at,
+            updatedAt: updated.updated_at
+        });
+    } catch (error) {
+        console.error('Error updating journal entry:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// DELETE /api/journal/:characterId/:entryId - Supprimer une entrée
+router.delete('/:characterId/:entryId', authenticate, requireOwnerOrGM, (req, res) => {
+    try {
+        const db = getDb();
+        const { characterId, entryId } = req.params;
+
+        const result = db.prepare(
+            'DELETE FROM character_journal WHERE id = ? AND character_id = ?'
+        ).run(entryId, characterId);
+
+        if (result.changes === 0) {
+            return res.status(404).json({ error: 'Journal entry not found' });
+        }
+
+        res.json({ deleted: true, id: parseInt(entryId) });
+    } catch (error) {
+        console.error('Error deleting journal entry:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+module.exports = router;

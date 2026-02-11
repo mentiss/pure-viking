@@ -17,6 +17,7 @@ import {useFetch} from "./hooks/useFetch.js";
 import CodeModal from "./components/CodeModal.jsx";
 import {useSession} from "./context/SessionContext.jsx";
 import SessionPlayersBar from "./components/SessionPlayersBar.jsx";
+import JournalTab from "./components/JournalTab.jsx";
 
 const App = ({ darkMode, onToggleDarkMode }) => {
     const { user, loading: authLoading, logout } = useAuth();
@@ -114,7 +115,7 @@ const App = ({ darkMode, onToggleDarkMode }) => {
 
         // Restaurer onglet depuis hash (#inventaire, #runes, etc.)
         const hash = window.location.hash.substring(1); // Enlever le #
-        if (hash && ['fiche', 'dice', 'runes', 'inventaire', 'historique'].includes(hash)) {
+        if (hash && ['fiche', 'dice', 'runes', 'inventaire', 'historique', 'journal'].includes(hash)) {
             setActiveTab(hash);
         } else if(mode === 'sheet') {
             setActiveTab('fiche');
@@ -481,7 +482,7 @@ const App = ({ darkMode, onToggleDarkMode }) => {
             {mode === 'sheet' && (
                 <nav className="bg-white dark:bg-gray-800 border-b border-viking-leather dark:border-viking-bronze">
                     <div className="max-w-7xl mx-auto flex gap-1 p-2">
-                        {['fiche', 'dice', 'runes', 'inventaire', 'historique'].map(tab => (
+                        {['fiche', 'dice', 'runes', 'inventaire', 'journal', 'historique'].map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => handleChangeTab(tab)}
@@ -495,6 +496,7 @@ const App = ({ darkMode, onToggleDarkMode }) => {
                                 {tab === 'dice' && '🎲 Lanceur de dés'}
                                 {tab === 'runes' && '🔮 Runes'}
                                 {tab === 'inventaire' && '🎒 Inventaire'}
+                                {tab === 'journal' && '📓 Journal'}
                                 {tab === 'historique' && '📜 Historique'}
                             </button>
                         ))}
@@ -563,6 +565,7 @@ const App = ({ darkMode, onToggleDarkMode }) => {
                             {activeTab === 'runes' && <RunesTab character={character} onUpdate={handleCharacterUpdate} />}
                             {activeTab === 'inventaire' && <InventoryTab character={character} onUpdate={handleCharacterUpdate} />}
                             {activeTab === 'historique' && <div className="text-center p-8 text-viking-text dark:text-viking-parchment">Historique à venir...</div>}
+                            {activeTab === 'journal' && character && <JournalTab characterId={characterId} />}
                         </>
                     )}
 
