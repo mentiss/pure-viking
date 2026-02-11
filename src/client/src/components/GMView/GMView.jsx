@@ -13,6 +13,7 @@ import GMHeader from "./GMHeader.jsx";
 import TableManagementModal from "./tables/TableManagementModal.jsx";
 import TabCombat from "./tabs/TabCombat.jsx";
 import TabSession from "./tabs/TabSession.jsx";
+import TabJournal from "./tabs/TabJournal.jsx";
 
 const GMView = ({ darkMode, onToggleDarkMode }) => {
     console.log('[GMView] Component rendering...');
@@ -20,7 +21,7 @@ const GMView = ({ darkMode, onToggleDarkMode }) => {
     // --- Tab actif ---
     const [activeGMTab, setActiveGMTab] = useState(() => {
         const hash = window.location.hash.substring(1);
-        return ['combat', 'session'].includes(hash) ? hash : 'combat';
+        return ['combat', 'session', 'journal'].includes(hash) ? hash : 'combat';
     });
 
     useEffect(() => {
@@ -461,6 +462,10 @@ const GMView = ({ darkMode, onToggleDarkMode }) => {
                         activeSession={activeSession}
                         onlineCharacters={onlineCharacters}
                     />
+                )}
+
+                {activeGMTab === 'journal' && (
+                    <TabJournal />
                 )}
             </div>
 

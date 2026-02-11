@@ -45,6 +45,8 @@ const App = ({ darkMode, onToggleDarkMode }) => {
     const runesTitles = ['ᛟᛞᛁᚾ', 'ᚢᛁᚲᛁᛜ', 'ᛃᚨᚱᛚ', 'ᚢᛟᛚᚢᚨ', 'ᛊᚲᚨᛚᛞ', 'ᛈᚢᚱᛖ'];
     const [runeTitle] = useState(() => runesTitles[Math.floor(Math.random() * runesTitles.length)]);
 
+    const [journalUnread, setJournalUnread] = useState(0);
+
     // Socket globale unique
     const socket = useSocket();
 
@@ -168,8 +170,14 @@ const App = ({ darkMode, onToggleDarkMode }) => {
                 return currentChar;
             });
         };
-
         socket.on('character-update', onSocketCharacterUpdate);
+
+        const handleGMMessageForBadge = (data) => {
+            if (data.characterId === characterId && activeTab !== 'journal') {
+                setJournalUnread(prev => prev + 1);
+            }
+        };
+        socket.on('gm-message-received', handleGMMessageForBadge);
 
         return () => {
             socket.off('character-update', onSocketCharacterUpdate);
@@ -358,6 +366,7 @@ const App = ({ darkMode, onToggleDarkMode }) => {
             setHistoryPanelOpen(true);
             return;
         }
+        if (tab === 'journal') setJournalUnread(0);
         setActiveTab(tab);
         
         // Mettre à jour hash URL
@@ -496,8 +505,12 @@ const App = ({ darkMode, onToggleDarkMode }) => {
                                 {tab === 'dice' && '🎲 Lanceur de dés'}
                                 {tab === 'runes' && '🔮 Runes'}
                                 {tab === 'inventaire' && '🎒 Inventaire'}
-                                {tab === 'journal' && '📓 Journal'}
-                                {tab === 'historique' && '📜 Historique'}
+                                {tab === 'journal' && <>📓 Journal{journalUnread > 0 && (
+                                    <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-viking-bronze text-viking-brown rounded-full font-bold">
+                                        {journalUnread}
+                                    </span>
+                                )}</>}
+                                {tab === 'historique' && '📜 Historique' }
                             </button>
                         ))}
                     </div>

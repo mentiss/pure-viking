@@ -5,6 +5,7 @@ import ThemeToggle from '../shared/ThemeToggle.jsx';
 const GM_TABS = [
     { id: 'combat', label: '⚔️ Combat' },
     { id: 'session', label: '📜 Session' },
+    { id: 'journal', label: '📓 Journal' },
 ];
 
 const GMHeader = ({

@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useFetch } from '../hooks/useFetch.js';
 import { useSession } from '../context/SessionContext.jsx';
 import ConfirmModal from './shared/ConfirmModal.jsx';
+import {useSocket} from "../context/SocketContext.jsx";
 
 const JournalTab = ({ characterId }) => {
     const [entries, setEntries] = useState([]);
@@ -25,6 +26,20 @@ const JournalTab = ({ characterId }) => {
 
     const fetchWithAuth = useFetch();
     const { activeGMSession } = useSession();
+    const socket = useSocket();
+
+    useEffect(() => {
+      if (!socket || !characterId) return;
+
+      const handleGMMessage = (data) => {
+          if (data.characterId === characterId) {
+              setEntries(prev => [data.entry, ...prev]);
+          }
+      };
+
+      socket.on('gm-message-received', handleGMMessage);
+      return () => socket.off('gm-message-received', handleGMMessage);
+    }, [socket, characterId]);
 
     // --- Charger les entrées ---
     useEffect(() => {
@@ -35,9 +50,9 @@ const JournalTab = ({ characterId }) => {
     const loadEntries = async () => {
         try {
             setLoading(true);
-            let url = `/api/journal/${characterId}?type=note`;
+            let url = `/api/journal/${characterId}`;
             if (sessionFilter === 'session' && activeGMSession) {
-                url += `&sessionId=${activeGMSession}`;
+                url += `?sessionId=${activeGMSession}`;
             }
 
             const response = await fetchWithAuth(url);
@@ -396,7 +411,7 @@ const JournalTab = ({ characterId }) => {
                                                 }`}
                                             >
                                                 <div className="font-semibold text-sm text-viking-brown dark:text-viking-parchment truncate">
-                                                    {entry.title || 'Sans titre'}
+                                                    {entry.type === 'gm_message' ? '📨 ' : ''}{entry.title || 'Sans titre'}
                                                 </div>
                                                 <div className="flex items-center gap-1.5 mt-0.5">
                                             <span className="text-[10px] text-viking-leather dark:text-viking-bronze">
@@ -427,16 +442,21 @@ const JournalTab = ({ characterId }) => {
                             <div className="h-full flex flex-col bg-white dark:bg-viking-brown rounded-lg border-2 border-viking-bronze">
                                 {/* Header note */}
                                 <div className="shrink-0 p-4 border-b border-viking-leather/10 dark:border-viking-bronze/20">
-                                    <input
-                                        ref={titleRef}
-                                        type="text"
-                                        value={selectedEntry.title || ''}
-                                        onChange={(e) => handleFieldChange('title', e.target.value)}
-                                        onBlur={handleBlur}
-                                        placeholder="Titre de la note..."
-                                        className="w-full text-xl font-bold px-0 py-1 border-0 border-b-2 border-transparent bg-transparent text-viking-brown dark:text-viking-parchment focus:border-viking-bronze focus:outline-none transition-colors"
-                                    />
-
+                                    {selectedEntry.type === 'note' ? (
+                                        <input
+                                            ref={titleRef}
+                                            type="text"
+                                            value={selectedEntry.title || ''}
+                                            onChange={(e) => handleFieldChange('title', e.target.value)}
+                                            onBlur={handleBlur}
+                                            placeholder="Titre de la note..."
+                                            className="w-full text-xl font-bold px-0 py-1 border-0 border-b-2 border-transparent bg-transparent text-viking-brown dark:text-viking-parchment focus:border-viking-bronze focus:outline-none transition-colors"
+                                        />
+                                    ) : (
+                                        <div className="text-xl font-bold py-1 text-viking-brown dark:text-viking-parchment flex items-center gap-2">
+                                            📨 {selectedEntry.title || 'Message du MJ'}
+                                        </div>
+                                    )}
                                     <div className="flex items-center gap-3 mt-2 text-xs text-viking-leather dark:text-viking-bronze">
                                         <span>
                                             {selectedEntry.sessionName
@@ -444,6 +464,11 @@ const JournalTab = ({ characterId }) => {
                                                 : '📓 Hors session'
                                             }
                                         </span>
+                                        {selectedEntry.type === 'gm_message' && (
+                                            <span className="px-1.5 py-0.5 bg-viking-bronze/20 text-viking-bronze rounded text-[10px] font-semibold">
+                                                Message du MJ
+                                            </span>
+                                        )}
                                         <span>•</span>
                                         <span>Créée le {formatDate(selectedEntry.createdAt)}</span>
                                         {selectedEntry.updatedAt !== selectedEntry.createdAt && (
@@ -457,14 +482,23 @@ const JournalTab = ({ characterId }) => {
 
                                 {/* Corps éditable */}
                                 <div className="flex-1 p-4 min-h-0">
-                                    <textarea
-                                        ref={bodyRef}
-                                        value={selectedEntry.body || ''}
-                                        onChange={(e) => handleFieldChange('body', e.target.value)}
-                                        onBlur={handleBlur}
-                                        placeholder="Écrivez vos notes ici..."
-                                        className="w-full h-full px-3 py-2 border-2 border-viking-leather/20 dark:border-viking-bronze/20 rounded-lg bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment focus:border-viking-bronze focus:outline-none transition-colors resize-none"
-                                    />
+                                     {selectedEntry.type === 'note' ? (
+                                        <textarea
+                                            ref={bodyRef}
+                                            value={selectedEntry.body || ''}
+                                            onChange={(e) => handleFieldChange('body', e.target.value)}
+                                            onBlur={handleBlur}
+                                            placeholder="Écrivez vos notes ici..."
+                                            className="w-full h-full px-3 py-2 border-2 border-viking-leather/20 dark:border-viking-bronze/20 rounded-lg bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment focus:border-viking-bronze focus:outline-none transition-colors resize-none"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full px-3 py-2 border-2 border-viking-leather/10 dark:border-viking-bronze/10 rounded-lg bg-viking-parchment/50 dark:bg-gray-800/50 text-viking-text dark:text-viking-parchment overflow-y-auto whitespace-pre-wrap">
+                                            {selectedEntry.body || ''}
+                                            {selectedEntry.metadata?.imageUrl && (
+                                                <img src={selectedEntry.metadata.imageUrl} alt="" className="mt-3 max-w-full rounded-lg border-2 border-viking-bronze" />
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Footer actions */}

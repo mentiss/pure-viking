@@ -2,7 +2,101 @@
 const express = require('express');
 const router = express.Router();
 const { getDb } = require('../utils/db');
-const { authenticate, requireOwnerOrGM } = require('../middlewares/auth');
+const { authenticate, requireOwnerOrGM, requireGM} = require('../middlewares/auth');
+
+
+// POST /api/journal/gm-send - Envoyer un message du GM aux joueurs
+router.post('/gm-send', authenticate, requireGM, (req, res) => {
+    try {
+        const db = getDb();
+        const { targetCharacterIds, sessionId, title, body, metadata, toastAnimation = 'default' } = req.body;
+
+        if (!targetCharacterIds || !targetCharacterIds.length) {
+            return res.status(400).json({ error: 'No target characters specified' });
+        }
+
+        if (!title && !body) {
+            return res.status(400).json({ error: 'Title or body is required' });
+        }
+
+        const createdEntries = [];
+
+        const insertStmt = db.prepare(`
+            INSERT INTO character_journal (character_id, session_id, type, title, body, metadata, is_read)
+            VALUES (?, ?, 'gm_message', ?, ?, ?, 0)
+        `);
+
+        const selectStmt = db.prepare(`
+            SELECT cj.*, gs.name as session_name
+            FROM character_journal cj
+            LEFT JOIN game_sessions gs ON cj.session_id = gs.id
+            WHERE cj.id = ?
+        `);
+
+        // Créer une entrée pour chaque destinataire
+        for (const charId of targetCharacterIds) {
+            // Vérifier que le personnage existe
+            const character = db.prepare('SELECT id FROM characters WHERE id = ?').get(charId);
+            if (!character) continue;
+
+            const result = insertStmt.run(
+                charId,
+                sessionId || null,
+                title || null,
+                body || null,
+                metadata ? JSON.stringify(metadata) : null
+            );
+
+            const entry = selectStmt.get(result.lastInsertRowid);
+            if (entry) {
+                createdEntries.push({
+                    id: entry.id,
+                    characterId: entry.character_id,
+                    sessionId: entry.session_id,
+                    sessionName: entry.session_name,
+                    type: entry.type,
+                    title: entry.title,
+                    body: entry.body,
+                    metadata: entry.metadata ? JSON.parse(entry.metadata) : null,
+                    isRead: false,
+                    createdAt: entry.created_at,
+                    updatedAt: entry.updated_at
+                });
+            }
+        }
+
+        // Broadcast via Socket.IO
+        const io = req.app.get('io');
+        if (io && createdEntries.length > 0) {
+            for (const entry of createdEntries) {
+                // Émettre dans la session room pour que le bon joueur reçoive
+                if (sessionId) {
+                    io.to(`session-${sessionId}`).emit('gm-message-received', {
+                        characterId: entry.characterId,
+                        entry,
+                        toastAnimation
+                    });
+                } else {
+                    // Broadcast global si pas de session
+                    io.emit('gm-message-received', {
+                        characterId: entry.characterId,
+                        entry,
+                        toastAnimation
+                    });
+                }
+            }
+        }
+
+        res.status(201).json({
+            sent: createdEntries.length,
+            entries: createdEntries
+        });
+    } catch (error) {
+        console.error('Error sending GM message:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 
 // GET /api/journal/:characterId - Liste des entrées du journal
 // Query params: ?sessionId=X, ?type=note
@@ -208,5 +302,6 @@ router.delete('/:characterId/:entryId', authenticate, requireOwnerOrGM, (req, re
         res.status(500).json({ error: error.message });
     }
 });
+
 
 module.exports = router;

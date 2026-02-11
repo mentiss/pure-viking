@@ -3,11 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { useSocket } from '../../../context/SocketContext.jsx';
 import { useFetch } from '../../../hooks/useFetch.js';
 import GMCharacterCard from '../pj/GMCharacterCard.jsx';
+import GMSendModal from "../pj/GMSendModal.jsx";
 
 const TabSession = ({ activeSession, onlineCharacters }) => {
     const [characters, setCharacters] = useState({}); // Map id -> fullCharacter
     const [selectedCharId, setSelectedCharId] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [showSendModal, setShowSendModal] = useState(false);
+    const [sendPreSelectedCharId, setSendPreSelectedCharId] = useState(null);
 
     const socket = useSocket();
     const fetchWithAuth = useFetch();
@@ -122,6 +125,23 @@ const TabSession = ({ activeSession, onlineCharacters }) => {
         } catch (error) {
             console.error('[TabSession] Error updating character tokens:', error);
             // TODO: rollback optimistic update si besoin
+        }
+    };
+
+    const handleGMSend = async (sendData) => {
+        try {
+            const response = await fetchWithAuth('/api/journal/gm-send', {
+                method: 'POST',
+                body: JSON.stringify({
+                    ...sendData,
+                    sessionId: activeSession?.id || null,
+                    metadata: sendData.imageData ? { imageUrl: sendData.imageData } : null
+                })
+            });
+            if (!response.ok) throw new Error('Send failed');
+        } catch (error) {
+            console.error('[TabSession] Error sending GM message:', error);
+            throw error;
         }
     };
 
@@ -243,6 +263,12 @@ const TabSession = ({ activeSession, onlineCharacters }) => {
                             </button>
                         );
                     })}
+                    <button
+                          onClick={() => { setSendPreSelectedCharId(null); setShowSendModal(true); }}
+                          className="px-3 py-1.5 bg-viking-success text-white rounded text-sm font-semibold hover:bg-green-700 transition-colors shrink-0"
+                      >
+                          📨 Message
+                      </button>
                 </div>
             </div>
 
@@ -252,6 +278,7 @@ const TabSession = ({ activeSession, onlineCharacters }) => {
                     character={selectedCharacter}
                     isOnline={onlineIds.has(selectedCharId)}
                     onUpdateTokens={handleUpdateTokens}
+                    onSendMessage={(charId) => { setSendPreSelectedCharId(charId); setShowSendModal(true);}}
                 />
             ) : (
                 <div className="bg-white dark:bg-viking-brown rounded-lg shadow-lg border-2 border-viking-bronze p-8 text-center">
@@ -259,6 +286,15 @@ const TabSession = ({ activeSession, onlineCharacters }) => {
                         Sélectionnez un personnage ci-dessus pour voir sa fiche.
                     </p>
                 </div>
+            )}
+
+            {showSendModal && (
+                <GMSendModal
+                  onClose={() => { setShowSendModal(false); setSendPreSelectedCharId(null); }}
+                  onSend={handleGMSend}
+                  sessionCharacters={activeSession?.characters || []}
+                  preSelectedCharId={sendPreSelectedCharId}
+                />
             )}
         </div>
     );

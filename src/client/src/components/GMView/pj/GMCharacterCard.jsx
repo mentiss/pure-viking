@@ -13,7 +13,7 @@ import TokenRow from "./TokenRow.jsx";
 import CollapsibleSection from "./CollapsibleSection.jsx";
 
 // --- Composant principal ---
-const GMCharacterCard = ({ character, isOnline, onUpdateTokens }) => {
+const GMCharacterCard = ({ character, isOnline, onUpdateTokens, onSendMessage }) => {
     if (!character) return null;
 
     const blessureMalus = getBlessureMalus(character.tokensBlessure);
@@ -67,6 +67,13 @@ const GMCharacterCard = ({ character, isOnline, onUpdateTokens }) => {
                             👤 {character.playerName}
                             {character.activite && ` • ${character.activite}`}
                         </div>
+                        <button
+                          onClick={() => onSendMessage(character.id)}
+                          className="px-2 py-1 text-xs bg-viking-success text-white rounded font-semibold hover:bg-green-700 transition-colors"
+                          title="Envoyer un message"
+                        >
+                          📨
+                        </button>
                     </div>
 
                     {/* Status tags rapides */}
