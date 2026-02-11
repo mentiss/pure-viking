@@ -1,11 +1,18 @@
-// components/gm/GMHeader.jsx - Header GM avec menu hamburger et sélecteur de table
+// components/GMView/GMHeader.jsx - Header GM avec tabs intégrés, menu hamburger et sélecteur de table
 import React, { useState } from 'react';
 import ThemeToggle from '../shared/ThemeToggle.jsx';
+
+const GM_TABS = [
+    { id: 'combat', label: '⚔️ Combat' },
+    { id: 'session', label: '📜 Session' },
+];
 
 const GMHeader = ({
                       darkMode,
                       onToggleDarkMode,
                       activeSession,
+                      activeTab,
+                      onTabChange,
                       onManageTables,
                       onGoHome,
                       onLogout,
@@ -18,13 +25,30 @@ const GMHeader = ({
             <div className="container mx-auto px-4 py-3">
                 <div className="flex justify-between items-center">
                     {/* Titre + Table active */}
-                    <div>
+                    <div className="shrink-0">
                         <h1 className="text-2xl font-bold text-viking-brown">🎭 Interface MJ</h1>
                         {activeSession && (
                             <div className="text-sm text-viking-brown/70">
                                 Table : <span className="font-semibold">{activeSession.name}</span>
                             </div>
                         )}
+                    </div>
+
+                    {/* Tabs centraux */}
+                    <div className="flex gap-1 mx-4">
+                        {GM_TABS.map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => onTabChange(tab.id)}
+                                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                                    activeTab === tab.id
+                                        ? 'bg-viking-brown text-viking-parchment shadow-inner'
+                                        : 'bg-viking-leather/30 text-viking-brown hover:bg-viking-leather/50'
+                                }`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
                     </div>
 
                     {/* Actions */}
@@ -62,7 +86,7 @@ const GMHeader = ({
                                                 onManageTables();
                                                 setShowMenu(false);
                                             }}
-                                            className="w-full text-left px-4 py-3 hover:bg-viking-parchment dark:hover:bg-gray-800 border-b border-viking-leather/30 dark:border-viking-bronze/30 text-viking-brown dark:text-viking-parchment"
+                                            className="w-full text-left px-4 py-3 hover:bg-viking-parchment dark:hover:bg-gray-800 border-b border-viking-leather/30 dark:border-viking-bronze/30 text-viking-brown dark:text-viking-parchment rounded-t-lg"
                                         >
                                             📋 Gérer les tables
                                         </button>

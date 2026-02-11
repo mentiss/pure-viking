@@ -232,19 +232,41 @@ router.put('/:id', authenticate, requireOwnerOrGM, (req, res) => {
         
         saveFullCharacter(db, req.params.id, req.body);
         const updated = loadFullCharacter(db, req.params.id);
-        
-        // Broadcast update si blessure/fatigue changés
-        if ('tokensBlessure' in req.body || 'tokensFatigue' in req.body) {
-            const io = req.app.get('io');
-            if (io) {
+
+        const io = req.app.get('io');
+        if (io) {
+            // 1. Broadcast complet dans les rooms de session (pour TabSession GM)
+            try {
+                const sessions = db.prepare(
+                    'SELECT session_id FROM session_characters WHERE character_id = ?'
+                ).all(req.params.id);
+
+                if (sessions.length > 0) {
+                    const fullUpdatePayload = {
+                        characterId: parseInt(req.params.id),
+                        character: updated
+                    };
+
+                    sessions.forEach(s => {
+                        io.to(`session-${s.session_id}`).emit('character-full-update', fullUpdatePayload);
+                    });
+                }
+            } catch (err) {
+                console.error('Error broadcasting character-full-update:', err);
+            }
+
+            // 2. Broadcast léger global (pour le combat panel, session bar joueur, etc.)
+            if ('tokensBlessure' in req.body || 'tokensFatigue' in req.body) {
                 io.emit('character-update', {
                     characterId: req.params.id,
                     updates: {
                         tokensBlessure: updated.tokensBlessure,
-                        tokensFatigue: updated.tokensFatigue
+                        tokensFatigue: updated.tokensFatigue,
+                        sagaActuelle: updated.sagaActuelle
                     }
                 });
             }
+
         }
         
         res.json(updated);

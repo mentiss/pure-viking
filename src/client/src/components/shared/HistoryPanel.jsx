@@ -52,6 +52,7 @@ const HistoryPanel = ({ isOpen, onClose, sessionId = null }) => {
         } catch (error) {
             console.error('Error deleting roll:', error);
         }
+        setShowConfirmDelete(false);
     };
     
     const resetHistory = async () => {
@@ -66,6 +67,7 @@ const HistoryPanel = ({ isOpen, onClose, sessionId = null }) => {
         } catch (error) {
             console.error('Error resetting history:', error);
         }
+        setShowConfirmReset(false);
     };
     
     const getTimeAgo = (timestamp) => {
