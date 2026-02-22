@@ -1,6 +1,7 @@
 // InventoryTab.js - Gestion inventaire/équipement
 import React, { useState, useEffect } from "react";
 import {CARACNAMES, ITEMS} from "../tools/data.js";
+import AlertModal from "./shared/AlertModal.jsx";
 
 const InventoryTab = ({ character, onUpdate }) => {
     const { useState } = React;
@@ -8,6 +9,7 @@ const InventoryTab = ({ character, onUpdate }) => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [addLocation, setAddLocation] = useState('bag');
     const [editItem, setEditItem] = useState(null);
+    const [alertMessage, setAlertMessage] = useState(null);
     
     const items = character.items || [];
     
@@ -409,7 +411,7 @@ const AddItemModal = ({ character, onClose, onUpdate, defaultLocation }) => {
             };
         } else {
             if (!customName.trim()) {
-                alert('Le nom est requis');
+                setAlertMessage('Le nom est requis');
                 return;
             }
             
@@ -741,7 +743,7 @@ const EditItemModal = ({ character, item, onClose, onUpdate }) => {
     
     const handleSave = () => {
         if (!name.trim()) {
-            alert('Le nom est requis');
+            setAlertMessage('Le nom est requis');
             return;
         }
         
@@ -955,6 +957,12 @@ const EditItemModal = ({ character, item, onClose, onUpdate }) => {
                     </div>
                 </div>
             </div>
+            {alertMessage && (
+                <AlertModal
+                    message={alertMessage}
+                    onClose={() => setAlertMessage(null)}
+                />
+            )}
         </div>
     );
 };

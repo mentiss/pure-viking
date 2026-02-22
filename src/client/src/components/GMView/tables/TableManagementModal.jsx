@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useFetch } from '../../../hooks/useFetch';
 import TableCharactersModal from './TableCharactersModal';
+import AlertModal from "../../shared/AlertModal.jsx";
 
 const TableManagementModal = ({ isOpen, onClose, onSelectTable, activeSessionId }) => {
     const [sessions, setSessions] = useState([]);
@@ -11,6 +12,7 @@ const TableManagementModal = ({ isOpen, onClose, onSelectTable, activeSessionId 
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingSession, setEditingSession] = useState(null);
     const [showCharactersModal, setShowCharactersModal] = useState(null);
+    const [alertMessage, setAlertMessage] = useState(null);
 
     const fetchWithAuth = useFetch();
 
@@ -46,7 +48,7 @@ const TableManagementModal = ({ isOpen, onClose, onSelectTable, activeSessionId 
             }
         } catch (error) {
             console.error('Error creating session:', error);
-            alert('Erreur lors de la création de la table');
+            setAlertMessage('Erreur lors de la création de la table');
         }
     };
 
@@ -64,7 +66,7 @@ const TableManagementModal = ({ isOpen, onClose, onSelectTable, activeSessionId 
             }
         } catch (error) {
             console.error('Error updating session:', error);
-            alert('Erreur lors de la modification de la table');
+            setAlertMessage('Erreur lors de la modification de la table');
         }
     };
 
@@ -86,7 +88,7 @@ const TableManagementModal = ({ isOpen, onClose, onSelectTable, activeSessionId 
             }
         } catch (error) {
             console.error('Error deleting session:', error);
-            alert('Erreur lors de la suppression de la table');
+            setAlertMessage('Erreur lors de la suppression de la table');
         }
     };
 
@@ -262,6 +264,13 @@ const TableManagementModal = ({ isOpen, onClose, onSelectTable, activeSessionId 
                     onSessionUpdated={loadSessions}
                 />
             )}
+
+            {alertMessage && (
+                <AlertModal
+                    message={alertMessage}
+                    onClose={() => setAlertMessage(null)}
+                />
+            )}
         </>
     );
 };
@@ -278,7 +287,7 @@ const SessionFormModal = ({ isOpen, onClose, onSubmit, initialData = null, title
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!formData.name.trim()) {
-            alert('Le nom de la table est requis');
+            setAlertMessage('Le nom de la table est requis');
             return;
         }
         onSubmit(formData);

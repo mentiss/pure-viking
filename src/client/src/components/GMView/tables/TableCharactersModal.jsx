@@ -1,6 +1,7 @@
 // components/gm/tables/TableCharactersModal.jsx - Gérer les persos d'une table
 import React, { useState, useEffect } from 'react';
 import { useFetch } from '../../../hooks/useFetch';
+import AlertModal from "../../shared/AlertModal.jsx";
 
 const TableCharactersModal = ({ isOpen, onClose, session, onSessionUpdated }) => {
     const [sessionData, setSessionData] = useState(null);
@@ -8,6 +9,7 @@ const TableCharactersModal = ({ isOpen, onClose, session, onSessionUpdated }) =>
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('');
     const [showAddModal, setShowAddModal] = useState(false);
+    const [alertMessage, setAlertMessage] = useState(null);
 
     const fetchWithAuth = useFetch();
 
@@ -52,7 +54,7 @@ const TableCharactersModal = ({ isOpen, onClose, session, onSessionUpdated }) =>
             }
         } catch (error) {
             console.error('Error adding character:', error);
-            alert('Erreur lors de l\'ajout du personnage');
+            setAlertMessage('Erreur lors de l\'ajout du personnage');
         }
     };
 
@@ -72,7 +74,7 @@ const TableCharactersModal = ({ isOpen, onClose, session, onSessionUpdated }) =>
             }
         } catch (error) {
             console.error('Error removing character:', error);
-            alert('Erreur lors du retrait du personnage');
+            setAlertMessage('Erreur lors du retrait du personnage');
         }
     };
 
@@ -289,6 +291,12 @@ const AddCharacterModal = ({ isOpen, onClose, availableCharacters, onAddCharacte
                     </button>
                 </div>
             </div>
+            {alertMessage && (
+                <AlertModal
+                    message={alertMessage}
+                    onClose={() => setAlertMessage(null)}
+                />
+            )}
         </div>
     );
 };

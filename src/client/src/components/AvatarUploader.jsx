@@ -1,6 +1,7 @@
 // components/AvatarUploader.jsx - Upload et crop d'avatar
 import React, { useState, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
+import AlertModal from "./shared/AlertModal.jsx";
 
 const AvatarUploader = ({ currentAvatar, onAvatarChange, onClose }) => {
     const [imageSrc, setImageSrc] = useState(null);
@@ -9,6 +10,7 @@ const AvatarUploader = ({ currentAvatar, onAvatarChange, onClose }) => {
     const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
     const [loading, setLoading] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
+    const [alertMessage, setAlertMessage] = useState(null);
 
     // Callback quand le crop change
     const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
@@ -21,13 +23,13 @@ const AvatarUploader = ({ currentAvatar, onAvatarChange, onClose }) => {
 
         // Vérifier le type
         if (!file.type.startsWith('image/')) {
-            alert('Veuillez sélectionner une image');
+            setAlertMessage('Veuillez sélectionner une image');
             return;
         }
 
         // Vérifier la taille (max 5MB avant crop)
         if (file.size > 5000000) {
-            alert('Image trop grande (max 5MB)');
+            setAlertMessage('Image trop grande (max 5MB)');
             return;
         }
 
@@ -117,7 +119,7 @@ const AvatarUploader = ({ currentAvatar, onAvatarChange, onClose }) => {
             onClose();
         } catch (error) {
             console.error('Error cropping image:', error);
-            alert('Erreur lors du traitement de l\'image');
+            setAlertMessage('Erreur lors du traitement de l\'image');
         } finally {
             setLoading(false);
         }
@@ -271,6 +273,12 @@ const AvatarUploader = ({ currentAvatar, onAvatarChange, onClose }) => {
                     )}
                 </div>
             </div>
+            {alertMessage && (
+                <AlertModal
+                    message={alertMessage}
+                    onClose={() => setAlertMessage(null)}
+                />
+            )}
         </div>
     );
 };

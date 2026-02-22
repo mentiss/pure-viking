@@ -1,5 +1,5 @@
 // components/shared/RichTextEditor.jsx - Éditeur rich text TipTap (Notion-like, v3)
-import React, { useEffect, useCallback } from 'react';
+import React, {useEffect, useCallback, useState} from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
@@ -9,6 +9,7 @@ import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 
 import './RichTextEditor.css';
+import AlertModal from "./AlertModal.jsx";
 
 // --- Bouton toolbar ---
 const ToolbarButton = ({ onClick, active, title, children }) => (
@@ -40,12 +41,14 @@ const RichTextEditor = ({
                             maxImageSize = 20 * 1024 * 1024,
                             className = '',
                         }) => {
+    const [alertMessage, setAlertMessage] = useState(null);
     // Convertir du texte brut en HTML basique (rétrocompatibilité)
     const normalizeContent = (raw) => {
         if (!raw) return '';
         if (/<[a-z][\s\S]*>/i.test(raw)) return raw;
         return raw.split('\n').map(line => `<p>${line || '<br>'}</p>`).join('');
     };
+
 
     const editor = useEditor({
         extensions: [
@@ -113,7 +116,7 @@ const RichTextEditor = ({
     const processImage = useCallback((file) => {
         if (!file || !file.type.startsWith('image/')) return;
         if (file.size > maxImageSize) {
-            alert(`Image trop volumineuse (max ${Math.round(maxImageSize / 1024 / 1024)} Mo)`);
+            setAlertMessage(`Image trop volumineuse (max ${Math.round(maxImageSize / 1024 / 1024)} Mo)`);
             return;
         }
         const reader = new FileReader();
@@ -271,6 +274,12 @@ const RichTextEditor = ({
                         Sélectionnez du texte pour formater • Glissez-déposez des images • Redimensionnez par les bords
                     </span>
                 </div>
+            )}
+            {alertMessage && (
+                <AlertModal
+                    message={alertMessage}
+                    onClose={() => setAlertMessage(null)}
+                />
             )}
         </div>
     );
