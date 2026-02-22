@@ -4,6 +4,7 @@ import { useSocket } from '../../../context/SocketContext.jsx';
 import { useFetch } from '../../../hooks/useFetch.js';
 import GMCharacterCard from '../pj/GMCharacterCard.jsx';
 import GMSendModal from "../pj/GMSendModal.jsx";
+import GMSendItemModal from "../pj/GMSendItemModal.jsx";
 
 const TabSession = ({ activeSession, onlineCharacters }) => {
     const [characters, setCharacters] = useState({}); // Map id -> fullCharacter
@@ -11,12 +12,15 @@ const TabSession = ({ activeSession, onlineCharacters }) => {
     const [loading, setLoading] = useState(false);
     const [showSendModal, setShowSendModal] = useState(false);
     const [sendPreSelectedCharId, setSendPreSelectedCharId] = useState(null);
+    const [showSendItemModal, setShowSendItemModal] = useState(false);
+    const [sendItemPreSelectedCharId, setSendItemPreSelectedCharId] = useState(null);
 
     const socket = useSocket();
     const fetchWithAuth = useFetch();
 
     // IDs des personnages en ligne pour lookup rapide
     const onlineIds = new Set(onlineCharacters.map(c => c.characterId));
+
 
     // --- Charger les fiches complètes quand la session change ---
     useEffect(() => {
@@ -145,6 +149,22 @@ const TabSession = ({ activeSession, onlineCharacters }) => {
         }
     };
 
+    const handleGMSendItem = async (sendData) => {
+        try {
+            const response = await fetchWithAuth('/api/journal/gm-send-item', {
+                method: 'POST',
+                body: JSON.stringify({
+                    ...sendData,
+                    sessionId: activeSession?.id || null
+                })
+            });
+            if (!response.ok) throw new Error('Send item failed');
+        } catch (error) {
+            console.error('[TabSession] Error sending GM item:', error);
+            throw error;
+        }
+    };
+
     // --- Pas de session active ---
     if (!activeSession) {
         return (
@@ -269,6 +289,12 @@ const TabSession = ({ activeSession, onlineCharacters }) => {
                       >
                           📨 Message
                       </button>
+                    <button
+                        onClick={() => { setSendItemPreSelectedCharId(null); setShowSendItemModal(true); }}
+                        className="px-3 py-1.5 bg-viking-bronze text-viking-brown rounded text-sm font-semibold hover:bg-viking-leather transition-colors shrink-0"
+                    >
+                        🎁 Item
+                    </button>
                 </div>
             </div>
 
@@ -279,6 +305,7 @@ const TabSession = ({ activeSession, onlineCharacters }) => {
                     isOnline={onlineIds.has(selectedCharId)}
                     onUpdateTokens={handleUpdateTokens}
                     onSendMessage={(charId) => { setSendPreSelectedCharId(charId); setShowSendModal(true);}}
+                    onSendItem={(charId) => { setSendItemPreSelectedCharId(charId); setShowSendItemModal(true); }}
                 />
             ) : (
                 <div className="bg-white dark:bg-viking-brown rounded-lg shadow-lg border-2 border-viking-bronze p-8 text-center">
@@ -294,6 +321,14 @@ const TabSession = ({ activeSession, onlineCharacters }) => {
                   onSend={handleGMSend}
                   sessionCharacters={activeSession?.characters || []}
                   preSelectedCharId={sendPreSelectedCharId}
+                />
+            )}
+            {showSendItemModal && (
+                <GMSendItemModal
+                    onClose={() => { setShowSendItemModal(false); setSendItemPreSelectedCharId(null); }}
+                    onSend={handleGMSendItem}
+                    sessionCharacters={activeSession?.characters || []}
+                    preSelectedCharId={sendItemPreSelectedCharId}
                 />
             )}
         </div>

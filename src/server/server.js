@@ -46,8 +46,8 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json({ limit: '10mb' }));
-app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+app.use(bodyParser.json({ limit: '20mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '20mb' }));
 app.use(cookieParser());
 
 // Logging
@@ -62,6 +62,7 @@ initDatabase();
 
 // Tracking personnages connectés
 let onlineCharacters = new Map(); // characterId -> { characterId, name, playerName, socketId }
+let activeSessionId = null;
 
 // Socket.IO handlers
 io.on('connection', (socket) => {
@@ -70,6 +71,8 @@ io.on('connection', (socket) => {
     // Event: GM définit la session active
     socket.on('gm-set-active-session', (sessionId) => {
         console.log(`[GM] Active session set to: ${sessionId}`);
+        activeSessionId = sessionId;
+        console.log('Active session set to '+sessionId);
         // Broadcast à TOUS les clients pour qu'ils rejoignent la bonne room
         io.emit('gm-session-active', sessionId);
     });
@@ -103,6 +106,11 @@ io.on('connection', (socket) => {
         
         // Broadcast liste mise à jour aux MJs
         io.emit('online-characters-update', Array.from(onlineCharacters.values()));
+        console.log('Is there an active session ? '+activeSessionId);
+        if (activeSessionId) {
+            console.log(`[Socket ${socket.id}] Session updated for ${socket.id}`);
+            io.emit('gm-session-active', activeSessionId);
+        }
         console.log(`📝 Character loaded: ${data.name} (${data.characterId})`);
     });
 

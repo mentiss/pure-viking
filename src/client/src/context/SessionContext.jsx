@@ -7,6 +7,7 @@ const SessionContext = createContext();
 export const SessionProvider = ({ children }) => {
     const [activeGMSession, setActiveGMSession] = useState(null);
     const [characterSessions, setCharacterSessions] = useState([]); // Sessions du perso
+    const [pendingSessionId, setPendingSessionId] = useState(null);
     const socket = useSocket();
 
     useEffect(() => {
@@ -14,44 +15,49 @@ export const SessionProvider = ({ children }) => {
 
         const handleGMSessionActive = (sessionId) => {
             console.log('[SessionContext] GM session changed to:', sessionId);
-
-            // Vérifier si le personnage est membre de cette session
-            const isGM = characterSessions.some(s => s.id === -1);
-            const isMember = isGM || characterSessions.some(s => s.id === sessionId);
-
-            if (!isMember) {
-                console.log('[SessionContext] Not a member of session:', sessionId);
-
-                // Quitter l'ancienne room si on en était membre
-                if (activeGMSession) {
-                    socket.emit('leave-session', activeGMSession);
-                    setActiveGMSession(null);
-                }
-                return;
-            }
-
-            // Quitter l'ancienne room
-            if (activeGMSession && activeGMSession !== sessionId) {
-                socket.emit('leave-session', activeGMSession);
-            }
-
-            // Rejoindre la nouvelle room
-            socket.emit('join-session', sessionId);
-            setActiveGMSession(sessionId);
-            console.log('[SessionContext] Joined session:', sessionId);
+            setPendingSessionId(sessionId); // ← Toujours stocker
         };
 
         socket.on('gm-session-active', handleGMSessionActive);
 
         return () => {
             socket.off('gm-session-active', handleGMSessionActive);
+        };
+    }, [socket]);
 
-            // Cleanup : quitter la room
+    useEffect(() => {
+        if (!socket || !pendingSessionId) return;
+
+        const isGM = characterSessions.some(s => s.id === -1);
+        const isMember = isGM || characterSessions.some(s => s.id === pendingSessionId);
+
+        if (!isMember) {
+            console.log('[SessionContext] Not a member of session:', pendingSessionId);
             if (activeGMSession) {
+                socket.emit('leave-session', activeGMSession);
+                setActiveGMSession(null);
+            }
+            return;
+        }
+
+        // Quitter l'ancienne room
+        if (activeGMSession && activeGMSession !== pendingSessionId) {
+            socket.emit('leave-session', activeGMSession);
+        }
+
+        // Rejoindre la nouvelle room
+        socket.emit('join-session', pendingSessionId);
+        setActiveGMSession(pendingSessionId);
+        console.log('[SessionContext] Joined session:', pendingSessionId);
+    }, [socket, pendingSessionId, characterSessions]);
+
+    useEffect(() => {
+        return () => {
+            if (socket && activeGMSession) {
                 socket.emit('leave-session', activeGMSession);
             }
         };
-    }, [socket, activeGMSession, characterSessions]); // ← Dépendre de characterSessions
+    }, [socket, activeGMSession]);
 
     // Méthode pour enregistrer les sessions du personnage
     const updateCharacterSessions = (sessions) => {

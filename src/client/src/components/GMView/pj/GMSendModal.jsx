@@ -32,6 +32,7 @@ const GMSendModal = ({ onClose, onSend, sessionCharacters = [], preSelectedCharI
     const [notesLoading, setNotesLoading] = useState(false);
     const [noteSearch, setNoteSearch] = useState('');
     const [selectedNoteId, setSelectedNoteId] = useState(null);
+    const [isDragging, setIsDragging] = useState(false);
 
     const fileInputRef = useRef(null);
     const fetchWithAuth = useFetch();
@@ -102,8 +103,8 @@ const GMSendModal = ({ onClose, onSend, sessionCharacters = [], preSelectedCharI
     const handleImageSelect = (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        if (file.size > 2 * 1024 * 1024) {
-            alert('Image trop volumineuse (max 2 Mo)');
+        if (file.size > 20 * 1024 * 1024) {
+            alert('Image trop volumineuse (max 20 Mo)'); // @todo remplacer par une vrai modale d'alerte
             return;
         }
         const reader = new FileReader();
@@ -155,8 +156,29 @@ const GMSendModal = ({ onClose, onSend, sessionCharacters = [], preSelectedCharI
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
             <div
-                className="bg-white dark:bg-viking-brown rounded-lg shadow-2xl max-w-lg w-full border-4 border-viking-bronze max-h-[90vh] overflow-y-auto"
+                className="bg-white dark:bg-viking-brown rounded-lg shadow-2xl max-w-lg w-full border-4 border-viking-bronze max-h-[90vh] overflow-y-auto relative"
                 onClick={e => e.stopPropagation()}
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={(e) => {
+                    if (!e.currentTarget.contains(e.relatedTarget)) setIsDragging(false);
+                }}
+                onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    const file = e.dataTransfer?.files?.[0];
+                    if (file && file.type.startsWith('image/')) {
+                        if (file.size > 20 * 1024 * 1024) {
+                            alert('Image trop volumineuse (max 20 Mo)');
+                            return;
+                        }
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                            setImageData(ev.target.result);
+                            setImagePreview(ev.target.result);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                }}
             >
                 {/* Header */}
                 <div className="flex justify-between items-center p-4 border-b-2 border-viking-bronze/50">
@@ -333,12 +355,16 @@ const GMSendModal = ({ onClose, onSend, sessionCharacters = [], preSelectedCharI
                                 </button>
                             </div>
                         ) : (
-                            <button
-                                onClick={() => fileInputRef.current?.click()}
-                                className="px-4 py-2 text-sm border-2 border-dashed border-viking-leather/30 dark:border-viking-bronze/30 rounded-lg text-viking-leather dark:text-viking-bronze hover:border-viking-bronze transition-colors"
-                            >
-                                📎 Ajouter une image
-                            </button>
+                            <div>
+                                {isDragging && (
+                                  <div className="absolute inset-0 bg-viking-bronze/20 border-4 border-dashed border-viking-bronze rounded-lg z-10 flex items-center justify-center">
+                                      <div className="text-center">
+                                          <div className="text-4xl mb-2">📎 Ajouter une image</div>
+                                          <div className="text-lg font-bold text-viking-brown">Déposez votre image ici</div>
+                                      </div>
+                                  </div>
+                                )}
+                            </div>
                         )}
                         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
                     </div>

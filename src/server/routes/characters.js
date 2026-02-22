@@ -293,4 +293,66 @@ router.delete('/:id', authenticate, requireOwnerOrGM, (req, res) => {
     }
 });
 
+router.post('/:id/items', authenticate, requireGM, (req, res) => {
+    try {
+        const db = getDb();
+        const characterId = req.params.id;
+
+        const exists = db.prepare('SELECT id FROM characters WHERE id = ?').get(characterId);
+        if (!exists) {
+            return res.status(404).json({ error: 'Character not found' });
+        }
+
+        const {
+            name, category = 'item', quantity = 1, location = 'bag',
+            notes, weaponType, damage, range, armorValue, requirements, customItem
+        } = req.body;
+
+        if (!name || !name.trim()) {
+            return res.status(400).json({ error: 'Item name is required' });
+        }
+
+        const result = db.prepare(`
+            INSERT INTO character_items (
+                character_id, name, category, quantity, location, notes,
+                weapon_type, damage, range, armor_value, requirements, custom_item
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            characterId,
+            name.trim(),
+            category,
+            quantity,
+            location,
+            notes || null,
+            weaponType || null,
+            damage || null,
+            range || null,
+            armorValue || 0,
+            requirements ? JSON.stringify(requirements) : '{}',
+            customItem ? 1 : 0
+        );
+
+        const item = db.prepare('SELECT * FROM character_items WHERE id = ?').get(result.lastInsertRowid);
+
+        res.status(201).json({
+            id: item.id,
+            characterId: item.character_id,
+            name: item.name,
+            category: item.category,
+            quantity: item.quantity,
+            location: item.location,
+            notes: item.notes,
+            weaponType: item.weapon_type,
+            damage: item.damage,
+            range: item.range,
+            armorValue: item.armor_value,
+            requirements: item.requirements ? JSON.parse(item.requirements) : {},
+            customItem: !!item.custom_item
+        });
+    } catch (error) {
+        console.error('Error adding item to character:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;

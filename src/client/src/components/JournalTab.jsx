@@ -4,6 +4,7 @@ import { useFetch } from '../hooks/useFetch.js';
 import { useSession } from '../context/SessionContext.jsx';
 import ConfirmModal from './shared/ConfirmModal.jsx';
 import {useSocket} from "../context/SocketContext.jsx";
+import RichTextEditor, {stripHtml} from "./shared/RichTextEditor.jsx";
 
 const JournalTab = ({ characterId }) => {
     const [entries, setEntries] = useState([]);
@@ -21,7 +22,7 @@ const JournalTab = ({ characterId }) => {
 
     // Refs pour sauvegarde auto
     const titleRef = useRef(null);
-    const bodyRef = useRef(null);
+    //const bodyRef = useRef(null);
     const pendingSave = useRef(null);
 
     const fetchWithAuth = useFetch();
@@ -425,7 +426,7 @@ const JournalTab = ({ characterId }) => {
                                                 </div>
                                                 {entry.body && (
                                                     <div className="text-[11px] text-viking-text/60 dark:text-viking-parchment/50 mt-1 line-clamp-2">
-                                                        {entry.body.substring(0, 60)}{entry.body.length > 60 ? '...' : ''}
+                                                        {stripHtml(entry.body).substring(0, 60)}{entry.body.length > 60 ? '...' : ''}
                                                     </div>
                                                 )}
                                             </button>
@@ -481,22 +482,28 @@ const JournalTab = ({ characterId }) => {
                                 </div>
 
                                 {/* Corps éditable */}
-                                <div className="flex-1 p-4 min-h-0">
-                                     {selectedEntry.type === 'note' ? (
-                                        <textarea
-                                            ref={bodyRef}
-                                            value={selectedEntry.body || ''}
-                                            onChange={(e) => handleFieldChange('body', e.target.value)}
+                                <div className="flex-1 p-4 min-h-0 overflow-hidden">
+                                    {selectedEntry.type === 'note' ? (
+                                        <RichTextEditor
+                                            content={selectedEntry.body || ''}
+                                            onUpdate={(html) => handleFieldChange('body', html)}
                                             onBlur={handleBlur}
+                                            editable={true}
                                             placeholder="Écrivez vos notes ici..."
-                                            className="w-full h-full px-3 py-2 border-2 border-viking-leather/20 dark:border-viking-bronze/20 rounded-lg bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment focus:border-viking-bronze focus:outline-none transition-colors resize-none"
+                                            className="w-full h-full border-2 border-viking-leather/20 dark:border-viking-bronze/20 rounded-lg bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment focus-within:border-viking-bronze transition-colors"
                                         />
                                     ) : (
-                                        <div className="w-full h-full px-3 py-2 border-2 border-viking-leather/10 dark:border-viking-bronze/10 rounded-lg bg-viking-parchment/50 dark:bg-gray-800/50 text-viking-text dark:text-viking-parchment overflow-y-auto whitespace-pre-wrap">
-                                            {selectedEntry.body || ''}
-                                            {selectedEntry.metadata?.imageUrl && (
-                                                <img src={selectedEntry.metadata.imageUrl} alt="" className="mt-3 max-w-full rounded-lg border-2 border-viking-bronze" />
-                                            )}
+                                        <div>
+                                            <RichTextEditor
+                                                content={selectedEntry.body || ''}
+                                                editable={false}
+                                                className="w-full h-full border-2 border-viking-leather/10 dark:border-viking-bronze/10 rounded-lg bg-viking-parchment/50 dark:bg-gray-800/50 text-viking-text dark:text-viking-parchment"
+                                            />
+                                            <div className="w-full h-full px-3 py-2 border-2 border-viking-leather/10 dark:border-viking-bronze/10 rounded-lg bg-viking-parchment/50 dark:bg-gray-800/50 text-viking-text dark:text-viking-parchment overflow-y-auto whitespace-pre-wrap">
+                                                {selectedEntry.metadata?.imageUrl && (
+                                                    <img src={selectedEntry.metadata.imageUrl} alt="" className="mt-3 max-w-full rounded-lg border-2 border-viking-bronze" />
+                                                )}
+                                            </div>
                                         </div>
                                     )}
                                 </div>

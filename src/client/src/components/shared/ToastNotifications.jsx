@@ -52,13 +52,31 @@ const ToastNotifications = ({ onViewHistory, sessionId = null }) => {
                 }, 8000); // Plus long pour les messages GM
             }
         };
+        const handleGMItem = (data) => {
+            if (myCharacterId && data.characterId === myCharacterId) {
+                const toast = {
+                    id: Date.now(),
+                    type: 'gm_item',
+                    animation: data.toastAnimation || 'default',
+                    itemName: data.item?.name || 'Objet',
+                    itemCategory: data.item?.category || 'item',
+                    timestamp: Date.now()
+                };
+                setToasts(prev => [toast, ...prev].slice(0, 3));
+                setTimeout(() => {
+                    setToasts(prev => prev.filter(t => t.id !== toast.id));
+                }, 8000);
+            }
+        };
 
         socket.on('dice-roll', handleDiceRoll);
         socket.on('gm-message-received', handleGMMessage);
+        socket.on('gm-item-received', handleGMItem);
 
         return () => {
             socket.off('dice-roll', handleDiceRoll);
             socket.off('gm-message-received', handleGMMessage);
+            socket.off('gm-item-received', handleGMItem);
         };
     }, [socket, sessionId, myCharacterId]);
 
@@ -139,6 +157,30 @@ const ToastNotifications = ({ onViewHistory, sessionId = null }) => {
 
                             <div className="text-[10px] text-viking-leather dark:text-viking-bronze">
                                 Consultez votre journal pour plus de détails
+                            </div>
+                        </div>
+                    ) : toast.type === 'gm_item' ? (
+                        // --- Toast Item reçu ---
+                        <div className={`bg-viking-parchment dark:bg-viking-brown border-2 rounded-lg shadow-xl p-3 min-w-64 max-w-sm ${getAnimationClass(toast.animation)} ${
+                            toast.animation === 'glitter' ? 'border-yellow-500' : 'border-viking-bronze'
+                        }`}>
+                            <div className="flex justify-between items-start mb-2">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xl">🎁</span>
+                                    <div>
+                                        <div className="font-bold text-sm text-viking-brown dark:text-viking-parchment">
+                                            Objet reçu !
+                                        </div>
+                                        <div className="text-xs font-semibold text-viking-bronze">
+                                            {toast.itemName}
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onClick={() => removeToast(toast.id)}
+                                        className="text-viking-leather dark:text-viking-bronze hover:text-viking-danger text-lg leading-none">✕</button>
+                            </div>
+                            <div className="text-[10px] text-viking-leather dark:text-viking-bronze">
+                                Consultez votre inventaire
                             </div>
                         </div>
                     ) : (

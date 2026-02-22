@@ -23,8 +23,6 @@ const App = ({ darkMode, onToggleDarkMode }) => {
     const { user, loading: authLoading, logout } = useAuth();
     const fetchWithAuth = useFetch();
 
-    const { useState, useEffect } = React;
-    
     const [character, setCharacter] = useState(null);
     const [characterId, setCharacterId] = useState(null);
     const [mode, setMode] = useState('welcome'); // 'welcome', 'creation', 'sheet', 'loading'
@@ -171,6 +169,26 @@ const App = ({ darkMode, onToggleDarkMode }) => {
             });
         };
         socket.on('character-update', onSocketCharacterUpdate);
+        const handleGMItemReceived = async (data) => {
+            console.log('App.jsx handling item received:', data);
+            if (data.characterId === characterId) {
+                // Recharger le character complet pour avoir l'inventaire à jour
+                try {
+                    const response = await fetchWithAuth(`/api/characters/${characterId}`);
+                    if (response.ok) {
+                        const updated = await response.json();
+                        setCharacter(updated);
+                    }
+                } catch (err) {
+                    console.error('Error reloading character after item received:', err);
+                }
+                // Aussi incrémenter le badge journal (car un gm_item crée aussi une entrée journal)
+                if (activeTab !== 'journal') {
+                    setJournalUnread(prev => prev + 1);
+                }
+            }
+        };
+        socket.on('gm-item-received', handleGMItemReceived);
 
         const handleGMMessageForBadge = (data) => {
             if (data.characterId === characterId && activeTab !== 'journal') {
@@ -181,8 +199,10 @@ const App = ({ darkMode, onToggleDarkMode }) => {
 
         return () => {
             socket.off('character-update', onSocketCharacterUpdate);
+            socket.off('gm-item-received', handleGMItemReceived);
+            socket.off('gm-message-received', handleGMMessageForBadge);
         };
-    }, [socket]);
+    }, [socket, characterId]);
 
     useEffect(() => {
         if (!activeGMSession) {
@@ -211,7 +231,7 @@ const App = ({ darkMode, onToggleDarkMode }) => {
             const savedId = localStorage.getItem('currentCharacterId');
             
             if (savedId && savedId != -1) {
-                const response = await fetch(`/api/characters/${savedId}`);
+                const response = await fetchWithAuth(`/api/characters/${savedId}`);
                 if (response.ok) {
                     const data = await response.json();
                     setCharacter(data);

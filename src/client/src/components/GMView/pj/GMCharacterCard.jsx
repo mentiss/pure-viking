@@ -13,7 +13,7 @@ import TokenRow from "./TokenRow.jsx";
 import CollapsibleSection from "./CollapsibleSection.jsx";
 
 // --- Composant principal ---
-const GMCharacterCard = ({ character, isOnline, onUpdateTokens, onSendMessage }) => {
+const GMCharacterCard = ({ character, isOnline, onUpdateTokens, onSendMessage, onSendItem }) => {
     if (!character) return null;
 
     const blessureMalus = getBlessureMalus(character.tokensBlessure);
@@ -73,6 +73,13 @@ const GMCharacterCard = ({ character, isOnline, onUpdateTokens, onSendMessage })
                           title="Envoyer un message"
                         >
                           📨
+                        </button>
+                        <button
+                            onClick={() => onSendItem(character.id)}
+                            className="ml-1 px-2 py-1 text-xs bg-viking-bronze text-viking-brown rounded font-semibold hover:bg-viking-leather transition-colors"
+                            title="Envoyer un objet"
+                        >
+                            🎁
                         </button>
                     </div>
 

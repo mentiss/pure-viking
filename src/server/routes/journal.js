@@ -97,6 +97,133 @@ router.post('/gm-send', authenticate, requireGM, (req, res) => {
     }
 });
 
+router.post('/gm-send-item', authenticate, requireGM, (req, res) => {
+    try {
+        const db = getDb();
+        const {
+            targetCharacterId,
+            sessionId,
+            item,
+            note,
+            toastAnimation = 'default'
+        } = req.body;
+
+        if (!targetCharacterId) {
+            return res.status(400).json({ error: 'Target character is required' });
+        }
+
+        if (!item || !item.name) {
+            return res.status(400).json({ error: 'Item data is required' });
+        }
+
+        // Vérifier que le personnage existe
+        const character = db.prepare('SELECT id FROM characters WHERE id = ?').get(targetCharacterId);
+        if (!character) {
+            return res.status(404).json({ error: 'Character not found' });
+        }
+
+        // 1. Insérer l'item dans l'inventaire du joueur
+        const itemResult = db.prepare(`
+            INSERT INTO character_items (
+                character_id, name, category, quantity, location, notes,
+                weapon_type, damage, range, armor_value, requirements, custom_item
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            targetCharacterId,
+            item.name.trim(),
+            item.category || 'item',
+            item.quantity || 1,
+            item.location || 'bag',
+            item.notes || null,
+            item.weaponType || null,
+            item.damage || null,
+            item.range || null,
+            item.armorValue || 0,
+            item.requirements ? JSON.stringify(item.requirements) : '{}',
+            item.customItem ? 1 : 0
+        );
+
+        const createdItem = db.prepare('SELECT * FROM character_items WHERE id = ?').get(itemResult.lastInsertRowid);
+        const formattedItem = {
+            id: createdItem.id,
+            characterId: createdItem.character_id,
+            name: createdItem.name,
+            category: createdItem.category,
+            quantity: createdItem.quantity,
+            location: createdItem.location,
+            notes: createdItem.notes,
+            weaponType: createdItem.weapon_type,
+            damage: createdItem.damage,
+            range: createdItem.range,
+            armorValue: createdItem.armor_value,
+            requirements: createdItem.requirements ? JSON.parse(createdItem.requirements) : {},
+            customItem: !!createdItem.custom_item
+        };
+
+        // 2. Créer une entrée journal gm_item
+        const categoryLabels = { weapon: 'Arme', armor: 'Armure', item: 'Objet' };
+        const categoryLabel = categoryLabels[item.category] || 'Objet';
+
+        const journalResult = db.prepare(`
+            INSERT INTO character_journal (character_id, session_id, type, title, body, metadata, is_read)
+            VALUES (?, ?, 'gm_item', ?, ?, ?, 0)
+        `).run(
+            targetCharacterId,
+            sessionId || null,
+            `${categoryLabel} reçu : ${item.name}`,
+            note || `Le MJ vous a donné : ${item.name}`,
+            JSON.stringify({ itemId: createdItem.id, itemData: formattedItem })
+        );
+
+        const journalEntry = db.prepare(`
+            SELECT cj.*, gs.name as session_name
+            FROM character_journal cj
+            LEFT JOIN game_sessions gs ON cj.session_id = gs.id
+            WHERE cj.id = ?
+        `).get(journalResult.lastInsertRowid);
+
+        const formattedEntry = {
+            id: journalEntry.id,
+            characterId: journalEntry.character_id,
+            sessionId: journalEntry.session_id,
+            sessionName: journalEntry.session_name,
+            type: journalEntry.type,
+            title: journalEntry.title,
+            body: journalEntry.body,
+            metadata: journalEntry.metadata ? JSON.parse(journalEntry.metadata) : null,
+            isRead: false,
+            createdAt: journalEntry.created_at,
+            updatedAt: journalEntry.updated_at
+        };
+
+        // 3. Broadcast via Socket.IO
+        const io = req.app.get('io');
+        if (io) {
+            const payload = {
+                characterId: targetCharacterId,
+                item: formattedItem,
+                journalEntry: formattedEntry,
+                toastAnimation
+            };
+
+            if (sessionId) {
+                io.to(`session-${sessionId}`).emit('gm-item-received', payload);
+            } else {
+                io.emit('gm-item-received', payload);
+            }
+        }
+
+        console.log(`🎁 GM sent item "${item.name}" to character ${targetCharacterId}`);
+
+        res.status(201).json({
+            item: formattedItem,
+            journalEntry: formattedEntry
+        });
+    } catch (error) {
+        console.error('Error sending GM item:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
 
 // GET /api/journal/:characterId - Liste des entrées du journal
 // Query params: ?sessionId=X, ?type=note
