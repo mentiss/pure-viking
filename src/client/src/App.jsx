@@ -18,6 +18,7 @@ import CodeModal from "./components/CodeModal.jsx";
 import {useSession} from "./context/SessionContext.jsx";
 import SessionPlayersBar from "./components/SessionPlayersBar.jsx";
 import JournalTab from "./components/JournalTab.jsx";
+import DiceConfigModal from "./components/shared/DiceConfigModal.jsx";
 
 const App = ({ darkMode, onToggleDarkMode }) => {
     const { user, loading: authLoading, logout } = useAuth();
@@ -38,6 +39,7 @@ const App = ({ darkMode, onToggleDarkMode }) => {
     const [error, setError] = useState(null);
     const {activeGMSession, updateCharacterSessions} = useSession();
     const [activeSessionName, setActiveSessionName] = useState('');
+    const [showDiceConfig, setShowDiceConfig] = useState(false);
     
     // Titres en runes qui tournent
     const runesTitles = ['ᛟᛞᛁᚾ', 'ᚢᛁᚲᛁᛜ', 'ᛃᚨᚱᛚ', 'ᚢᛟᛚᚢᚨ', 'ᛊᚲᚨᛚᛞ', 'ᛈᚢᚱᛖ'];
@@ -476,6 +478,12 @@ const App = ({ darkMode, onToggleDarkMode }) => {
                                                 ⚔️ Vue Maître du Jeu
                                             </a>
                                             <div className="border-t border-viking-leather dark:border-viking-bronze" />
+                                            <button
+                                                className="w-full px-3 py-2 text-left hover:bg-viking-bronze/20 flex items-center gap-2 text-viking-brown dark:text-viking-parchment text-sm transition-colors"
+                                                onClick={() => setShowDiceConfig(true)}
+                                            >🎲 Mes dés
+                                            </button>
+                                            <div className="border-t border-viking-leather dark:border-viking-bronze" />
                                             <button 
                                                 onClick={() => {
                                                     setShowCharMenu(false);
@@ -664,6 +672,8 @@ const App = ({ darkMode, onToggleDarkMode }) => {
             
             {/* History Panel */}
             <HistoryPanel isOpen={historyPanelOpen} onClose={() => setHistoryPanelOpen(false)} sessionId={activeGMSession} />
+
+            {showDiceConfig && <DiceConfigModal onClose={() => setShowDiceConfig(false)} />}
             
             {/* Combat Panel */}
             {mode === 'sheet' && character && (

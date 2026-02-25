@@ -14,6 +14,7 @@ import TableManagementModal from "./tables/TableManagementModal.jsx";
 import TabCombat from "./tabs/TabCombat.jsx";
 import TabSession from "./tabs/TabSession.jsx";
 import TabJournal from "./tabs/TabJournal.jsx";
+import DiceConfigModal from "../shared/DiceConfigModal.jsx";
 
 const GMView = ({ darkMode, onToggleDarkMode }) => {
     console.log('[GMView] Component rendering...');
@@ -50,6 +51,7 @@ const GMView = ({ darkMode, onToggleDarkMode }) => {
     const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
     const [activeSession, setActiveSession] = useState(null);
     const [showTableManagement, setShowTableManagement] = useState(false);
+    const [showDiceConfig, setShowDiceConfig] = useState(false);
 
     const { logout } = useAuth();
     const fetchWithAuth = useFetch();
@@ -417,6 +419,7 @@ const GMView = ({ darkMode, onToggleDarkMode }) => {
                 onGoHome={handleGoHome}
                 onLogout={handleLogout}
                 onOpenDice={() => setShowDiceModal(true)}
+                onDiceConfig={() => setShowDiceConfig(true)}
             />
 
             {/* Contenu principal - délégué aux tabs */}
@@ -504,6 +507,8 @@ const GMView = ({ darkMode, onToggleDarkMode }) => {
 
             {/* History Panel */}
             <HistoryPanel isOpen={historyPanelOpen} onClose={() => setHistoryPanelOpen(false)} sessionId={activeSession?.id} />
+
+            {showDiceConfig && <DiceConfigModal onClose={() => setShowDiceConfig(false)} />}
         </div>
     );
 };

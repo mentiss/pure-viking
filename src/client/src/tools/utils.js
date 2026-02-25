@@ -161,3 +161,47 @@ export const formatSkillName = (skill) => {
     const spec = skill.specialization ? ` (${skill.specialization})` : '';
     return base + spec;
 };
+
+
+/**
+ * Lance un pool de dés et retourne :
+ * - `rolls` : tableau plat de tous les résultats (identique à rollDice, pour compatibilité)
+ * - `sequence` : tableau de vagues pour l'animation
+ *
+ * Exemple avec pool=3, explosionThresholds=[9,10], résultat [8,10,7] :
+ * sequence = [
+ *   { wave: 0, dice: [8, 10, 7] },
+ *   { wave: 1, dice: [3] }         // explosion du 10 → 3, stop
+ * ]
+ *
+ * @param {number} count - Nombre de dés initiaux
+ * @param {number[]} explosionThreshold - Valeurs qui déclenchent une explosion
+ * @returns {{ rolls: number[], sequence: { wave: number, dice: number[] }[] }}
+ */
+export const rollDiceWithSequence = (count, explosionThreshold) => {
+    const sequence = [];
+    const allRolls = [];
+    let waveIndex = 0;
+
+    // Wave initiale
+    let currentWaveDice = [];
+    for (let i = 0; i < count; i++) {
+        currentWaveDice.push(Math.floor(Math.random() * 10) + 1);
+    }
+    sequence.push({ wave: waveIndex, dice: [...currentWaveDice] });
+    allRolls.push(...currentWaveDice);
+
+    // Waves d'explosion
+    while (true) {
+        const explosions = currentWaveDice.filter(r => explosionThreshold.includes(r));
+        if (explosions.length === 0) break;
+
+        waveIndex++;
+        // Chaque dé qui a explosé génère exactement 1 nouveau dé
+        currentWaveDice = explosions.map(() => Math.floor(Math.random() * 10) + 1);
+        sequence.push({ wave: waveIndex, dice: [...currentWaveDice] });
+        allRolls.push(...currentWaveDice);
+    }
+
+    return { rolls: allRolls, sequence };
+};

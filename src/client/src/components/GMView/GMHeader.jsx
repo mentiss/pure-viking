@@ -17,7 +17,8 @@ const GMHeader = ({
                       onManageTables,
                       onGoHome,
                       onLogout,
-                      onOpenDice
+                      onOpenDice,
+                      onDiceConfig
                   }) => {
     const [showMenu, setShowMenu] = useState(false);
 
@@ -91,7 +92,16 @@ const GMHeader = ({
                                         >
                                             📋 Gérer les tables
                                         </button>
-
+                                        <div className="border-t border-viking-leather dark:border-viking-bronze" />
+                                        <button
+                                            className="w-full text-left px-4 py-3 hover:bg-viking-parchment dark:hover:bg-gray-800 border-b border-viking-leather/30 dark:border-viking-bronze/30 text-viking-brown dark:text-viking-parchment rounded-t-lg"
+                                            onClick={() => {
+                                                onDiceConfig();
+                                                setShowMenu(false);
+                                            }}
+                                        >🎲 Mes dés
+                                        </button>
+                                        <div className="border-t border-viking-leather dark:border-viking-bronze" />
                                         <button
                                             onClick={() => {
                                                 onGoHome();
