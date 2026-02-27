@@ -1,7 +1,7 @@
 // components/gm/tables/TableCharactersModal.jsx - Gérer les persos d'une table
 import React, { useState, useEffect } from 'react';
 import { useFetch } from '../../../hooks/useFetch.js';
-import AlertModal from "../../shared/AlertModal.jsx";
+import AlertModal from "../../modals/AlertModal.jsx";
 
 const TableCharactersModal = ({ isOpen, onClose, session, onSessionUpdated }) => {
     const [sessionData, setSessionData] = useState(null);

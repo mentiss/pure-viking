@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useFetch } from '../../../hooks/useFetch.js';
 import TableCharactersModal from './TableCharactersModal.jsx';
-import AlertModal from "../../shared/AlertModal.jsx";
+import AlertModal from "../../modals/AlertModal.jsx";
 
 const TableManagementModal = ({ isOpen, onClose, onSelectTable, activeSessionId }) => {
     const [sessions, setSessions] = useState([]);

@@ -9,7 +9,7 @@ import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 
 import './RichTextEditor.css';
-import AlertModal from "./AlertModal.jsx";
+import AlertModal from "../modals/AlertModal.jsx";
 
 // --- Bouton toolbar ---
 const ToolbarButton = ({ onClick, active, title, children }) => (

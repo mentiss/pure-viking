@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useFetch } from '../../hooks/useFetch.js';
 import { useSession } from '../../context/SessionContext.jsx';
-import ConfirmModal from '../shared/ConfirmModal.jsx';
+import ConfirmModal from '../modals/ConfirmModal.jsx';
 import {useSocket} from "../../context/SocketContext.jsx";
 import RichTextEditor, {stripHtml} from "../shared/RichTextEditor.jsx";
 

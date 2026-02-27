@@ -1,6 +1,6 @@
 // components/gm/combat/CombatantCard.jsx - Card d'un combattant (vue MJ)
 import React, {useState} from 'react';
-import ConfirmModal from "../../shared/ConfirmModal.jsx";
+import ConfirmModal from "../../modals/ConfirmModal.jsx";
 
 const CombatantCard = ({
                            combatant,

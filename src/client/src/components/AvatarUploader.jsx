@@ -1,7 +1,7 @@
 // components/AvatarUploader.jsx - Upload et crop d'avatar
 import React, { useState, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
-import AlertModal from "./shared/AlertModal.jsx";
+import AlertModal from "./modals/AlertModal.jsx";
 
 const AvatarUploader = ({ currentAvatar, onAvatarChange, onClose }) => {
     const [imageSrc, setImageSrc] = useState(null);

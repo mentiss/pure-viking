@@ -10,7 +10,7 @@ import {
 import getTraitBonuses from "../tools/traitBonuses.js";
 import { CARACNAMES } from "../tools/data.js";
 import DiceAnimationOverlay from "./shared/DiceAnimationOverlay.jsx";
-import { readDiceConfig } from "./shared/DiceConfigModal.jsx";
+import { readDiceConfig } from "./modals/DiceConfigModal.jsx";
 import {useFetch} from "../hooks/useFetch.js";
 
 const DiceModal = ({ character, isBerserk, context, onClose, onUpdate, sessionId = null }) => {

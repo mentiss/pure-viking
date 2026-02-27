@@ -124,6 +124,11 @@ for (const [slug] of getAllSystems()) {
     console.log(`🗺️  Routes mounted for [${slug}]: ${prefix}/{auth,characters,combat,sessions,journal,dice}`);
 }
 
+app.get('/api/systems', (req, res) => {
+    const systems = [...getAllSystems().values()].map(({ slug, label }) => ({ slug, label }));
+    res.json(systems);
+});
+
 // ─── Health ──────────────────────────────────────────────────────────────────
 
 app.get('/api/health', (req, res) => {

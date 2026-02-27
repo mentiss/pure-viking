@@ -1,7 +1,7 @@
 // InventoryTab.js - Gestion inventaire/équipement
 import React, { useState, useEffect } from "react";
 import {CARACNAMES, ITEMS} from "../../tools/data.js";
-import AlertModal from "../shared/AlertModal.jsx";
+import AlertModal from "../modals/AlertModal.jsx";
 
 const InventoryTab = ({ character, onUpdate }) => {
     const { useState } = React;

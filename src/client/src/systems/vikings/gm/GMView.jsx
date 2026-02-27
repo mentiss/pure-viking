@@ -14,9 +14,9 @@ import TableManagementModal from "../../../components/gm/modals/TableManagementM
 import TabCombat from "./tabs/TabCombat.jsx";
 import TabSession from "../../../components/gm/tabs/TabSession.jsx";
 import TabJournal from "../../../components/gm/tabs/TabJournal.jsx";
-import DiceConfigModal from "../../../components/shared/DiceConfigModal.jsx";
+import DiceConfigModal from "../../../components/modals/DiceConfigModal.jsx";
 
-const GMView = ({ darkMode, onToggleDarkMode }) => {
+const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, onToggleDarkMode }) => {
     console.log('[GMView] Component rendering...');
 
     // --- Tab actif ---
@@ -36,7 +36,6 @@ const GMView = ({ darkMode, onToggleDarkMode }) => {
         currentTurnIndex: -1,
         combatants: []
     });
-    const [onlineCharacters, setOnlineCharacters] = useState([]);
     const [pendingAttacks, setPendingAttacks] = useState([]);
 
     // --- State modals combat ---
@@ -49,7 +48,6 @@ const GMView = ({ darkMode, onToggleDarkMode }) => {
     // --- State global ---
     const [showDiceModal, setShowDiceModal] = useState(false);
     const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
-    const [activeSession, setActiveSession] = useState(null);
     const [showTableManagement, setShowTableManagement] = useState(false);
     const [showDiceConfig, setShowDiceConfig] = useState(false);
 
@@ -63,12 +61,7 @@ const GMView = ({ darkMode, onToggleDarkMode }) => {
 
     // Charger état initial
     useEffect(() => {
-        const savedSessionId = localStorage.getItem('activeSessionId');
-        if (savedSessionId) {
-            loadActiveSession(savedSessionId);
-        }
         loadCombatState();
-        loadOnlineCharacters();
         loadPendingAttacks();
     }, []);
 
@@ -77,50 +70,20 @@ const GMView = ({ darkMode, onToggleDarkMode }) => {
         if (!socket) return;
 
         const handleCombatUpdate = (state) => setCombatState(state);
-        const handleOnlineCharactersUpdate = (chars) => setOnlineCharacters(chars);
         const handlePendingAttacksUpdate = (attacks) => setPendingAttacks(attacks);
 
         socket.on('combat-update', handleCombatUpdate);
-        socket.on('online-characters-update', handleOnlineCharactersUpdate);
         socket.on('pending-attacks-update', handlePendingAttacksUpdate);
 
         return () => {
             socket.off('combat-update', handleCombatUpdate);
-            socket.off('online-characters-update', handleOnlineCharactersUpdate);
             socket.off('pending-attacks-update', handlePendingAttacksUpdate);
         };
     }, [socket]);
 
-    // Broadcast session active aux joueurs
-    useEffect(() => {
-        if (socket && activeSession) {
-            console.log('[GM] Broadcasting active session:', activeSession.id);
-            socket.emit('gm-set-active-session', activeSession.id);
-            socket.emit('join-session', activeSession.id);
-
-            return () => {
-                socket.emit('leave-session', activeSession.id);
-            };
-        }
-    }, [socket, activeSession?.id]);
-
     // =========================================
     // LOADERS
     // =========================================
-
-    const loadActiveSession = async (sessionId) => {
-        try {
-            const response = await fetchWithAuth(`/api/sessions/${sessionId}`);
-            if (response.ok) {
-                const session = await response.json();
-                setActiveSession(session);
-                localStorage.setItem('activeSessionId', sessionId);
-            }
-        } catch (error) {
-            console.error('Error loading active session:', error);
-            localStorage.removeItem('activeSessionId');
-        }
-    };
 
     const loadCombatState = async () => {
         try {
@@ -129,16 +92,6 @@ const GMView = ({ darkMode, onToggleDarkMode }) => {
             setCombatState(data);
         } catch (error) {
             console.error('Error loading combat state:', error);
-        }
-    };
-
-    const loadOnlineCharacters = async () => {
-        try {
-            const res = await fetch(toSystemUrl('/api/online-characters'));
-            const data = await res.json();
-            setOnlineCharacters(data);
-        } catch (error) {
-            console.error('Error loading online characters:', error);
         }
     };
 
@@ -383,13 +336,7 @@ const GMView = ({ darkMode, onToggleDarkMode }) => {
     // =========================================
 
     const handleSelectTable = (session) => {
-        if (session) {
-            setActiveSession(session);
-            localStorage.setItem('activeSessionId', session.id);
-        } else {
-            setActiveSession(null);
-            localStorage.removeItem('activeSessionId');
-        }
+        onSessionChange(session ?? null);
     };
 
     const handleGoHome = () => {

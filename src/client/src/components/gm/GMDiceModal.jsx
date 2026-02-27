@@ -2,7 +2,7 @@
 import React, { useState, useRef, useCallback } from "react";
 import { rollDiceWithSequence } from "../../tools/utils.js";
 import DiceAnimationOverlay from "../shared/DiceAnimationOverlay.jsx";
-import { readDiceConfig } from "../shared/DiceConfigModal.jsx";
+import { readDiceConfig } from "../modals/DiceConfigModal.jsx";
 import {useFetch} from "../../hooks/useFetch.js";
 
 const GMDiceModal = ({ onClose, darkMode, sessionId = null }) => {

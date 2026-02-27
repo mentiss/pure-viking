@@ -1,7 +1,7 @@
 // HistoryPanel.js - Panneau latéral historique jets de dés
 import React, { useState, useEffect } from "react";
 import {useSocket} from "../../context/SocketContext.jsx";
-import ConfirmModal from "../shared/ConfirmModal.jsx";
+import ConfirmModal from "../modals/ConfirmModal.jsx";
 import {useFetch} from "../../hooks/useFetch.js";
 
 const HistoryPanel = ({ isOpen, onClose, sessionId = null }) => {

@@ -9,7 +9,7 @@ import {
 } from "../../tools/utils.js";
 import {CARACNAMES, COMPETENCES, RUNES, TRAITS} from "../../tools/data.js";
 
-const Creation = ({ onComplete }) => {
+const Creation = ({ onCreated, onCancel }) => {
     const { useState } = React;
     const [step, setStep] = useState(1);
     const [customCode, setCustomCode] = useState('');
@@ -192,6 +192,11 @@ const Creation = ({ onComplete }) => {
                 />
             </div>
 
+            {onCancel && (
+                <button onClick={onCancel} className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-500">
+                    ← Retour
+                </button>
+            )}
             <button
                 onClick={() => setStep(2)}
                 disabled={!character.prenom || !character.nomParent}
@@ -691,7 +696,7 @@ const Creation = ({ onComplete }) => {
             const characterToSave = customCode 
                 ? { ...character, accessCode: customCode }
                 : character;
-            onComplete(characterToSave);
+            onCreated(characterToSave);
         };
 
         return (

@@ -8,7 +8,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import DiceBox from '@3d-dice/dice-box-threejs';
-import { buildDiceBoxConfig, readDiceConfig } from './DiceConfigModal.jsx';
+import { buildDiceBoxConfig, readDiceConfig } from '../modals/DiceConfigModal.jsx';
 
 const WAVE_SETTLE_DELAY  = 800;
 const EXPLOSION_FLASH    = 350;

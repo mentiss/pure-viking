@@ -8,7 +8,7 @@ import AddNPCModal from '../../../../components/gm/npc/AddNPCModal.jsx';
 import EditNPCModal from '../../../../components/gm/npc/EditNPCModal.jsx';
 import NPCAttackModal from '../../../../components/gm/npc/NPCAttackModal.jsx';
 import AttackValidationQueue from '../../../../components/gm/pj/AttackValidationQueue.jsx';
-import ConfirmModal from '../../../../components/shared/ConfirmModal.jsx';
+import ConfirmModal from '../../../../components/modals/ConfirmModal.jsx';
 
 const TabCombat = ({
                        // State combat
