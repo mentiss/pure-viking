@@ -1,7 +1,7 @@
 // CombatPanel.js - Panneau combat côté joueurs
 import React, { useState, useEffect } from "react";
 import AttackModal from "../../components/AttackModal.jsx";
-import DiceModal from "../../components/DiceModal.jsx";
+import DiceModal from "./components/modals/DiceModal.jsx";
 import {useSocket} from "../../context/SocketContext.jsx";
 import {toSystemUrl, useFetch} from "../../hooks/useFetch.js";
 

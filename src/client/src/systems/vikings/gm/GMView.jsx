@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import '../../../tools/data.js';
-import GMDiceModal from '../../../components/gm/GMDiceModal.jsx';
+import GMDiceModal from './modals/GMDiceModal.jsx';
 import {NPC_TEMPLATES} from "../../../tools/data.js";
 import {useSocket} from "../../../context/SocketContext.jsx";
 import ToastNotifications from "../../../components/layout/ToastNotifications.jsx";

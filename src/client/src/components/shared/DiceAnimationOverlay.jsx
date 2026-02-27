@@ -1,24 +1,50 @@
-/**
- * DiceAnimationOverlay.jsx
- * Emplacement : src/client/src/components/shared/DiceAnimationOverlay.jsx
- *
- * Importe buildDiceBoxConfig et readDiceConfig depuis DiceConfigModal.jsx
- * (même dossier shared/) — pas de hook externe.
- */
+// src/client/src/components/shared/DiceAnimationOverlay.jsx
+// ─────────────────────────────────────────────────────────────────────────────
+// Overlay animation 3D des dés via dice-box-threejs.
+// Accepte le format AnimationSequence produit par diceEngine.
+//
+// Prop principale : animationSequence (AnimationSequence)
+//   - mode: 'single' | 'insurance'
+//   - groups: [{ id, diceType, color, label, waves }]
+//   - insuranceData: { groups1, groups2, keptRoll } | null
+//
+// Rétrocompatibilité : accepte aussi l'ancien prop `sequences` (format legacy)
+// pour ne pas casser les composants non encore migrés.
+// ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import DiceBox from '@3d-dice/dice-box-threejs';
 import { buildDiceBoxConfig, readDiceConfig } from '../modals/DiceConfigModal.jsx';
 
-const WAVE_SETTLE_DELAY  = 800;
-const EXPLOSION_FLASH    = 350;
-const END_DISPLAY_DELAY  = 1200;
+const WAVE_SETTLE_DELAY = 800;
+const EXPLOSION_FLASH   = 350;
+const END_DISPLAY_DELAY = 1200;
 
-const DiceAnimationOverlay = ({ sequences, diceType = 'd10', onComplete, onSkip }) => {
-    const containerRef    = useRef(null);
-    const diceBoxRef      = useRef(null);
-    const abortedRef      = useRef(false);
-    const onCompleteRef   = useRef(onComplete);
+// Couleurs de groupes de dés
+const GROUP_COLORS = {
+    default:    null,   // utilise la config utilisateur
+    wild:       0xffd700,  // or
+    fortune:    0x9b59b6,  // violet
+    saga:       0xff6b35,  // orange vif
+    danger:     0xe74c3c,  // rouge
+};
+
+/**
+ * @param {object}   animationSequence - Format AnimationSequence du diceEngine
+ * @param {object}   [sequences]       - Format legacy (rétrocompatibilité)
+ * @param {string}   [diceType='d10']  - Type de dé legacy
+ * @param {function} onComplete
+ * @param {function} onSkip
+ */
+const DiceAnimationOverlay = ({ animationSequence, sequences, diceType = 'd10', onComplete, onSkip }) => {
+
+    // Normalisation : accepte l'ancien format `sequences` ou le nouveau `animationSequence`
+    const normalizedSequence = animationSequence ?? _legacyToAnimationSequence(sequences, diceType);
+
+    const containerRef  = useRef(null);
+    const diceBoxRef    = useRef(null);
+    const abortedRef    = useRef(false);
+    const onCompleteRef = useRef(onComplete);
     useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
 
     const [isReady,     setIsReady]     = useState(false);
@@ -31,15 +57,13 @@ const DiceAnimationOverlay = ({ sequences, diceType = 'd10', onComplete, onSkip 
         if (!containerRef.current) return;
         abortedRef.current = false;
 
-        const el = containerRef.current;
+        const el          = containerRef.current;
         const containerId = `dice-overlay-${Date.now()}`;
-        el.id = containerId;
-        el.style.width  = `${window.innerWidth}px`;
-        el.style.height = `${window.innerHeight}px`;
+        el.id             = containerId;
+        el.style.width    = `${window.innerWidth}px`;
+        el.style.height   = `${window.innerHeight}px`;
 
-        // Lire localStorage au moment du montage — valeur fraîche garantie
         const userConfig = buildDiceBoxConfig(readDiceConfig());
-        console.log('[DiceAnimationOverlay] Config chargée:', userConfig);
 
         const box = new DiceBox(`#${containerId}`, {
             assetPath: '/dice-assets/',
@@ -78,19 +102,25 @@ const DiceAnimationOverlay = ({ sequences, diceType = 'd10', onComplete, onSkip 
     }, [isReady]);
 
     // ── Helpers ───────────────────────────────────────────────────────────────
-    const buildNotation = (diceValues, type) =>
-        `${diceValues.length}${type}@${diceValues.join(',')}`;
+
+    /** Construit la notation dice-box-threejs depuis un groupe et ses valeurs de dés */
+    const buildBoxNotation = (diceValues, groupDiceType) =>
+        `${diceValues.length}${groupDiceType}@${diceValues.join(',')}`;
 
     const rollAndWait = (box, notation) =>
         new Promise(resolve => box.roll(notation).then(resolve));
 
-    // ── Séquence vagues ───────────────────────────────────────────────────────
-    const playSequence = async (box, waveSequence, sequenceLabel = '') => {
-        for (let i = 0; i < waveSequence.length; i++) {
+    // ── Joue une séquence de vagues pour UN groupe ────────────────────────────
+    const playGroup = async (box, group, overrideLabel = '') => {
+        const { diceType: groupDiceType, waves, label: groupLabel } = group;
+        const displayLabel = overrideLabel || groupLabel || '';
+
+        for (let i = 0; i < waves.length; i++) {
             if (abortedRef.current) return;
-            const wave = waveSequence[i];
+            const wave = waves[i];
 
             if (i > 0) {
+                // Vague d'explosion
                 setIsExploding(true);
                 await delay(EXPLOSION_FLASH);
                 if (abortedRef.current) return;
@@ -99,47 +129,62 @@ const DiceAnimationOverlay = ({ sequences, diceType = 'd10', onComplete, onSkip 
                 box.clearDice();
                 await delay(200);
             } else {
-                setLabel(sequenceLabel);
+                setLabel(displayLabel);
             }
 
             if (abortedRef.current) return;
-            await rollAndWait(box, buildNotation(wave.dice, diceType));
-            if (i < waveSequence.length - 1) await delay(WAVE_SETTLE_DELAY);
+            await rollAndWait(box, buildBoxNotation(wave.dice, groupDiceType));
+            if (i < waves.length - 1) await delay(WAVE_SETTLE_DELAY);
         }
     };
 
-    // ── Mode assurance ────────────────────────────────────────────────────────
-    const playInsurance = async (box, { seq1, seq2, keptRoll }) => {
-        await playSequence(box, seq1, '🎲 Jet 1');
+    // ── Mode single : joue tous les groupes en séquence ──────────────────────
+    const playSingle = async (box, groups) => {
+        for (const group of groups) {
+            if (abortedRef.current) return;
+            await playGroup(box, group);
+            if (groups.length > 1) {
+                await delay(WAVE_SETTLE_DELAY);
+                box.clearDice();
+                await delay(300);
+            }
+        }
+    };
+
+    // ── Mode assurance : joue les 2 pools, affiche juste un label pour le gardé ─
+    const playInsurance = async (box, { groups1, groups2, keptRoll }) => {
+        // Pool 1
+        await playSingle(box, groups1.map(g => ({ ...g, label: `🎲 Jet 1` })));
         if (abortedRef.current) return;
         await delay(WAVE_SETTLE_DELAY);
         box.clearDice();
         await delay(300);
 
-        await playSequence(box, seq2, '🎲 Jet 2');
+        // Pool 2
+        await playSingle(box, groups2.map(g => ({ ...g, label: `🎲 Jet 2` })));
         if (abortedRef.current) return;
         await delay(WAVE_SETTLE_DELAY);
-        box.clearDice();
-        await delay(300);
 
-        const keptSeq = keptRoll === 1 ? seq1 : seq2;
+        // Juste un label — pas de rejeu
         setLabel(keptRoll === 1 ? '✅ Jet 1 gardé !' : '✅ Jet 2 gardé !');
-        await rollAndWait(box, buildNotation(keptSeq[0].dice, diceType));
+        await delay(800);
     };
 
     // ── Orchestrateur ─────────────────────────────────────────────────────────
     const runAnimation = async () => {
         const box = diceBoxRef.current;
-        if (!box) return;
+        if (!box || !normalizedSequence) return;
+
         try {
-            if (sequences?.type === 'insurance') {
-                await playInsurance(box, sequences);
+            if (normalizedSequence.mode === 'insurance' && normalizedSequence.insuranceData) {
+                await playInsurance(box, normalizedSequence.insuranceData);
             } else {
-                await playSequence(box, sequences);
+                await playSingle(box, normalizedSequence.groups || []);
             }
         } catch (err) {
             if (!abortedRef.current) console.error('[DiceAnimationOverlay]', err);
         }
+
         if (abortedRef.current) return;
         setIsFinished(true);
         setLabel('');
@@ -152,6 +197,7 @@ const DiceAnimationOverlay = ({ sequences, diceType = 'd10', onComplete, onSkip 
         onSkip?.();
     }, [onSkip]);
 
+    // ─── Render ───────────────────────────────────────────────────────────────
     return (
         <div
             className="fixed inset-0 z-[200]"
@@ -198,6 +244,35 @@ const DiceAnimationOverlay = ({ sequences, diceType = 'd10', onComplete, onSkip 
         </div>
     );
 };
+
+// ─── Rétrocompatibilité : convertit l'ancien format vers AnimationSequence ───
+// Permet aux composants non migrés de continuer à fonctionner.
+
+function _legacyToAnimationSequence(sequences, diceType) {
+    if (!sequences) return null;
+
+    // Ancien format insurance : { type: 'insurance', seq1, seq2, keptRoll }
+    if (sequences.type === 'insurance') {
+        return {
+            mode: 'insurance',
+            groups: null,
+            insuranceData: {
+                groups1: [{ id: 'main', diceType, color: 'default', label: 'Jet 1', waves: sequences.seq1 }],
+                groups2: [{ id: 'main', diceType, color: 'default', label: 'Jet 2', waves: sequences.seq2 }],
+                keptRoll: sequences.keptRoll,
+            },
+        };
+    }
+
+    // Ancien format simple : tableau de vagues [{ wave, dice }]
+    // ou objet { sequences: [...] }
+    const waves = Array.isArray(sequences) ? sequences : (sequences.waves || []);
+    return {
+        mode: 'single',
+        groups: [{ id: 'main', diceType, color: 'default', label: '', waves }],
+        insuranceData: null,
+    };
+}
 
 const delay = ms => new Promise(r => setTimeout(r, ms));
 

@@ -9,7 +9,7 @@ import './theme.css';
 import { formatExplosion, formatFullName, formatSkillName, getBestCharacteristic, getBlessureMalus, getFatigueMalus, getSuccessThreshold } from '../../tools/utils.js';
 import { CARACNAMES, TRAITS } from '../../tools/data.js';
 import ThemeToggle      from '../../components/ui/ThemeToggle.jsx';
-import DiceModal        from '../../components/DiceModal.jsx';
+import DiceModal        from './components/modals/DiceModal.jsx';
 import EditModals       from './components/modals/EditModals.jsx';
 import Experience       from './Experience.jsx';
 import AvatarUploader   from '../../components/AvatarUploader.jsx';
@@ -61,6 +61,10 @@ const Sheet = ({
     });
 
     const handleChangeTab = (tab) => {
+        if (tab === 'historique') {
+            setHistoryPanelOpen(true);
+            return;
+        }
         setActiveTab(tab);
         window.location.hash = tab;
         if (tab === 'journal') onJournalRead?.();
@@ -216,12 +220,6 @@ const Sheet = ({
                                             🗂️ Changer de personnage
                                         </button>
                                         <button
-                                            onClick={() => { setShowCharMenu(false); setShowDeleteModal(true); }}
-                                            className="w-full px-4 py-2 text-left hover:bg-red-100 dark:hover:bg-red-900/30 flex items-center gap-2 text-sm transition-colors text-red-600"
-                                        >
-                                            🗑️ Supprimer ce personnage
-                                        </button>
-                                        <button
                                             onClick={() => { setShowCharMenu(false); setShowDiceConfig(true); }}
                                             className="w-full px-4 py-2 text-left hover:bg-viking-parchment dark:hover:bg-gray-700 flex items-center gap-2 text-sm transition-colors text-viking-text dark:text-viking-parchment"
                                         >
@@ -232,6 +230,12 @@ const Sheet = ({
                                             className="w-full px-4 py-2 text-left hover:bg-red-100 dark:hover:bg-red-900/30 flex items-center gap-2 text-sm transition-colors rounded-b-lg text-red-600"
                                         >
                                             🚪 Déconnexion
+                                        </button>
+                                        <button
+                                            onClick={() => { setShowCharMenu(false); setShowDeleteModal(true); }}
+                                            className="w-full px-4 py-2 text-left hover:bg-red-100 dark:hover:bg-red-900/30 flex items-center gap-2 text-sm transition-colors text-red-600"
+                                        >
+                                            🗑️ Supprimer ce personnage
                                         </button>
                                     </div>
                                 </>
@@ -261,13 +265,18 @@ const Sheet = ({
                                     : 'bg-viking-parchment dark:bg-gray-700 text-viking-text dark:text-viking-parchment hover:bg-viking-bronze/30'
                             }`}
                         >
-                            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                            {/* Badge journal */}
-                            {tab === 'journal' && journalUnread > 0 && (
-                                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                                    {journalUnread}
-                                </span>
-                            )}
+                            {tab === 'fiche' && '📋 Ma Fiche'}
+                            {tab === 'dice' && '🎲 Lanceur de dés'}
+                            {tab === 'runes' && '🔮 Runes'}
+                            {tab === 'inventaire' && '🎒 Inventaire'}
+                            {tab === 'journal' && <>📓 Journal
+                                {journalUnread > 0 && (
+                                    <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-viking-bronze text-viking-brown rounded-full font-bold">
+                                        {journalUnread}
+                                    </span>
+                                )}
+                            </>}
+                            {tab === 'historique' && '📜 Historique' }
                         </button>
                     ))}
                 </div>

@@ -51,6 +51,8 @@ export const AuthProvider = ({ children }) => {
     };
 
     // ─── Refresh ─────────────────────────────────────────────────────────────
+    // Retourne le nouveau token directement — useFetch l'utilise pour le retry
+    // sans attendre la mise à jour du state React (qui est asynchrone).
 
     const refreshAccessToken = async () => {
         try {
@@ -63,14 +65,17 @@ export const AuthProvider = ({ children }) => {
                 const data = await response.json();
                 setAccessToken(data.accessToken);
                 await loadUserInfo(data.accessToken);
+                return data.accessToken; // ← retour du nouveau token
             } else {
                 setUser(null);
                 setAccessToken(null);
+                return null;
             }
         } catch (error) {
             console.error('Refresh error:', error);
             setUser(null);
             setAccessToken(null);
+            return null;
         } finally {
             setLoading(false);
         }

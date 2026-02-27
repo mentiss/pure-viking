@@ -35,32 +35,48 @@ function toSystemUrl(url) {
     return `/api/${system}${url.substring(4)}`; // substring(4) = enlève '/api'
 }
 
+/**
+ * Construit les headers avec le token fourni.
+ * Séparé pour pouvoir reconstruire avec un nouveau token après refresh.
+ */
+function buildHeaders(options, token) {
+    return {
+        ...options.headers,
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+    };
+}
+
 export const useFetch = () => {
     const { accessToken, refreshAccessToken } = useAuth();
 
     const fetchWithAuth = async (url, options = {}) => {
         const finalUrl = toSystemUrl(url);
 
-        const config = {
+        // Premier essai avec le token courant
+        let response = await fetch(finalUrl, {
             ...options,
-            headers: {
-                ...options.headers,
-                'Content-Type': 'application/json',
-                ...(accessToken && { 'Authorization': `Bearer ${accessToken}` })
-            }
-        };
+            headers: buildHeaders(options, accessToken),
+        });
 
-        let response = await fetch(finalUrl, config);
-
-        // Token expiré → refresh puis retry
+        // Token expiré → refresh, puis retry avec le NOUVEAU token
         if (response.status === 401) {
             try {
-                await refreshAccessToken();
-                await new Promise(resolve => setTimeout(resolve, 100));
-                response = await fetch(finalUrl, config);
+                const newToken = await refreshAccessToken(); // retourne le nouveau token directement
+
+                if (!newToken) {
+                    // Refresh échoué (session expirée côté serveur) → on laisse remonter
+                    throw new Error('Session expired, please login again');
+                }
+
+                // Retry avec le nouveau token — pas de setTimeout, on a le token en main
+                response = await fetch(finalUrl, {
+                    ...options,
+                    headers: buildHeaders(options, newToken),
+                });
             } catch (error) {
                 console.error('[useFetch] Refresh failed:', error);
-                throw new Error('Session expired, please login again');
+                throw error;
             }
         }
 
