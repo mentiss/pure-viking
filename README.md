@@ -52,11 +52,11 @@ pure-vikings-v3/
 │   │   │   └── dice.js       # API historique dés
 │   │   └── init-db.js        # Script initialisation
 │   ├── components/           # Composants React
-│   │   ├── CharacterSheet.jsx
-│   │   ├── CharacterCreation.jsx
+│   │   ├── Sheet.jsx
+│   │   ├── Creation.jsx
 │   │   ├── DiceModal.jsx
 │   │   ├── EditModals.jsx
-│   │   ├── EvolutionModal.jsx
+│   │   ├── Experience.jsx
 │   │   ├── ThemeToggle.jsx
 │   │   └── RunesTab.jsx
 │   ├── App.jsx                # Application principale

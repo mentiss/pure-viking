@@ -1,27 +1,35 @@
-// context/AuthContext.jsx - Gestion authentification
+// src/client/src/context/AuthContext.jsx
+// Gestion authentification.
+// Les appels auth sont préfixés par le système actif extrait du pathname,
+// car AuthContext est un Provider hors React Router (pas accès à useParams).
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
+import { getSystemFromPath } from '../hooks/useSystem';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null); // { character, isGM }
+    const [user, setUser]               = useState(null); // { character, isGM }
     const [accessToken, setAccessToken] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading]         = useState(true);
 
     // Auto-refresh au montage
     useEffect(() => {
         refreshAccessToken();
     }, []);
 
-    /**
-     * Login avec code + URL
-     */
+    function authBase() {
+        return `/api/${getSystemFromPath()}/auth`;
+    }
+
+    // ─── Login ───────────────────────────────────────────────────────────────
+
     const login = async (code, characterUrl) => {
         try {
-            const response = await fetch('/api/auth/login', {
+            const response = await fetch(`${authBase()}/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'include', // Envoyer cookies
+                credentials: 'include',
                 body: JSON.stringify({ code, characterUrl })
             });
 
@@ -32,28 +40,21 @@ export const AuthProvider = ({ children }) => {
 
             const data = await response.json();
             setAccessToken(data.accessToken);
-            setUser({
-                character: data.character,
-                isGM: data.character.id === -1
-            });
-
-            // Sauvegarder dans localStorage pour persistance
+            setUser({ character: data.character, isGM: data.character.id === -1 });
             localStorage.setItem('currentCharacterId', data.character.id);
 
             return data.character;
-
         } catch (error) {
             console.error('Login error:', error);
             throw error;
         }
     };
 
-    /**
-     * Refresh access token via refresh token (cookie)
-     */
+    // ─── Refresh ─────────────────────────────────────────────────────────────
+
     const refreshAccessToken = async () => {
         try {
-            const response = await fetch('/api/auth/refresh', {
+            const response = await fetch(`${authBase()}/refresh`, {
                 method: 'POST',
                 credentials: 'include'
             });
@@ -61,15 +62,11 @@ export const AuthProvider = ({ children }) => {
             if (response.ok) {
                 const data = await response.json();
                 setAccessToken(data.accessToken);
-
-                // Charger infos utilisateur
                 await loadUserInfo(data.accessToken);
             } else {
-                // Pas de refresh token valide
                 setUser(null);
                 setAccessToken(null);
             }
-
         } catch (error) {
             console.error('Refresh error:', error);
             setUser(null);
@@ -79,57 +76,37 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    /**
-     * Charger les infos utilisateur depuis /api/auth/me
-     */
+    // ─── Me ──────────────────────────────────────────────────────────────────
+
     const loadUserInfo = async (token) => {
         try {
-            const response = await fetch('/api/auth/me', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+            const response = await fetch(`${authBase()}/me`, {
+                headers: { 'Authorization': `Bearer ${token}` }
             });
-
             if (response.ok) {
                 const data = await response.json();
-                setUser({
-                    character: data.character,
-                    isGM: data.character.id === -1
-                });
+                setUser({ character: data.character, isGM: data.character.id === -1 });
             }
-
         } catch (error) {
             console.error('Load user info error:', error);
         }
     };
 
-    /**
-     * Logout
-     */
+    // ─── Logout ──────────────────────────────────────────────────────────────
+
     const logout = async () => {
         try {
-            await fetch('/api/auth/logout', {
-                method: 'POST',
-                credentials: 'include'
-            });
+            await fetch(`${authBase()}/logout`, { method: 'POST', credentials: 'include' });
         } catch (error) {
             console.error('Logout error:', error);
         }
-
         setUser(null);
         setAccessToken(null);
         localStorage.removeItem('currentCharacterId');
     };
 
     return (
-        <AuthContext.Provider value={{
-            user,
-            accessToken,
-            loading,
-            login,
-            logout,
-            refreshAccessToken
-        }}>
+        <AuthContext.Provider value={{ user, accessToken, loading, login, logout, refreshAccessToken }}>
             {children}
         </AuthContext.Provider>
     );
@@ -137,8 +114,6 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
     const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error('useAuth must be used within AuthProvider');
-    }
+    if (!context) throw new Error('useAuth must be used within AuthProvider');
     return context;
 };

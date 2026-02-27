@@ -11,6 +11,7 @@ import getTraitBonuses from "../tools/traitBonuses.js";
 import { CARACNAMES } from "../tools/data.js";
 import DiceAnimationOverlay from "./shared/DiceAnimationOverlay.jsx";
 import { readDiceConfig } from "./shared/DiceConfigModal.jsx";
+import {useFetch} from "../hooks/useFetch.js";
 
 const DiceModal = ({ character, isBerserk, context, onClose, onUpdate, sessionId = null }) => {
 
@@ -29,6 +30,8 @@ const DiceModal = ({ character, isBerserk, context, onClose, onUpdate, sessionId
     const [conditionalBonuses, setConditionalBonuses] = useState([]);
     const [activeConditionalBonuses, setActiveConditionalBonuses] = useState([]);
 
+    const fetchWithAuth = useFetch();
+
     // Ref pour éviter le stale closure dans handleAnimationComplete
     const pendingResultRef = useRef(null);
     // Ref pour le context.onRollComplete (stable)
@@ -39,7 +42,7 @@ const DiceModal = ({ character, isBerserk, context, onClose, onUpdate, sessionId
     const sendRollToAPI = async (rollData) => {
         try {
             const characterName = `${character.prenom}${character.surnom ? ' "' + character.surnom + '"' : ''}`;
-            await fetch('/api/dice/roll', {
+            await fetchWithAuth('/api/dice/roll', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

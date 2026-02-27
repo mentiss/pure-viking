@@ -72,3 +72,10 @@ select:disabled {
 .animate-toast-glitter {
   animation: toast-glitter 1s ease-out forwards;
 }
+
+.bg-primary     { background-color: var(--color-primary); }
+.bg-surface     { background-color: var(--color-surface); }
+.bg-surface-alt { background-color: var(--color-surface-alt); }
+.text-primary   { color: var(--color-primary); }
+.text-muted     { color: var(--color-text-muted); }
+.border-theme   { border-color: var(--color-border); }

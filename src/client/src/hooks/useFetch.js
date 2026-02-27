@@ -1,15 +1,47 @@
-// hooks/useFetch.js - Hook pour fetch avec auth automatique
+// src/client/src/hooks/useFetch.js
+// Hook fetch avec JWT automatique + préfixage système automatique.
+//
+// Les URLs /api/<ressource> sont réécrites en /api/:system/<ressource>
+// selon le système actif dans l'URL courante, sans rien changer dans les composants.
+//
+// Exemples :
+//   fetchWithAuth('/api/characters/42')      →  /api/vikings/characters/42
+//   fetchWithAuth('/api/sessions')           →  /api/vikings/sessions
+//   fetchWithAuth('/api/online-characters')  →  inchangé (route globale)
+//   fetchWithAuth('https://...')             →  inchangé (URL absolue)
+
 import { useAuth } from '../context/AuthContext';
+import { getSystemFromPath } from './useSystem';
+
+// Routes montées sans préfixe système dans server.js
+const GLOBAL_ROUTES = [
+    '/api/online-characters',
+    '/api/health',
+];
+
+/**
+ * Préfixe une URL /api/<ressource> en /api/:system/<ressource>.
+ * Laisse inchangées les URLs absolues et les routes globales.
+ */
+function toSystemUrl(url) {
+    if (!url.startsWith('/api/')) return url;
+    if (GLOBAL_ROUTES.some(r => url.startsWith(r))) return url;
+
+    // Déjà préfixée ? ex: /api/vikings/... → on ne double pas
+    const system = getSystemFromPath();
+    if (url.startsWith(`/api/${system}/`)) return url;
+
+    // /api/characters/42  →  /api/vikings/characters/42
+    return `/api/${system}${url.substring(4)}`; // substring(4) = enlève '/api'
+}
 
 export const useFetch = () => {
     const { accessToken, refreshAccessToken } = useAuth();
 
-    /**
-     * Fetch avec JWT automatique + retry sur 401
-     */
     const fetchWithAuth = async (url, options = {}) => {
-        // Première tentative avec token actuel
-        let config = {
+        const finalUrl = toSystemUrl(url);
+
+        const config = {
             ...options,
             headers: {
                 ...options.headers,
@@ -18,23 +50,14 @@ export const useFetch = () => {
             }
         };
 
-        let response = await fetch(url, config);
+        let response = await fetch(finalUrl, config);
 
-        // Si 401, tenter refresh puis réessayer
+        // Token expiré → refresh puis retry
         if (response.status === 401) {
-            console.log('[useFetch] Token expired, refreshing...');
-
             try {
                 await refreshAccessToken();
-
-                // Réessayer avec nouveau token (il sera mis à jour dans le contexte)
-                // On attend un peu que le contexte se mette à jour
                 await new Promise(resolve => setTimeout(resolve, 100));
-
-                // Note: on pourrait améliorer ça en récupérant directement le nouveau token
-                // Pour simplifier, on redemande juste la requête
-                response = await fetch(url, config);
-
+                response = await fetch(finalUrl, config);
             } catch (error) {
                 console.error('[useFetch] Refresh failed:', error);
                 throw new Error('Session expired, please login again');
@@ -46,3 +69,6 @@ export const useFetch = () => {
 
     return fetchWithAuth;
 };
+
+// Export nommé pour les fetch() nus sans JWT (ex: état combat public)
+export { toSystemUrl };

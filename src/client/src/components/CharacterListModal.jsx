@@ -1,5 +1,6 @@
 // CharacterListModal.js - Modal de sélection de personnage
 import React, { useState, useEffect } from "react";
+import {toSystemUrl} from "../hooks/useFetch.js";
 
 const CharacterListModal = ({ currentCharId, onClose, onSelect }) => {
     const { useState, useEffect } = React;
@@ -8,7 +9,7 @@ const CharacterListModal = ({ currentCharId, onClose, onSelect }) => {
     const [error, setError] = useState(null);
     
     useEffect(() => {
-        fetch('/api/characters')
+        fetch(toSystemUrl('/api/characters'))
             .then(res => {
                 if (!res.ok) throw new Error('Failed to load characters');
                 return res.json();

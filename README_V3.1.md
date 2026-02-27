@@ -31,7 +31,7 @@ Les corrections suivantes nécessitent des modifications dans plusieurs fichiers
 ```
 
 ### 5. Token Fatigue Visual
-**Fichier** : `src/components/CharacterSheet.jsx` ligne ~330
+**Fichier** : `src/components/Sheet.jsx` ligne ~330
 **Problème** : Index 0 ET 1 affichés en pointillés
 **Solution** : Ne mettre `border-dashed` QUE sur index 0
 ```jsx
@@ -53,7 +53,7 @@ Les corrections suivantes nécessitent des modifications dans plusieurs fichiers
 ```
 
 ### 6. Nouvelle Compétence = 3 SAGA
-**Fichier** : `src/components/EvolutionModal.jsx` ligne ~10
+**Fichier** : `src/components/Experience.jsx` ligne ~10
 **Problème** : `newSkill: 1`
 **Solution** : Changer en `newSkill: 3`
 ```javascript
@@ -68,7 +68,7 @@ const costs = {
 ```
 
 ### 7. Bouton Copier URL
-**Fichier** : `src/App.jsx` ou `src/components/CharacterSheet.jsx`
+**Fichier** : `src/App.jsx` ou `src/components/Sheet.jsx`
 **Ajouter** : Dans le header, après le code d'accès
 ```jsx
 {character && character.accessUrl && (
@@ -135,7 +135,7 @@ useEffect(() => {
 ```
 
 ### 9. Code Éditable
-**Fichier** : `src/components/CharacterSheet.jsx` dans la section Info Générale (mode édition)
+**Fichier** : `src/components/Sheet.jsx` dans la section Info Générale (mode édition)
 **Ajouter** : Input pour modifier le code
 ```jsx
 {editMode && (
@@ -170,7 +170,7 @@ if (req.body.accessUrl) {
 ```
 
 ### 10. Code Custom à la Création
-**Fichier** : `src/components/CharacterCreation.jsx`
+**Fichier** : `src/components/Creation.jsx`
 **Ajouter** : Input pour code personnalisé (optionnel)
 ```jsx
 // Dans le state
@@ -312,12 +312,12 @@ const CharacterListModal = ({ currentCharId, onClose, onSelect }) => {
 
 ### ⚠️ À Appliquer Manuellement
 1. Dark mode (1 ligne App.jsx)
-2. Token fatigue visuel (1 section CharacterSheet.jsx)
-3. newSkill cost (1 ligne EvolutionModal.jsx)
+2. Token fatigue visuel (1 section Sheet.jsx)
+3. newSkill cost (1 ligne Experience.jsx)
 4. Bouton copier URL (ajout App.jsx)
 5. Accès direct URL (backend + frontend)
-6. Code éditable (CharacterSheet.jsx + backend)
-7. Code custom création (CharacterCreation.jsx + backend)
+6. Code éditable (Sheet.jsx + backend)
+7. Code custom création (Creation.jsx + backend)
 8. Menu sélection persos (nouveau composant)
 
 ## 🚀 INSTALLATION
@@ -342,9 +342,9 @@ npm run dev
 - ✅ `src/data.js` (remplacé par version complète)
 - ✅ `src/utils.js` (fils/fille corrigé)
 - ⚠️ `src/App.jsx` (dark mode + URL + menu)
-- ⚠️ `src/components/CharacterSheet.jsx` (tokens + copier + code éditable)
-- ⚠️ `src/components/EvolutionModal.jsx` (newSkill cost)
-- ⚠️ `src/components/CharacterCreation.jsx` (code custom)
+- ⚠️ `src/components/Sheet.jsx` (tokens + copier + code éditable)
+- ⚠️ `src/components/Experience.jsx` (newSkill cost)
+- ⚠️ `src/components/Creation.jsx` (code custom)
 - ⚠️ `src/server/server.js` (route URL)
 - ⚠️ `src/server/routes/characters.js` (validation)
 - ⚠️ **NOUVEAU** `src/components/CharacterListModal.jsx`

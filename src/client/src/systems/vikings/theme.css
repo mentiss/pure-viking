@@ -1,0 +1,21 @@
+:root {
+    --color-primary:        #8B6914;
+    --color-primary-hover:  #A0522D;
+    --color-bg:             #F5E6C8;
+    --color-surface:        #6B3A2A;
+    --color-surface-alt:    #8B4513;
+    --color-text:           #2C1810;
+    --color-text-muted:     #8B6914;
+    --color-border:         #A0522D;
+    --color-danger:         #DC2626;
+    --color-success:        #16A34A;
+}
+
+.dark {
+    --color-bg:             #1A0F0A;
+    --color-surface:        #2C1810;
+    --color-surface-alt:    #3D2415;
+    --color-text:           #F5E6C8;
+    --color-text-muted:     #A0522D;
+    --color-border:         #6B3A2A;
+}

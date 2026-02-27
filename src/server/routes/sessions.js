@@ -1,22 +1,25 @@
-// routes/sessions.js - API gestion des sessions/tables
+// src/server/routes/sessions.js
+// Route générique des sessions de jeu.
+// Partagée par tous les systèmes — aucune dépendance à un système spécifique.
+// Utilise req.db (injecté par systemResolver) et req.system.slug pour les rooms Socket.
+
 const express = require('express');
 const router = express.Router();
-const { getDb, ensureUniqueCode } = require('../utils/db');
-const { authenticate, requireGM, requireOwnerOrGM } = require('../middlewares/auth');
+const { authenticate, requireGM } = require('../middlewares/auth');
+const { ensureUniqueCode } = require('../utils/characters');
 
-// Helper: Charger session avec liste des persos
+// ─── Helper ─────────────────────────────────────────────────────────────────
+
 function loadSessionWithCharacters(db, sessionId) {
     const session = db.prepare('SELECT * FROM game_sessions WHERE id = ?').get(sessionId);
     if (!session) return null;
 
-    // Charger les persos de la session
     const characters = db.prepare(`
-        SELECT
-            c.id, c.player_name, c.prenom, c.surnom, c.access_url, c.avatar,
-            c.saga_actuelle, c.saga_totale, c.tokens_blessure, c.tokens_fatigue,
-            sc.joined_at
+        SELECT c.id, c.player_name, c.prenom, c.surnom, c.access_url, c.avatar,
+               c.saga_actuelle, c.saga_totale, c.tokens_blessure, c.tokens_fatigue,
+               sc.joined_at
         FROM session_characters sc
-                 JOIN characters c ON sc.character_id = c.id
+        JOIN characters c ON sc.character_id = c.id
         WHERE sc.session_id = ?
         ORDER BY sc.joined_at DESC
     `).all(sessionId);
@@ -45,16 +48,14 @@ function loadSessionWithCharacters(db, sessionId) {
     };
 }
 
-// GET /api/sessions - Liste toutes les sessions (GM only)
+// ─── Routes ─────────────────────────────────────────────────────────────────
+
 router.get('/', authenticate, requireGM, (req, res) => {
     try {
-        const db = getDb();
-        const sessions = db.prepare(`
-            SELECT
-                s.*,
-                COUNT(sc.character_id) as character_count
+        const sessions = req.db.prepare(`
+            SELECT s.*, COUNT(sc.character_id) as character_count
             FROM game_sessions s
-                     LEFT JOIN session_characters sc ON s.id = sc.session_id
+            LEFT JOIN session_characters sc ON s.id = sc.session_id
             GROUP BY s.id
             ORDER BY s.updated_at DESC
         `).all();
@@ -76,16 +77,10 @@ router.get('/', authenticate, requireGM, (req, res) => {
     }
 });
 
-// GET /api/sessions/:id - Détails d'une session avec liste des persos
 router.get('/:id', authenticate, (req, res) => {
     try {
-        const db = getDb();
-        const session = loadSessionWithCharacters(db, req.params.id);
-
-        if (!session) {
-            return res.status(404).json({ error: 'Session not found' });
-        }
-
+        const session = loadSessionWithCharacters(req.db, req.params.id);
+        if (!session) return res.status(404).json({ error: 'Session not found' });
         res.json(session);
     } catch (error) {
         console.error('Error fetching session:', error);
@@ -93,80 +88,46 @@ router.get('/:id', authenticate, (req, res) => {
     }
 });
 
-// POST /api/sessions - Créer une nouvelle session (GM only)
 router.post('/', authenticate, requireGM, (req, res) => {
     try {
         const { name, date, notes } = req.body;
+        if (!name?.trim()) return res.status(400).json({ error: 'Session name is required' });
 
-        if (!name || !name.trim()) {
-            return res.status(400).json({ error: 'Session name is required' });
-        }
-
-        const db = getDb();
-
-        // Générer codes d'accès uniques
-        const { code, url } = ensureUniqueCode('session');
-
-        const result = db.prepare(`
+        const { code, url } = ensureUniqueCode('session', req.db);
+        const result = req.db.prepare(`
             INSERT INTO game_sessions (name, access_code, access_url, date, notes)
             VALUES (?, ?, ?, ?, ?)
-        `).run(
-            name.trim(),
-            code,
-            url,
-            date || new Date().toISOString(),
-            notes || null
-        );
+        `).run(name.trim(), code, url, date || new Date().toISOString(), notes || null);
 
-        const session = loadSessionWithCharacters(db, result.lastInsertRowid);
-        res.status(201).json(session);
+        res.status(201).json(loadSessionWithCharacters(req.db, result.lastInsertRowid));
     } catch (error) {
         console.error('Error creating session:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// PUT /api/sessions/:id - Modifier une session (GM only)
 router.put('/:id', authenticate, requireGM, (req, res) => {
     try {
         const { name, date, notes } = req.body;
-        const db = getDb();
-
-        // Vérifier existence
-        const exists = db.prepare('SELECT id FROM game_sessions WHERE id = ?').get(req.params.id);
-        if (!exists) {
+        if (!req.db.prepare('SELECT id FROM game_sessions WHERE id = ?').get(req.params.id))
             return res.status(404).json({ error: 'Session not found' });
-        }
 
-        db.prepare(`
-            UPDATE game_sessions
-            SET name = ?, date = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+        req.db.prepare(`
+            UPDATE game_sessions SET name = ?, date = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        `).run(
-            name || null,
-            date || null,
-            notes || null,
-            req.params.id
-        );
+        `).run(name || null, date || null, notes || null, req.params.id);
 
-        const session = loadSessionWithCharacters(db, req.params.id);
-        res.json(session);
+        res.json(loadSessionWithCharacters(req.db, req.params.id));
     } catch (error) {
         console.error('Error updating session:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// DELETE /api/sessions/:id - Supprimer une session (GM only)
 router.delete('/:id', authenticate, requireGM, (req, res) => {
     try {
-        const db = getDb();
-        const result = db.prepare('DELETE FROM game_sessions WHERE id = ?').run(req.params.id);
-
-        if (result.changes === 0) {
-            return res.status(404).json({ error: 'Session not found' });
-        }
-
+        const result = req.db.prepare('DELETE FROM game_sessions WHERE id = ?').run(req.params.id);
+        if (result.changes === 0) return res.status(404).json({ error: 'Session not found' });
         res.json({ deleted: true, id: parseInt(req.params.id) });
     } catch (error) {
         console.error('Error deleting session:', error);
@@ -174,61 +135,35 @@ router.delete('/:id', authenticate, requireGM, (req, res) => {
     }
 });
 
-// POST /api/sessions/:sessionId/characters/:characterId - Assigner un perso à la session (GM only)
 router.post('/:sessionId/characters/:characterId', authenticate, requireGM, (req, res) => {
     try {
         const { sessionId, characterId } = req.params;
-        const db = getDb();
+        const db = req.db;
 
-        // Vérifier que la session existe
-        const session = db.prepare('SELECT id FROM game_sessions WHERE id = ?').get(sessionId);
-        if (!session) {
+        if (!db.prepare('SELECT id FROM game_sessions WHERE id = ?').get(sessionId))
             return res.status(404).json({ error: 'Session not found' });
-        }
-
-        // Vérifier que le personnage existe
-        const character = db.prepare('SELECT id FROM characters WHERE id = ?').get(characterId);
-        if (!character) {
+        if (!db.prepare('SELECT id FROM characters WHERE id = ?').get(characterId))
             return res.status(404).json({ error: 'Character not found' });
-        }
-
-        // Vérifier si déjà assigné
-        const existing = db.prepare('SELECT * FROM session_characters WHERE session_id = ? AND character_id = ?').get(sessionId, characterId);
-        if (existing) {
+        if (db.prepare('SELECT * FROM session_characters WHERE session_id = ? AND character_id = ?').get(sessionId, characterId))
             return res.status(400).json({ error: 'Character already in this session' });
-        }
 
-        // Ajouter à la session
-        db.prepare(`
-            INSERT INTO session_characters (session_id, character_id)
-            VALUES (?, ?)
-        `).run(sessionId, characterId);
-
-        const updatedSession = loadSessionWithCharacters(db, sessionId);
-        res.json(updatedSession);
+        db.prepare('INSERT INTO session_characters (session_id, character_id) VALUES (?, ?)').run(sessionId, characterId);
+        res.json(loadSessionWithCharacters(db, sessionId));
     } catch (error) {
         console.error('Error adding character to session:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// DELETE /api/sessions/:sessionId/characters/:characterId - Retirer un perso de la session (GM only)
 router.delete('/:sessionId/characters/:characterId', authenticate, requireGM, (req, res) => {
     try {
         const { sessionId, characterId } = req.params;
-        const db = getDb();
+        const result = req.db.prepare(
+            'DELETE FROM session_characters WHERE session_id = ? AND character_id = ?'
+        ).run(sessionId, characterId);
 
-        const result = db.prepare(`
-            DELETE FROM session_characters
-            WHERE session_id = ? AND character_id = ?
-        `).run(sessionId, characterId);
-
-        if (result.changes === 0) {
-            return res.status(404).json({ error: 'Character not in this session' });
-        }
-
-        const updatedSession = loadSessionWithCharacters(db, sessionId);
-        res.json(updatedSession);
+        if (result.changes === 0) return res.status(404).json({ error: 'Character not in this session' });
+        res.json(loadSessionWithCharacters(req.db, sessionId));
     } catch (error) {
         console.error('Error removing character from session:', error);
         res.status(500).json({ error: error.message });
