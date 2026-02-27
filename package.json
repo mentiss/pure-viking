@@ -1,7 +1,7 @@
 {
   "name": "pure-vikings-app",
-  "version": "3.0.0",
-  "description": "Pure Vikings - Système de jeu Pure Saga (Norvège 810 EC)",
+  "version": "4.0.0",
+  "description": "App VTT multi-JDR",
   "main": "src/server/server.js",
   "scripts": {
     "start": "node src/server/server.js",
