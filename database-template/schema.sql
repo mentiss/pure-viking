@@ -212,6 +212,19 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
                                               FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS npc_templates (
+                                             id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                                             name        TEXT    NOT NULL,
+                                             description TEXT,
+    -- JSON : stats de combat { blessureMax, armure, seuil, actionsMax, attaques: [...] }
+    -- Structure définie par chaque système, opaque pour la route générique
+                                             combat_stats TEXT NOT NULL DEFAULT '{}',
+    -- JSON : données additionnelles spécifiques au système
+                                             system_data  TEXT DEFAULT '{}',
+                                             created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                             updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ============================================
 -- INDEX POUR PERFORMANCE
 -- ============================================
@@ -233,3 +246,4 @@ CREATE INDEX IF NOT EXISTS idx_journal_type           ON character_journal(type)
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_character ON refresh_tokens(character_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token   ON refresh_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_expires ON refresh_tokens(expires_at);
+CREATE INDEX IF NOT EXISTS idx_npc_templates_name ON npc_templates(name);
