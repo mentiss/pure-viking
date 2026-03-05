@@ -43,7 +43,7 @@
 │   │   ├── systems/                   # Un dossier par système de jeu
 │   │   │   ├── Loader.js              # Auto-scan + registre des systèmes
 │   │   │   └── vikings/               # Système Pure Vikings
-│   │   │       ├── config.js          # { slug, label, dbPath, schemaPath }
+│   │   │       ├── config.jsx          # { slug, label, dbPath, schemaPath }
 │   │   │       ├── characterController.js
 │   │   │       └── routes/
 │   │   │           ├── characters.js  # Routes spécifiques personnages
@@ -79,7 +79,7 @@
 │           │   └── diceEngine.js      # Orchestrateur générique de dés
 │           ├── systems/
 │           │   └── vikings/
-│           │       └── config.js      # Hooks système : beforeRoll, buildRollParams, afterRoll…
+│           │       └── config.jsx      # Hooks système : beforeRoll, buildRollParams, afterRoll…
 │           └── components/
 │               ├── shared/            # Composants agnostiques au système
 │               │   ├── RichTextEditor.jsx
@@ -263,13 +263,13 @@ Les rooms sont isolées par système et session : `${system}_session_${sessionId
 
 ### Ajouter un nouveau système
 
-1. Créer `src/server/systems/:slug/config.js`
+1. Créer `src/server/systems/:slug/config.jsx`
 2. Créer `src/server/systems/:slug/characterController.js`
 3. Créer `src/server/systems/:slug/routes/characters.js`
 4. Créer `src/server/systems/:slug/routes/combat.js`
 5. Créer `database-template/:slug-schema.sql`
 6. Créer les composants frontend dans `src/client/src/components/systems/:slug/`
-7. Ajouter la config dés dans `src/client/src/systems/:slug/config.js`
+7. Ajouter la config dés dans `src/client/src/systems/:slug/config.jsx`
 
 > Le système est découvert automatiquement au démarrage. Aucun fichier central à modifier.
 

@@ -16,7 +16,7 @@ import AvatarUploader   from '../../components/AvatarUploader.jsx';
 import RunesTab         from './components/tabs/RunesTab.jsx';
 import InventoryTab     from '../../components/tabs/InventoryTab.jsx';
 import JournalTab       from '../../components/tabs/JournalTab.jsx';
-import Combat           from './Combat.jsx';
+//import Combat           from './Combat.jsx';
 import ToastNotifications from '../../components/layout/ToastNotifications.jsx';
 import HistoryPanel     from '../../components/layout/HistoryPanel.jsx';
 import SessionPlayersBar from '../../components/layout/SessionPlayersBar.jsx';
@@ -26,6 +26,8 @@ import { useSession }   from '../../context/SessionContext.jsx';
 import { useAuth }      from '../../context/AuthContext.jsx';
 import { useFetch }     from '../../hooks/useFetch.js';
 import { useParams }    from 'react-router-dom';
+import CombatPanel   from '../../components/combat/CombatPanel.jsx';
+import vikingsConfig from './config.jsx';
 
 // Titres en runes qui tournent dans le header
 const RUNE_TITLES = ['ᛟᛞᛁᚾ', 'ᚢᛁᚲᛁᛜ', 'ᛃᚨᚱᛚ', 'ᚢᛟᛚᚢᚨ', 'ᛊᚲᚨᛚᛞ', 'ᛈᚢᚱᛖ'];
@@ -372,7 +374,22 @@ const Sheet = ({
                                                     {char.taille && <div>{char.taille}cm{char.poids ? ` — ${char.poids}kg` : ''}</div>}
                                                 </div>
                                             </div>
+
                                         )}
+                                        <div className="grid grid-cols-3 gap-1.5 mt-2 pt-2 border-t border-viking-leather dark:border-viking-bronze">
+                                            <div className="text-center p-1.5 bg-viking-parchment dark:bg-gray-800 rounded">
+                                                <div className="text-xs text-viking-leather dark:text-viking-bronze">Armure</div>
+                                                <div className="font-bold text-sm text-viking-brown dark:text-viking-parchment">{char.armure}</div>
+                                            </div>
+                                            <div className="text-center p-1.5 bg-viking-parchment dark:bg-gray-800 rounded">
+                                                <div className="text-xs text-viking-leather dark:text-viking-bronze">Actions</div>
+                                                <div className="font-bold text-sm text-viking-brown dark:text-viking-parchment">{char.actionsDisponibles}</div>
+                                            </div>
+                                            <div className="text-center p-1.5 bg-viking-parchment dark:bg-gray-800 rounded">
+                                                <div className="text-xs text-viking-leather dark:text-viking-bronze">Seuil</div>
+                                                <div className="font-bold text-sm text-viking-brown dark:text-viking-parchment">{char.seuilCombat}</div>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     {/* Caractéristiques */}
@@ -526,13 +543,10 @@ const Sheet = ({
                             </div>
 
                             {/* Combat panel (sous la grid) */}
-                            <Combat
+                            <CombatPanel
                                 character={character}
-                                onUpdateCharacter={onCharacterUpdate}
-                                onOpenDice={(context) => {
-                                    setDiceContext(context);
-                                    setShowDiceModal(true);
-                                }}
+                                combatConfig={vikingsConfig.combat}
+                                sessionId={activeGMSession?.id ?? null}
                             />
                         </>
                     )}

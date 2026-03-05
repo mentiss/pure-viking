@@ -1,140 +1,252 @@
-// combatState.js - Gestion état combat en mémoire (pas de DB)
+// src/server/utils/combatState.js
+// Gestionnaire d'état combat en mémoire, isolé par slug.
+//
+// Principe : une Map keyed par slug. Chaque slug a son propre état indépendant.
+// Dans les faits l'app sera utilisée par une table à la fois, mais l'isolation
+// est triviale et évite tout bug de cross-contamination entre slugs.
+//
+// La structure d'un combattant est générique :
+//   { id, name, type, characterId, initiative, actionsRemaining, actionsMax,
+//     activeStates, healthData, turnData }
+//
+// healthData et turnData sont opaques : le serveur ne les inspecte jamais.
+// Toute logique métier (Berserk, posture, tokens...) est gérée côté client slug.
 
-let combatState = {
-    active: false,
-    round: 0,
-    currentTurnIndex: -1,
-    combatants: []
-};
+'use strict';
 
-const getCombatState = () => combatState;
+const { randomUUID } = require('crypto');
 
-const setCombatState = (newState) => {
-    combatState = { ...combatState, ...newState };
-    return combatState;
-};
+// ─── Structure initiale d'un état combat ────────────────────────────────────
 
-const resetCombatState = () => {
-    combatState = {
-        active: false,
-        round: 0,
+function _emptyState() {
+    return {
+        active:           false,
+        round:            0,
         currentTurnIndex: -1,
-        combatants: []
+        combatants:       [],
+        pendingAttacks:   [],
     };
-    return combatState;
-};
+}
 
-const addCombatant = (combatant) => {
-    combatState.combatants.push({
-        id: `${combatant.type}-${Date.now()}-${Math.random()}`,
+// ─── Map des états par slug ──────────────────────────────────────────────────
+
+const _states = new Map(); // slug → combatState
+
+function _get(slug) {
+    if (!_states.has(slug)) {
+        _states.set(slug, _emptyState());
+    }
+    return _states.get(slug);
+}
+
+// ─── API publique ────────────────────────────────────────────────────────────
+
+/**
+ * Retourne l'état combat complet d'un slug.
+ */
+function getState(slug) {
+    return _get(slug);
+}
+
+/**
+ * Met à jour des champs de premier niveau de l'état d'un slug.
+ * Usage interne — préférer les helpers spécialisés.
+ */
+function setState(slug, updates) {
+    const state = _get(slug);
+    Object.assign(state, updates);
+    return state;
+}
+
+/**
+ * Remet l'état d'un slug à zéro (fin de combat).
+ */
+function resetState(slug) {
+    _states.set(slug, _emptyState());
+    return _states.get(slug);
+}
+
+// ─── Combattants ─────────────────────────────────────────────────────────────
+
+/**
+ * Ajoute un combattant.
+ * Le client slug est responsable de fournir healthData et turnData
+ * déjà construits — le serveur les stocke de manière opaque.
+ */
+function addCombatant(slug, combatant) {
+    const state = _get(slug);
+    state.combatants.push({
+        name:             combatant.name             ?? 'Inconnu',
+        type:             combatant.type             ?? 'npc',
+        characterId:      combatant.characterId      ?? null,
+        initiative:       combatant.initiative       ?? 0,
+        actionsMax:       combatant.actionsMax        ?? 1,
+        activeStates:     combatant.activeStates      ?? [],
+        healthData:       combatant.healthData        ?? {},
+        turnData:         combatant.turnData          ?? {},
+        // Champs supplémentaires libres transmis par le slug (ex: initiativeRoll)
         ...combatant,
-        actionsRemaining: combatant.actionsMax,
-        postureDefensive: false,
-        postureDefensiveType: null,
-        postureDefensiveValue: 0
+        id:               randomUUID(),
+        actionsRemaining: combatant.actionsMax        ?? 1,  // init = max
     });
-    return combatState;
-};
+    return state;
+}
 
-const removeCombatant = (id) => {
-    combatState.combatants = combatState.combatants.filter(c => c.id !== id);
-    return combatState;
-};
+/**
+ * Retire un combattant.
+ */
+function removeCombatant(slug, id) {
+    const state = _get(slug);
+    state.combatants = state.combatants.filter(c => c.id !== id);
+    return state;
+}
 
-const updateCombatant = (id, updates) => {
-    combatState.combatants = combatState.combatants.map(c => 
+/**
+ * Met à jour des champs d'un combattant (merge shallow).
+ * Utilisé pour healthData, activeStates, actionsRemaining...
+ */
+function updateCombatant(slug, id, updates) {
+    const state = _get(slug);
+    state.combatants = state.combatants.map(c =>
         c.id === id ? { ...c, ...updates } : c
     );
-    return combatState;
-};
+    return state;
+}
 
-const reorderCombatants = (newOrder) => {
-    combatState.combatants = newOrder;
-    return combatState;
-};
+/**
+ * Réordonne la liste complète des combattants.
+ * Appelé après drag & drop GM ou reroll initiative.
+ */
+function reorderCombatants(slug, newOrder) {
+    const state = _get(slug);
+    state.combatants = newOrder;
+    return state;
+}
 
-const nextTurn = () => {
-    if (combatState.combatants.length === 0) return combatState;
-    
-    const nextIndex = combatState.currentTurnIndex + 1;
-
-    combatState.combatants = combatState.combatants.map(c => {
-        if (!c.activeStates || c.activeStates.length === 0) return c;
-        const isBerserkExpiring = c.activeStates.some(s => s.name === 'Berserk' && s.duration === 1);
-
-        if (isBerserkExpiring) {
-            const newFatigue = Math.min(9, (c.fatigue || 0) + 4);
-
-            return {
-                ...c,
-                // On retire les bonus de stats
-                actionsMax: Math.max(1, c.actionsMax - 2),
-                actionsRemaining: Math.max(0, c.actionsRemaining - 2),
-                // On applique le contrecoup
-                fatigue: newFatigue,
-                // On retire l'état de la liste
-                activeStates: c.activeStates.filter(s => s.name !== 'Berserk'),
-                hasJustExpired: true
-            };
-        }
-
-        return {
-            ...c,
-            activeStates: c.activeStates
-                .map(s => ({ ...s, duration: s.duration - 1 }))
-                .filter(s => s.duration > 0) // Supprime l'état s'il tombe à 0
-        };
+/**
+ * Remplace les activeStates de tous les combattants en bloc.
+ * Appelé par le client après onStateNewRound (logique slug).
+ * Seul activeStates est remplacé — healthData et turnData sont préservés.
+ */
+function syncStates(slug, combatants) {
+    const state = _get(slug);
+    state.combatants = state.combatants.map(c => {
+        const updated = combatants.find(u => u.id === c.id);
+        if (!updated) return c;
+        const { id: _id, ...rest } = updated; // ne pas écraser l'id serveur
+        return { ...c, ...rest };
     });
+    return state;
+}
 
-    if (nextIndex >= combatState.combatants.length) {
+// ─── Flow combat ─────────────────────────────────────────────────────────────
+
+/**
+ * Démarre le combat : trie par initiative, active, round = 1.
+ * Reset actionsRemaining de chaque combattant à actionsMax.
+ */
+function startCombat(slug) {
+    const state = _get(slug);
+    state.combatants.sort((a, b) => b.initiative - a.initiative);
+    state.active           = true;
+    state.round            = 1;
+    state.currentTurnIndex = 0;
+    state.combatants = state.combatants.map(c => ({
+        ...c,
+        actionsRemaining: c.actionsMax,
+    }));
+    return state;
+}
+
+/**
+ * Termine le combat : remet l'état à zéro.
+ */
+function endCombat(slug) {
+    return resetState(slug);
+}
+
+/**
+ * Passe au tour suivant.
+ *
+ * Générique pur — aucune logique métier slug :
+ *   - Incrémente currentTurnIndex
+ *   - Si fin de liste → nouveau round, retour à l'index 0, reset actionsRemaining
+ *
+ * La logique d'expiration des états (Berserk, posture...) est déléguée au client
+ * via combatConfig.onStateNewRound, puis renvoyée via POST /sync-states.
+ */
+function nextTurn(slug) {
+    const state = _get(slug);
+    if (state.combatants.length === 0) return state;
+
+    const next = state.currentTurnIndex + 1;
+
+    if (next >= state.combatants.length) {
         // Nouveau round
-        combatState.round += 1;
-        combatState.currentTurnIndex = 0;
-        
-        // Reset actions pour tous
-        combatState.combatants = combatState.combatants.map(c => ({
+        state.round            += 1;
+        state.currentTurnIndex  = 0;
+        // Reset générique des actions
+        state.combatants = state.combatants.map(c => ({
             ...c,
             actionsRemaining: c.actionsMax,
-            postureDefensive: false,
-            postureDefensiveType: null,
-            postureDefensiveValue: 0
         }));
     } else {
-        combatState.currentTurnIndex = nextIndex;
+        state.currentTurnIndex = next;
     }
-    
-    return combatState;
-};
 
-const startCombat = () => {
-    // Trier par initiative décroissante
-    combatState.combatants.sort((a, b) => b.initiative - a.initiative);
-    combatState.active = true;
-    combatState.round = 1;
-    combatState.currentTurnIndex = 0;
-    
-    // Init actions
-    combatState.combatants = combatState.combatants.map(c => ({
-        ...c,
-        actionsRemaining: c.actionsMax
-    }));
-    
-    return combatState;
-};
+    return state;
+}
 
-const endCombat = () => {
-    return resetCombatState();
-};
+// ─── File des attaques en attente ─────────────────────────────────────────────
+
+/**
+ * Ajoute une attaque dans la file du slug.
+ * Un id uuid est généré si l'attaque n'en a pas.
+ */
+function addPendingAttack(slug, attack) {
+    const state = _get(slug);
+    state.pendingAttacks.push({
+        id: randomUUID(),
+        ...attack,
+    });
+    return state;
+}
+
+/**
+ * Retire une attaque de la file par son id.
+ */
+function removePendingAttack(slug, attackId) {
+    const state = _get(slug);
+    state.pendingAttacks = state.pendingAttacks.filter(a => a.id !== attackId);
+    return state;
+}
+
+/**
+ * Met à jour une attaque en file (ex: ajout defenseResult).
+ */
+function updatePendingAttack(slug, attackId, updates) {
+    const state = _get(slug);
+    state.pendingAttacks = state.pendingAttacks.map(a =>
+        a.id === attackId ? { ...a, ...updates } : a
+    );
+    return state;
+}
+
+// ─── Exports ─────────────────────────────────────────────────────────────────
 
 module.exports = {
-    getCombatState,
-    setCombatState,
-    resetCombatState,
+    getState,
+    setState,
+    resetState,
     addCombatant,
     removeCombatant,
     updateCombatant,
     reorderCombatants,
-    nextTurn,
+    syncStates,
     startCombat,
-    endCombat
+    endCombat,
+    nextTurn,
+    addPendingAttack,
+    removePendingAttack,
+    updatePendingAttack,
 };

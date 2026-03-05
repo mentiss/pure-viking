@@ -19,6 +19,9 @@ import {
 import getTraitBonuses from '../../tools/traitBonuses.js';
 import { CARACNAMES }  from '../../tools/data.js';
 import { RollError }   from '../../tools/diceEngine.js';
+import TokensDisplay   from './components/TokensDisplay.jsx';
+import PostureModal    from './components/modals/PostureModal.jsx';
+import DiceModal       from './components/modals/DiceModal.jsx';
 
 // ─── Métadonnées système ──────────────────────────────────────────────────────
 
@@ -221,8 +224,205 @@ const vikingsConfig = {
         },
     },
 
-    // ─── Futurs blocs (combat, health...) ─────────────────────────────────────
-    // combat: { ... },
+    // ─── BLOC COMBAT ─────────────────────────────────────────────────────────────
+    combat: {
+
+        // ── Affichage santé ────────────────────────────────────────────────────
+        renderHealthDisplay: (combatant) => <TokensDisplay combatant={combatant} />,
+
+        // ── Actions slug ───────────────────────────────────────────────────────
+        actions: [
+            {
+                id:    'posture-defensive',
+                label: '🛡️ Posture Défensive',
+                condition: (character, combatant) =>
+                    combatant.actionsRemaining > 0 &&
+                    !combatant.activeStates?.some(s => s.id === 'posture-defensive'),
+                onAction: (ctx) => ctx.openModal('posture-defensive'),
+                Modal:    PostureModal,
+            },
+            {
+                id:    'berserk',
+                label: '🔥 Berserk',
+                condition: (character, combatant) =>
+                    character.traits?.some(t => t.name === 'Berserk') &&
+                    combatant.actionsRemaining > 0 &&
+                    !combatant.activeStates?.some(s => s.id === 'berserk'),
+                onAction: async (ctx) => {
+                    try {
+                        await ctx.fetchWithAuth(
+                            `${ctx.apiBase}/combat/combatant/${ctx.combatant.id}`,
+                            {
+                                method: 'PUT',
+                                body:   JSON.stringify({
+                                    updates: {
+                                        activeStates:     [...ctx.combatant.activeStates, { id: 'berserk', name: 'Berserk', data: { duration: 3 } }],
+                                        actionsMax:       ctx.combatant.actionsMax + 2,
+                                        actionsRemaining: ctx.combatant.actionsRemaining + 2,
+                                    },
+                                }),
+                            }
+                        );
+                    } catch (err) {
+                        console.error('[vikings] Berserk activation error:', err);
+                    }
+                },
+            },
+        ],
+
+        // ── Flow d'attaque ─────────────────────────────────────────────────────
+        attack: {
+            condition: () => true,
+
+            getWeapons: (character) => {
+                const weapons = (character?.items || [])
+                    .filter(i => i.location === 'equipped' && i.category === 'weapon')
+                    .map(i => ({ id: i.id, nom: i.name, degats: parseInt(i.damage || 2) }));
+                return weapons.length > 0 ? weapons : [{ id: 'fists', nom: 'Mains nues', degats: 1 }];
+            },
+
+            renderRollStep: (props) => (
+                <DiceModal
+                    character={props.character}
+                    isBerserk={props.activeStates?.some(s => s.id === 'berserk')}
+                    onClose={props.onClose}
+                    onUpdate={() => {}}
+                    sessionId={props.sessionId ?? null}
+                    context={{
+                        type: 'combat-attack',
+                        onRollComplete: props.onRollComplete,          // onRollDone
+                        proceedButton: props.rollResult ? {            // bouton visible après roll
+                            label: '⚔️ Choisir la cible',
+                            onClick: props.onProceed,
+                        } : null,
+                    }}
+                />
+            ),
+
+            // Fallback multi-format : successes peut s'appeler différemment selon le contexte
+            calculateDamage: (target, weapon, rollResult) => {
+                const successes  = rollResult?.successes ?? rollResult?.totalSuccesses ?? rollResult?.baseSuccesses ?? 0;
+                const baseSeuil  = target.healthData?.seuil  ?? target.seuil  ?? 1;
+                const baseArmure = target.healthData?.armure ?? target.armure ?? 0;
+
+                // Posture défensive
+                const postureState  = target.activeStates?.find(s => s.id === 'posture-defensive');
+                const postureBonus  = postureState?.data?.value ?? 0;
+
+                // Berserk défensif (+1 seuil, +2 armure)
+                const isBerserk         = target.activeStates?.some(s => s.id === 'berserk') ?? false;
+                const berserkSeuilBonus = isBerserk ? 1 : 0;
+                const berserkArmureBonus = isBerserk ? 2 : 0;
+
+                const effectiveSeuil  = baseSeuil  + postureBonus  + berserkSeuilBonus;
+                const effectiveArmure = baseArmure + berserkArmureBonus;
+
+                const mr = Math.max(0, successes - effectiveSeuil);
+                return Math.max(0, (weapon?.degats || 0) + mr - effectiveArmure);
+            },
+
+            renderTargetInfo: (combatant) => {
+                const baseSeuil  = combatant.healthData?.seuil  ?? combatant.seuil  ?? '?';
+                const baseArmure = combatant.healthData?.armure ?? combatant.armure ?? 0;
+
+                const postureState   = combatant.activeStates?.find(s => s.id === 'posture-defensive');
+                const postureBonus   = postureState?.data?.value ?? 0;
+                const isBerserk      = combatant.activeStates?.some(s => s.id === 'berserk') ?? false;
+                const berserkSeuilBonus  = isBerserk ? 1 : 0;
+                const berserkArmureBonus = isBerserk ? 2 : 0;
+
+                const effectiveSeuil  = Number(baseSeuil)  + postureBonus  + berserkSeuilBonus;
+                const effectiveArmure = baseArmure + berserkArmureBonus;
+
+                const bonuses = [];
+                if (postureBonus > 0) bonuses.push(`🛡️+${postureBonus}`);
+                if (isBerserk)        bonuses.push(`🔥Berserk`);
+                const bonusStr = bonuses.length > 0 ? ` (${bonuses.join(', ')})` : '';
+
+                return `Seuil ${effectiveSeuil}${bonusStr} | Armure ${effectiveArmure}`;
+            },
+
+            defenseOpportunity: null,
+        },
+
+        // ── Callbacks lifecycle ────────────────────────────────────────────────
+        onBeforeDamage: (ctx) => ctx.damage,
+
+        onDamage: async (ctx) => {
+            if (ctx.target.type !== 'player' || !ctx.target.characterId) return;
+            try {
+                const res      = await ctx.fetchWithAuth(`${ctx.apiBase}/characters/${ctx.target.characterId}`);
+                const fullChar = await res.json();
+                await ctx.fetchWithAuth(
+                    `${ctx.apiBase}/characters/${ctx.target.characterId}`,
+                    {
+                        method: 'PUT',
+                        body:   JSON.stringify({
+                            ...fullChar,
+                            tokensBlessure: ctx.newHealthData?.tokensBlessure ?? fullChar.tokensBlessure,
+                        }),
+                    }
+                );
+            } catch (err) {
+                console.error('[vikings onDamage] Error persisting damage:', err);
+            }
+        },
+
+        onDeath:          null,
+        onStateChange:    null,
+        onAfterStateChange: null,
+
+
+        onStateNewRound: null,
+        // Nettoyage à chaque nouveau tour (appelé côté client GM, puis POST /sync-states)
+        // - Posture défensive expirée
+        // - Berserk : durée décrémentée, contrecoup si expiré (fatigue +4, actions -2)
+        onTurnStart: (currentCombatant, allCombatants) => {
+            const c = currentCombatant;
+            let activeStates = [...(c.activeStates ?? [])];
+            let updates = {};
+
+            // Retirer la posture défensive
+            activeStates = activeStates.filter(s => s.id !== 'posture-defensive');
+
+            // Décrémenter Berserk
+            activeStates = activeStates.map(s =>
+                s.id === 'berserk'
+                    ? { ...s, data: { ...s.data, duration: (s.data?.duration ?? 1) - 1 } }
+                    : s
+            );
+
+            // Expiration Berserk
+            const expiredBerserk = activeStates.find(s => s.id === 'berserk' && (s.data?.duration ?? 1) <= 0);
+            if (expiredBerserk) {
+                activeStates = activeStates.filter(s => s.id !== 'berserk');
+                updates = {
+                    actionsMax:       Math.max(1, (c.actionsMax ?? 1) - 2),
+                    actionsRemaining: Math.max(0, (c.actionsRemaining ?? 0) - 2),
+                    healthData: {
+                        ...c.healthData,
+                        tokensFatigue: Math.min(9, (c.healthData?.tokensFatigue ?? 0) + 4),
+                    },
+                };
+            }
+
+            const hasChanges =
+                activeStates.length !== (c.activeStates?.length ?? 0) ||
+                Object.keys(updates).length > 0;
+
+            if (!hasChanges) return allCombatants;
+
+            return allCombatants.map(cc =>
+                cc.id === c.id
+                    ? { ...cc, activeStates, ...updates }
+                    : cc
+            );
+        },
+        canBurnAction: ({ combatant }) => combatant.actionsRemaining > 0,
+        onBurnAction:  null,
+    },
+    // ─── Futurs blocs ─────────────────────────────────────
+
 };
 
 // ─── Helpers privés ───────────────────────────────────────────────────────────

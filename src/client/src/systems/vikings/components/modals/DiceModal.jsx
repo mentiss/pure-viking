@@ -21,7 +21,7 @@ import {
 import getTraitBonuses          from '../../../../tools/traitBonuses.js';
 import { CARACNAMES }           from '../../../../tools/data.js';
 import { roll, rollWithInsurance, rollSagaBonus, RollError } from '../../../../tools/diceEngine.js';
-import vikingsConfig            from '../../config.js';
+import vikingsConfig            from '../../config.jsx';
 import DiceAnimationOverlay     from '../../../../components/shared/DiceAnimationOverlay.jsx';
 import { readDiceConfig }       from '../../../../components/modals/DiceConfigModal.jsx';
 import { useFetch }             from '../../../../hooks/useFetch.js';
@@ -479,6 +479,14 @@ const DiceModal = ({ character, isBerserk, context, onClose, onUpdate, sessionId
                     {/* Résultats */}
                     {diceResults && !diceResults.error && (
                         <DiceResults results={diceResults} />
+                    )}
+                    {context?.proceedButton && diceResults && (
+                        <button
+                            onClick={context.proceedButton.onClick}
+                            className="w-full mt-2 px-4 py-2 bg-viking-danger text-white rounded font-semibold hover:bg-red-700"
+                        >
+                            {context.proceedButton.label}
+                        </button>
                     )}
                 </div>
 

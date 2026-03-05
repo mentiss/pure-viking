@@ -116,7 +116,7 @@ for (const [slug] of getAllSystems()) {
 
     app.use(`${prefix}/auth`,       resolver, authRouter);
     app.use(`${prefix}/characters`, resolver, getSystemRoute(slug, 'characters'));
-    app.use(`${prefix}/combat`,     resolver, getSystemRoute(slug, 'combat'));
+    app.use(`${prefix}/combat`,     resolver, getSharedRoute('combat'));
     app.use(`${prefix}/sessions`,   resolver, getSharedRoute('sessions'));
     app.use(`${prefix}/journal`,    resolver, getSharedRoute('journal'));
     app.use(`${prefix}/dice`,       resolver, getSharedRoute('dice'));

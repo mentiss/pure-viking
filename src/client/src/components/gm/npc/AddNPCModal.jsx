@@ -47,19 +47,32 @@ const AddNPCModal = ({ onClose, onAdd }) => {
                 ...selectedTemplate,
                 name: name || selectedTemplate.name,
                 type: 'npc',
-                initiative: rollInitiative()
+                initiative: rollInitiative(),
+                healthData: {
+                    blessureMax:    selectedTemplate.blessureMax ?? 3,
+                    tokensBlessure: 0,
+                    armure:         selectedTemplate.armure ?? 0,
+                    seuil:          selectedTemplate.seuil  ?? 1,
+                },
             };
         } else {
             npcData = {
-                type: 'npc',
-                name: name || 'Adversaire',
-                blessure: 0,
-                blessureMax: parseInt(blessureMax),
-                armure: parseInt(armure),
-                seuil: parseInt(seuil),
+                type:       'npc',
+                name:       name || 'Adversaire',
                 actionsMax: parseInt(actionsMax),
-                attaques: attaques,
-                initiative: rollInitiative()
+                attaques,
+                initiative: rollInitiative(),
+                healthData: {
+                    blessureMax:    parseInt(blessureMax),
+                    tokensBlessure: 0,
+                    armure:         parseInt(armure),
+                    seuil:          parseInt(seuil),
+                },
+                // Compatibilité descendante CombatantCard
+                blessure:    0,
+                blessureMax: parseInt(blessureMax),
+                armure:      parseInt(armure),
+                seuil:       parseInt(seuil),
             };
         }
 

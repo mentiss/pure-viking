@@ -17,7 +17,7 @@ Transformer l'application "Pure Vikings" en une plateforme VTT générique capab
 ## 2. Stratégie BDD
 
 - Une BDD SQLite par système : `database/pure-vikings.db`, `database/noctis.db`, etc.
-- Pas de renommage des fichiers existants. La correspondance slug↔fichier est dans `config.js` du système.
+- Pas de renommage des fichiers existants. La correspondance slug↔fichier est dans `config.jsx` du système.
 - Les connexions sont **lazy** : ouvertes à la première requête, fermées après **5 minutes d'inactivité** (TTL reset à chaque accès).
 - Si la BDD n'existe pas (premier lancement), elle est créée automatiquement depuis le `schemaPath`.
 - L'`access_url` en BDD reste inchangé. C'est le routing qui sait que `/vikings/brave-warrior-1234` → cherche dans `vikings.db`.
@@ -32,22 +32,22 @@ Ex. Vikings : `character_skills`, `character_traits`, `character_runes`, `charac
 
 ## 3. Découverte des systèmes
 
-**Auto-scan au démarrage** : `src/server/systems/loader.js` scanne `systems/*/config.js`.
-- Un dossier sans `config.js` valide est ignoré avec un warning.
+**Auto-scan au démarrage** : `src/server/systems/loader.js` scanne `systems/*/config.jsx`.
+- Un dossier sans `config.jsx` valide est ignoré avec un warning.
 - Un système invalide ne fait pas crasher le serveur.
 - Ajouter un système = créer son dossier. Aucun fichier central à modifier.
 
 ### Contrat d'un système (fichiers obligatoires)
 ```
 src/server/systems/:slug/
-  config.js              ← { slug, label, dbPath, schemaPath }
+  config.jsx              ← { slug, label, dbPath, schemaPath }
   characterController.js ← loadFullCharacter(db, id) / saveFullCharacter(db, id, data)
   routes/
     characters.js        ← router Express spécifique (toute la logique personnage)
     combat.js            ← router Express spécifique (mécanique de combat du système)
 ```
 
-### Exemple config.js
+### Exemple config.jsx
 ```js
 module.exports = {
     slug:       'vikings',
@@ -96,13 +96,13 @@ src/server/
   systems/
     loader.js                    ← auto-scan + registre
     vikings/
-      config.js
+      config.jsx
       characterController.js
       routes/
         characters.js            ← spécifique Vikings
         combat.js                ← spécifique Vikings
     noctis/                      ← (futur)
-      config.js
+      config.jsx
       ...
   routes/
     shared/
@@ -199,7 +199,7 @@ Inchangée. JWT + refresh token cookie httpOnly.
 
 ## 9. Ajouter un nouveau système (checklist)
 
-1. Créer `src/server/systems/:slug/config.js`
+1. Créer `src/server/systems/:slug/config.jsx`
 2. Créer `src/server/systems/:slug/characterController.js`
 3. Créer `src/server/systems/:slug/routes/characters.js`
 4. Créer `src/server/systems/:slug/routes/combat.js`

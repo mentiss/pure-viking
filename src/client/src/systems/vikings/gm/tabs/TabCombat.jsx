@@ -14,6 +14,7 @@ const TabCombat = ({
                        // State combat
                        combatState,
                        onlineCharacters,
+                       combatConfig,
                        pendingAttacks,
                        // Handlers combat
                        onStartCombat,
@@ -127,6 +128,7 @@ const TabCombat = ({
             <AttackValidationQueue
                 pendingAttacks={pendingAttacks}
                 combatState={combatState}
+                combatConfig={combatConfig}
                 onValidate={onValidateAttack}
                 onReject={onRejectAttack}
             />
@@ -136,6 +138,7 @@ const TabCombat = ({
                 <NPCAttackModal
                     npc={attackingNPC}
                     combatState={combatState}
+                    combatConfig={combatConfig}
                     onClose={onCloseNPCAttack}
                     onAttackSubmitted={onNPCAttackSubmitted}
                 />

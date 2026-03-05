@@ -15,9 +15,13 @@ import TabCombat from "./tabs/TabCombat.jsx";
 import TabSession from "../../../components/gm/tabs/TabSession.jsx";
 import TabJournal from "../../../components/gm/tabs/TabJournal.jsx";
 import DiceConfigModal from "../../../components/modals/DiceConfigModal.jsx";
+import vikingsConfig from '../config.jsx';
+import { useParams } from 'react-router-dom';
 
 const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, onToggleDarkMode }) => {
     console.log('[GMView] Component rendering...');
+    const { system } = useParams();
+    const apiBase    = `/api/${system}`;
 
     // --- Tab actif ---
     const [activeGMTab, setActiveGMTab] = useState(() => {
@@ -36,7 +40,6 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
         currentTurnIndex: -1,
         combatants: []
     });
-    const [pendingAttacks, setPendingAttacks] = useState([]);
 
     // --- State modals combat ---
     const [showAddNPC, setShowAddNPC] = useState(false);
@@ -62,22 +65,24 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
     // Charger état initial
     useEffect(() => {
         loadCombatState();
-        loadPendingAttacks();
     }, []);
 
     // WebSocket listeners
     useEffect(() => {
         if (!socket) return;
 
-        const handleCombatUpdate = (state) => setCombatState(state);
-        const handlePendingAttacksUpdate = (attacks) => setPendingAttacks(attacks);
+        const handleCombatUpdate = (state) => {
+            console.log('[GMView] combat-update received', {
+                pendingAttacks: state.pendingAttacks,
+                pendingLength: state.pendingAttacks?.length
+            });
+            setCombatState(state);
+        };
 
         socket.on('combat-update', handleCombatUpdate);
-        socket.on('pending-attacks-update', handlePendingAttacksUpdate);
 
         return () => {
             socket.off('combat-update', handleCombatUpdate);
-            socket.off('pending-attacks-update', handlePendingAttacksUpdate);
         };
     }, [socket]);
 
@@ -92,16 +97,6 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
             setCombatState(data);
         } catch (error) {
             console.error('Error loading combat state:', error);
-        }
-    };
-
-    const loadPendingAttacks = async () => {
-        try {
-            const res = await fetch(toSystemUrl('/api/combat/pending-attacks'));
-            const data = await res.json();
-            setPendingAttacks(data);
-        } catch (error) {
-            console.error('Error loading pending attacks:', error);
         }
     };
 
@@ -132,17 +127,28 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
 
     const nextTurn = async () => {
         try {
-            const res = await fetchWithAuth('/api/combat/next-turn', { method: 'POST' });
+            const res  = await fetchWithAuth('/api/combat/next-turn', { method: 'POST' });
             const data = await res.json();
-            setCombatState(data);
-            data.combatants.forEach(c => {
-                if (c.hasJustExpired && c.type === 'player') {
-                    updateCombatant(c.id, {
-                        fatigue: c.fatigue,
-                        hasJustExpired: false
-                    });
-                }
-            });
+
+            const currentCombatant = data.combatants[data.currentTurnIndex];
+
+            let updatedCombatants = data.combatants;
+            if (vikingsConfig.combat?.onTurnStart && currentCombatant) {
+                updatedCombatants = vikingsConfig.combat.onTurnStart(
+                    currentCombatant,
+                    updatedCombatants
+                );
+            }
+
+            const hasChanges = JSON.stringify(updatedCombatants) !== JSON.stringify(data.combatants);
+            if (hasChanges) {
+                await fetchWithAuth(`${apiBase}/combat/sync-states`, {
+                    method: 'POST',
+                    body:   JSON.stringify({ combatants: updatedCombatants }),
+                });
+            } else {
+                setCombatState(data);
+            }
         } catch (error) {
             console.error('Error next turn:', error);
         }
@@ -164,32 +170,33 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
 
     const updateCombatant = async (id, updates) => {
         try {
-            // Si c'est un joueur, sync aussi la fiche en DB
             const combatant = combatState.combatants.find(c => c.id === id);
-            if (combatant?.type === 'player' && combatant.characterId) {
-                if ('blessure' in updates || 'fatigue' in updates) {
-                    const charRes = await fetchWithAuth(`/api/characters/${combatant.characterId}`);
-                    if (charRes.ok) {
-                        const fullChar = await charRes.json();
-                        fullChar.tokensBlessure = updates.blessure !== undefined ? updates.blessure : combatant.blessure;
-                        fullChar.tokensFatigue = updates.fatigue !== undefined ? updates.fatigue : combatant.fatigue;
 
-                        await fetchWithAuth(`/api/characters/${combatant.characterId}`, {
+            // Sync healthData → DB pour les joueurs (ajustements directs GM)
+            if (combatant?.type === 'player' && combatant.characterId && updates.healthData) {
+                const hd = { ...combatant.healthData, ...updates.healthData };
+                if ('tokensBlessure' in updates.healthData || 'tokensFatigue' in updates.healthData) {
+                    try {
+                        const charRes  = await fetchWithAuth(`${apiBase}/characters/${combatant.characterId}`);
+                        const fullChar = await charRes.json();
+                        await fetchWithAuth(`${apiBase}/characters/${combatant.characterId}`, {
                             method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(fullChar)
+                            body:   JSON.stringify({
+                                ...fullChar,
+                                tokensBlessure: hd.tokensBlessure ?? fullChar.tokensBlessure,
+                                tokensFatigue:  hd.tokensFatigue  ?? fullChar.tokensFatigue,
+                            }),
                         });
+                    } catch (dbErr) {
+                        console.error('[GMView] Error syncing health to DB:', dbErr);
                     }
                 }
             }
 
-            const res = await fetchWithAuth(`/api/combat/combatant/${id}`, {
+            await fetchWithAuth(`/api/combat/combatant/${id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ updates })
+                body:   JSON.stringify({ updates }),
             });
-            const data = await res.json();
-            setCombatState(data);
         } catch (error) {
             console.error('Error updating combatant:', error);
         }
@@ -207,26 +214,35 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
 
     const addPlayerToCombat = async (onlineChar) => {
         try {
-            const res = await fetchWithAuth(`/api/characters/${onlineChar.characterId}`);
+            const res      = await fetchWithAuth(`/api/characters/${onlineChar.characterId}`);
             const fullChar = await res.json();
 
             const d1 = Math.floor(Math.random() * 10) + 1;
             const d2 = Math.floor(Math.random() * 10) + 1;
-            const initiative = d1 + d2 + (fullChar.agilite || 2);
+            const initiative     = d1 + d2 + (fullChar.agilite || 2);
             const initiativeRoll = `${d1} + ${d2} + ${fullChar.agilite || 2} = ${initiative}`;
 
             const playerCombatant = {
-                type: 'player',
+                type:        'player',
                 characterId: fullChar.id,
-                name: onlineChar.name,
-                blessure: fullChar.tokensBlessure || 0,
-                blessureMax: 5,
-                fatigue: fullChar.tokensFatigue || 0,
-                armure: fullChar.armure || 0,
-                seuil: fullChar.seuilCombat || 1,
-                actionsMax: fullChar.actionsDisponibles || 1,
+                name:        onlineChar.name,
+                actionsMax:  fullChar.actionsDisponibles || 1,
                 initiative,
-                initiativeRoll
+                initiativeRoll,
+                // Structure générique healthData (opaque)
+                healthData: {
+                    tokensBlessure: fullChar.tokensBlessure || 0,
+                    blessureMax:    5,
+                    tokensFatigue:  fullChar.tokensFatigue  || 0,
+                    armure:         fullChar.armure          || 0,
+                    seuil:          fullChar.seuilCombat     || 1,
+                },
+                // Compatibilité descendante CombatantCard
+                blessure:    fullChar.tokensBlessure || 0,
+                blessureMax: 5,
+                fatigue:     fullChar.tokensFatigue  || 0,
+                armure:      fullChar.armure          || 0,
+                seuil:       fullChar.seuilCombat     || 1,
             };
 
             await addCombatant(playerCombatant);
@@ -249,33 +265,56 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
         }
     };
 
-    const handleValidateAttack = async (attackIndex, modifiedAttack) => {
+    const handleValidateAttack = async (attackId, modifiedAttack) => {
         try {
-            const attack = modifiedAttack || pendingAttacks[attackIndex];
-            const target = combatState.combatants.find(c => c.id === attack.targetId);
+            const attack   = modifiedAttack ?? combatState.pendingAttacks.find(a => a.id === attackId);
+            if (!attack) return;
 
+            const attacker = combatState.combatants.find(c => c.id === attack.attackerId);
+            const target   = combatState.combatants.find(c => c.id === attack.targetId);
+
+            // 1. onBeforeDamage — peut modifier le montant final
+            const finalDamage = vikingsConfig.combat?.onBeforeDamage?.({
+                attacker, target,
+                damage:     attack.damage,
+                weapon:     attack.weapon,
+                rollResult: attack.rollResult,
+            }) ?? attack.damage;
+
+            // 2. Construire le nouveau healthData de la cible
+            const newHealthData = target ? {
+                ...target.healthData,
+                tokensBlessure: Math.min(
+                    target.healthData?.blessureMax ?? 5,
+                    (target.healthData?.tokensBlessure ?? 0) + finalDamage
+                ),
+            } : null;
+
+            // 3. onDamage slug → persistance BDD
+            if (vikingsConfig.combat?.onDamage) {
+                await vikingsConfig.combat.onDamage({
+                    attacker, target,
+                    damage: finalDamage, weapon: attack.weapon,
+                    rollResult: attack.rollResult, newHealthData,
+                    fetchWithAuth, apiBase,
+                });
+            }
+
+            // 4. Valider côté serveur
             await fetchWithAuth('/api/combat/validate-attack', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    attackIndex,
-                    modifiedAttack: attack ? {
-                        ...attack,
-                        targetBlessure: target?.blessure || 0
-                    } : null
-                })
+                body:   JSON.stringify({ attackId, targetId: target?.id, newHealthData }),
             });
         } catch (error) {
             console.error('Error validating attack:', error);
         }
     };
 
-    const handleRejectAttack = async (attackIndex) => {
+    const handleRejectAttack = async (attackId) => {
         try {
             await fetchWithAuth('/api/combat/reject-attack', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ attackIndex })
+                body:   JSON.stringify({ attackId }),
             });
         } catch (error) {
             console.error('Error rejecting attack:', error);
@@ -375,7 +414,8 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
                     <TabCombat
                         combatState={combatState}
                         onlineCharacters={onlineCharacters}
-                        pendingAttacks={pendingAttacks}
+                        pendingAttacks={combatState.pendingAttacks ?? []}
+                        combatConfig={vikingsConfig.combat}
                         onStartCombat={startCombat}
                         onNextTurn={nextTurn}
                         onEndCombat={endCombat}

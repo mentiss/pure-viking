@@ -147,39 +147,45 @@ const GMDiceModal = ({ onClose, darkMode, sessionId = null }) => {
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
             <div
-                className="bg-white dark:bg-viking-brown rounded-lg shadow-2xl max-w-md w-full border-4 border-viking-bronze"
+                className="bg-white dark:bg-viking-brown rounded-lg shadow-2xl max-w-md w-full border-4 border-viking-bronze p-6"
                 onClick={e => e.stopPropagation()}
             >
-                <div className="p-4 border-b-2 border-viking-bronze flex justify-between items-center">
-                    <h3 className="text-lg font-viking font-bold text-viking-brown dark:text-viking-parchment">🎲 Jet MJ</h3>
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold text-viking-brown dark:text-viking-parchment">🎲 Jet MJ</h3>
                     <button onClick={onClose} className="text-2xl text-viking-leather dark:text-viking-bronze hover:text-viking-danger">✕</button>
                 </div>
 
-                <div className="p-4 space-y-4">
-
-                    {/* Pool */}
-                    <div>
-                        <label className="block text-sm font-semibold text-viking-brown dark:text-viking-parchment mb-2">Pool : {pool}d10</label>
-                        <input type="range" min={1} max={10} value={pool} onChange={e => setPool(Number(e.target.value))} className="w-full" />
+                <div className="space-y-4 mb-4">
+                    <div className="flex items-center gap-4">
+                        <label className="text-sm font-semibold text-viking-brown dark:text-viking-parchment w-24">Pool d10</label>
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setPool(Math.max(1, pool - 1))} className="w-8 h-8 rounded bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment font-bold">-</button>
+                            <span className="text-lg font-bold text-viking-bronze w-8 text-center">{pool}</span>
+                            <button onClick={() => setPool(Math.min(10, pool + 1))} className="w-8 h-8 rounded bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment font-bold">+</button>
+                        </div>
                     </div>
-
-                    {/* Seuil de succès */}
-                    <div>
-                        <label className="block text-sm font-semibold text-viking-brown dark:text-viking-parchment mb-2">Seuil de succès : {threshold}+</label>
-                        <input type="range" min={1} max={10} value={threshold} onChange={e => setThreshold(Number(e.target.value))} className="w-full" />
+                    <div className="flex items-center gap-4">
+                        <label className="text-sm font-semibold text-viking-brown dark:text-viking-parchment w-24">Seuil succès</label>
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setThreshold(Math.max(1, threshold - 1))} className="w-8 h-8 rounded bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment font-bold">-</button>
+                            <span className="text-lg font-bold text-viking-bronze w-8 text-center">{threshold}</span>
+                            <button onClick={() => setThreshold(Math.min(10, threshold + 1))} className="w-8 h-8 rounded bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment font-bold">+</button>
+                        </div>
                     </div>
-
-                    {/* Seuil d'explosion */}
-                    <div>
-                        <label className="block text-sm font-semibold text-viking-brown dark:text-viking-parchment mb-2">Explosion à partir de : {explosion}+</label>
-                        <input type="range" min={1} max={10} value={explosion} onChange={e => setExplosion(Number(e.target.value))} className="w-full" />
+                    <div className="flex items-center gap-4">
+                        <label className="text-sm font-semibold text-viking-brown dark:text-viking-parchment w-24">Explosion sur</label>
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setExplosion(Math.max(threshold + 1, explosion - 1))} className="w-8 h-8 rounded bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment font-bold">-</button>
+                            <span className="text-lg font-bold text-viking-bronze w-8 text-center">{explosion}+</span>
+                            <button onClick={() => setExplosion(Math.min(10, explosion + 1))} className="w-8 h-8 rounded bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment font-bold">+</button>
+                        </div>
                     </div>
-
-                    {/* Broadcast */}
-                    <label className="flex items-center gap-3 cursor-pointer">
-                        <input type="checkbox" checked={broadcast} onChange={e => setBroadcast(e.target.checked)} className="w-4 h-4" />
-                        <span className="text-sm text-viking-brown dark:text-viking-parchment">Diffuser aux joueurs</span>
-                    </label>
+                    <div className="flex items-center gap-2">
+                        <input type="checkbox" id="broadcast" checked={broadcast} onChange={(e) => setBroadcast(e.target.checked)} className="w-4 h-4" />
+                        <label htmlFor="broadcast" className="text-sm text-viking-brown dark:text-viking-parchment cursor-pointer">
+                            📢 Partager le jet (historique visible par tous)
+                        </label>
+                    </div>
 
                     {/* Bouton */}
                     <button
@@ -189,7 +195,9 @@ const GMDiceModal = ({ onClose, darkMode, sessionId = null }) => {
                     >
                         {rolling ? '🎲 Lancer...' : '🎲 Lancer !'}
                     </button>
+                </div>
 
+                <div className="p-4 space-y-4">
                     {/* Résultat */}
                     {result && (
                         <div className="p-4 bg-viking-parchment dark:bg-gray-800 rounded-lg border-2 border-viking-bronze text-center">

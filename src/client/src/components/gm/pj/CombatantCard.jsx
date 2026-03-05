@@ -14,18 +14,29 @@ const CombatantCard = ({
                            combatActive,
                            onNPCAttack
                        }) => {
+    const hd             = combatant.healthData ?? {};
+    const blessure    = hd.tokensBlessure ?? combatant.blessure    ?? 0;
+    const blessureMax = hd.blessureMax    ?? combatant.blessureMax ?? 5;
+    const armure      = hd.armure         ?? combatant.armure      ?? 0;
+    const seuil       = hd.seuil          ?? combatant.seuil       ?? 1;
+    const fatigue     = hd.tokensFatigue  ?? combatant.fatigue     ?? 0;
+
     const isPlayer = combatant.type === 'player';
     const isBerserk = combatant.activeStates?.some(s => s.name === 'Berserk');
     const [showConfirmRemove, setShowConfirmRemove] = useState(false);
 
     const applyDamage = (amount) => {
-        const newBlessure = Math.max(0, Math.min(combatant.blessureMax || 5, combatant.blessure + amount));
-        onUpdate({ blessure: newBlessure });
+        const newVal = Math.max(0, Math.min(blessureMax, blessure + amount));
+        combatant.healthData
+            ? onUpdate({ healthData: { ...combatant.healthData, tokensBlessure: newVal } })
+            : onUpdate({ blessure: newVal });
     };
 
     const applyFatigue = (amount) => {
-        const newFatigue = Math.max(0, Math.min(9, (combatant.fatigue || 0) + amount));
-        onUpdate({ fatigue: newFatigue });
+        const newVal = Math.max(0, Math.min(9, fatigue + amount));
+        combatant.healthData
+            ? onUpdate({ healthData: { ...combatant.healthData, tokensFatigue: newVal } })
+            : onUpdate({ fatigue: newVal });
     };
 
     const burnAction = () => {
@@ -33,6 +44,10 @@ const CombatantCard = ({
             onUpdate({ actionsRemaining: combatant.actionsRemaining - 1 });
         }
     };
+
+    const postureState   = combatant.activeStates?.find(s => s.id === 'posture-defensive');
+    const postureBonus   = postureState?.data?.value ?? 0;
+    const effectiveSeuil = seuil + postureBonus;
 
     return (
         <div
@@ -111,10 +126,10 @@ const CombatantCard = ({
                 <div>
                     <div className="text-xs text-viking-leather dark:text-viking-bronze">Blessure</div>
                     <div className="flex gap-0.5">
-                        {Array.from({ length: combatant.blessureMax || 5 }).map((_, i) => (
+                        {Array.from({ length: blessureMax || 5 }).map((_, i) => (
                             <span
                                 key={i}
-                                className={`text-lg ${i < combatant.blessure ? 'text-viking-danger' : 'text-gray-300 dark:text-gray-600'}`}
+                                className={`text-lg ${i < blessure ? 'text-viking-danger' : 'text-gray-300 dark:text-gray-600'}`}
                             >
                                 ■
                             </span>
@@ -128,7 +143,7 @@ const CombatantCard = ({
                             {Array.from({ length: 9 }).map((_, i) => (
                                 <span
                                     key={i}
-                                    className={`text-lg ${i < (combatant.fatigue || 0) ? 'text-blue-500' : 'text-gray-300 dark:text-gray-600'}`}
+                                    className={`text-lg ${i < (fatigue || 0) ? 'text-blue-500' : 'text-gray-300 dark:text-gray-600'}`}
                                 >
                                     ■
                                 </span>
@@ -138,17 +153,21 @@ const CombatantCard = ({
                 )}
                 <div>
                     <div className="text-xs text-viking-leather dark:text-viking-bronze">Armure</div>
-                    <div className="font-bold text-viking-brown dark:text-viking-parchment">{combatant.armure + (isBerserk ? 2 : 0)}</div>
+                    <div className="font-bold text-viking-brown dark:text-viking-parchment">{armure + (isBerserk ? 2 : 0)}</div>
                 </div>
                 <div>
                     <div className="text-xs text-viking-leather dark:text-viking-bronze">Seuil</div>
                     <div className="font-bold text-viking-brown dark:text-viking-parchment">
-                        {combatant.seuil + (isBerserk ? 1 : 0)}
-                        {combatant.postureDefensive && (
-                            <span className="text-xs text-viking-success ml-1">
-                                +{combatant.postureDefensiveValue} (Déf {combatant.postureDefensiveType})
-                            </span>
-                        )}
+                        {effectiveSeuil + (isBerserk ? 1 : 0)}
+                        {(() => {
+                            const postureState = combatant.activeStates?.find(s => s.id === 'posture-defensive');
+                            if (!postureState) return null;
+                            return (
+                                <span className="text-xs text-viking-success ml-1">
+                                    🛡️ +{postureState.data?.value ?? 0} (Déf {postureState.data?.type ?? ''})
+                                </span>
+                            );
+                        })()}
                     </div>
                 </div>
             </div>

@@ -21,9 +21,10 @@ const SHARED_ROUTES = {
     sessions: path.join(__dirname, '../routes/sessions.js'),
     journal:  path.join(__dirname, '../routes/journal.js'),
     dice:     path.join(__dirname, '../routes/dice.js'),
+    combat:   path.join(__dirname, '../routes/combat.js'),
 };
 // Routes obligatoires que chaque système doit fournir
-const REQUIRED_ROUTES = ['characters', 'combat'];
+const REQUIRED_ROUTES = ['characters'];
 
 // Cache des systèmes chargés : slug → systemConfig
 const _registry = new Map();
@@ -91,7 +92,7 @@ function getSystemRoute(slug, routeName) {
 
 /**
  * Retourne le router Express d'une route générique partagée.
- * @param {'sessions'|'journal'|'dice'} routeName
+ * @param {'sessions'|'journal'|'dice'|'combat'} routeName
  * @returns {Router}
  */
 function getSharedRoute(routeName) {
