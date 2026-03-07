@@ -27,6 +27,8 @@ export function useGMSession({ apiBase }) {
     const [activeSession,    setActiveSessionState] = useState(null);
     const [onlineCharacters, setOnlineCharacters]   = useState([]);
 
+    const slug = apiBase.replace(/^\/api\//, '').replace(/\/$/, '');
+
     // ── Chargement initial depuis localStorage ──────────────────────────────
     useEffect(() => {
         const savedId = localStorage.getItem('activeSessionId');
@@ -62,16 +64,16 @@ export function useGMSession({ apiBase }) {
         if (!socket) return;
 
         if (activeSession) {
-            socket.emit('gm-set-active-session', { sessionId: activeSession.id });
-            socket.emit('join-session',           { sessionId: activeSession.id });
+            socket.emit('gm-set-active-session', { sessionId: activeSession.id, system: slug });
+            socket.emit('join-session',           { sessionId: activeSession.id, system: slug });
         } else {
             // Informer les joueurs qu'il n'y a plus de session active
-            socket.emit('gm-set-active-session', { sessionId: null });
+            socket.emit('gm-set-active-session', { sessionId: null, system: slug });
         }
 
         return () => {
             if (activeSession) {
-                socket.emit('leave-session', { sessionId: activeSession.id });
+                socket.emit('leave-session', { sessionId: activeSession.id, system: slug });
             }
         };
     }, [socket, activeSession?.id]);

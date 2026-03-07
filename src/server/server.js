@@ -11,10 +11,11 @@ const { Server }  = require('socket.io');
 const compression = require('compression');
 const cookieParser = require('cookie-parser');
 
-const { loadAllSystems, getAllSystems, getSystemRoute, getSharedRoute } = require('./systems/loader');
+const { loadAllSystems, getAllSystems, getSystemRoute, getSharedRoute, getSystemExtraRoutes, getSystemSocketHandlers } = require('./systems/loader');
 const systemResolver       = require('./middlewares/systemResolver');
 const { closeAllDatabases } = require('./db/index');
 const authRouter           = require('./routes/auth');
+const {getDbForSystem} = require("./db");
 
 // ─── App & Server ────────────────────────────────────────────────────────────
 
@@ -94,6 +95,19 @@ io.on('connection', (socket) => {
         io.emit('online-characters-update', Array.from(onlineCharacters.values()));
         console.log('🔌 Client disconnected:', socket.id);
     });
+
+    // ── Handlers slug-spécifiques (auto-découverte) ──────────────────────────
+    // Pour chaque système chargé, on enregistre les handlers définis dans socket/*.js.
+    // La db est ouverte en lazy — pas d'impact sur les connexions sans activité.
+    for (const [slug, config] of getAllSystems()) {
+        const handlers = getSystemSocketHandlers(slug);
+        if (handlers.length === 0) continue;
+
+        const db = getDbForSystem(config);
+        for (const register of handlers) {
+            register(io, socket, db);
+        }
+    }
 });
 
 app.get('/api/online-characters', (req, res) => {
@@ -114,6 +128,7 @@ for (const [slug] of getAllSystems()) {
         systemResolver(req, res, next);
     };
 
+    // ── Routes partagées (toujours montées) ──────────────────────────────────
     app.use(`${prefix}/auth`,       resolver, authRouter);
     app.use(`${prefix}/characters`, resolver, getSystemRoute(slug, 'characters'));
     app.use(`${prefix}/combat`,     resolver, getSharedRoute('combat'));
@@ -122,7 +137,18 @@ for (const [slug] of getAllSystems()) {
     app.use(`${prefix}/journal`,    resolver, getSharedRoute('journal'));
     app.use(`${prefix}/dice`,       resolver, getSharedRoute('dice'));
 
-    console.log(`🗺️  Routes mounted for [${slug}]: ${prefix}/{auth,characters,combat,sessions,journal,dice}`);
+    // ── Routes extra slug-spécifiques (auto-scan de systems/:slug/routes/) ───
+    // Tout fichier .js autre que characters.js / combat.js est monté ici.
+    // Ex : dune/routes/session-resources.js → /api/dune/session-resources
+    const extraRoutes = getSystemExtraRoutes(slug);
+    for (const { name, router } of extraRoutes) {
+        app.use(`${prefix}/${name}`, resolver, router);
+    }
+
+    const extraNames = extraRoutes.length
+        ? `,${extraRoutes.map(r => r.name).join(',')}`
+        : '';
+    console.log(`🗺️  Routes mounted for [${slug}]: ${prefix}/{auth,characters,combat,sessions,journal,dice${extraNames}}`);
 }
 
 app.get('/api/systems', (req, res) => {

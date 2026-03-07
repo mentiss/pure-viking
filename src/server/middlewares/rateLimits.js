@@ -1,4 +1,3 @@
-const {getDb} = require('../utils/db');
 const {authenticate} = require('./auth');
 
 function loginRateLimiter(req, res, next) {
@@ -7,7 +6,7 @@ function loginRateLimiter(req, res, next) {
         return res.status(400).json({error: 'Missing required parameters'});
     }
 
-    const db = getDb();
+    const db = req.db;
     const char = db.prepare(`SELECT * FROM characters WHERE access_url = ?`).get(characterUrl);
 
     if(!char) {

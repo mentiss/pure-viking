@@ -435,7 +435,7 @@ src/client/src/systems/dune/
       TabJournal.jsx                ← journal GM + envoi notes/atouts joueurs
       TabResources.jsx              ← jauges + complications + maison
     modals/
-      DuneCreationModal.jsx         ← wizard création (accès public)
+      Creation.jsx         ← wizard création (accès public)
       EditCharacterModal.jsx        ← édition détermination + rangs depuis vue GM
       SendItemModal.jsx             ← envoi atout à un joueur
   dice/
@@ -581,7 +581,7 @@ Fonctionnement **identique au système Vikings** — pas de développement spéc
 | **C** | `Sheet.jsx` · `theme.css` · composants (`SkillRow`, `PrincipleRow`, `TalentsList`, `AtoutsList`, `DeterminationTracker`, `SessionResourcesBar`) | 🔴 Core | A |
 | **D** | `DuneDiceModal.jsx` — 4 étapes, calcul, socket | 🔴 Core | A + B |
 | **E** | `GMApp.jsx` · `GMView.jsx` · `TabSession` · `TabResources` · `TabJournal` | 🟡 Important | A + B |
-| **F** | `DuneCreationModal.jsx` — wizard 7 étapes public | 🟡 Important | A |
+| **F** | `Creation.jsx` — wizard 7 étapes public | 🟡 Important | A |
 | **G** | `EditCharacterModal` · `SendItemModal` · `SendNoteModal` | 🟢 Confort | E |
 
 ---
@@ -619,7 +619,7 @@ Fonctionnement **identique au système Vikings** — pas de développement spéc
 - [ ] `TabSession.jsx` — liste perso + sélection fiche + actions GM
 - [ ] `TabResources.jsx` — jauges + complications (GM) + maison
 - [ ] `TabJournal.jsx` — journal GM + envoi notes/atouts (générique)
-- [ ] `DuneCreationModal.jsx` — wizard 7 étapes, public, freebies locaux
+- [ ] `Creation.jsx` — wizard 7 étapes, public, freebies locaux
 - [ ] `EditCharacterModal.jsx` — détermination + rangs depuis vue GM
 - [ ] Tous les `fetch` utilisent `apiBase`
 - [ ] Appels authentifiés utilisent `fetchWithAuth`

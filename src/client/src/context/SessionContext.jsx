@@ -1,6 +1,7 @@
 // context/SessionContext.jsx - Gestion de la session active (broadcast par le GM)
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useSocket } from './SocketContext';
+import { getSystemFromPath } from '../hooks/useSystem.js';
 
 const SessionContext = createContext();
 
@@ -27,14 +28,14 @@ export const SessionProvider = ({ children }) => {
 
     useEffect(() => {
         if (!socket || !pendingSessionId) return;
-
+        const system   = getSystemFromPath();
         const isGM = characterSessions.some(s => s.id === -1);
         const isMember = isGM || characterSessions.some(s => s.id === pendingSessionId);
 
         if (!isMember) {
             console.log('[SessionContext] Not a member of session:', pendingSessionId);
             if (activeGMSession) {
-                socket.emit('leave-session', activeGMSession);
+                socket.emit('leave-session', { sessionId: activeGMSession, system });
                 setActiveGMSession(null);
             }
             return;
@@ -42,11 +43,11 @@ export const SessionProvider = ({ children }) => {
 
         // Quitter l'ancienne room
         if (activeGMSession && activeGMSession !== pendingSessionId) {
-            socket.emit('leave-session', activeGMSession);
+            socket.emit('leave-session', { sessionId: activeGMSession, system });
         }
 
         // Rejoindre la nouvelle room
-        socket.emit('join-session', pendingSessionId);
+        socket.emit('join-session', { sessionId: pendingSessionId, system });
         setActiveGMSession(pendingSessionId);
         console.log('[SessionContext] Joined session:', pendingSessionId);
     }, [socket, pendingSessionId, characterSessions]);
@@ -54,7 +55,7 @@ export const SessionProvider = ({ children }) => {
     useEffect(() => {
         return () => {
             if (socket && activeGMSession) {
-                socket.emit('leave-session', activeGMSession);
+                socket.emit('leave-session', { sessionId: activeGMSession, system });
             }
         };
     }, [socket, activeGMSession]);

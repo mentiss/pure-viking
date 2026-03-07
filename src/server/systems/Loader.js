@@ -4,19 +4,28 @@
 // Un système invalide logue un warning et est ignoré — le serveur continue.
 //
 // Contrat d'un système : son dossier DOIT contenir :
-//   config.js          → { slug, label, dbPath, schemaPath }
-//   routes/characters.js → router Express spécifique
-//   routes/combat.js     → router Express spécifique
+//   config.js              → { slug, label, dbPath, schemaPath[, generateAccessUrl] }
+//   routes/characters.js   → router Express spécifique
 //
 // Routes génériques montées automatiquement (pas besoin de les déclarer) :
-//   sessions, journal, dice
+//   sessions, journal, dice, combat, npc
+//
+// Routes extra slug-spécifiques :
+//   Tout fichier .js dans routes/ qui n'est PAS characters.js ni combat.js
+//   est monté automatiquement sous /api/:slug/<nom_fichier_sans_extension>.
+//   Ex : routes/session-resources.js → /api/dune/session-resources
+//
+// Handlers Socket.io slug-spécifiques :
+//   Tout fichier .js dans socket/ exporte une fonction register(io, socket, db).
+//   Chaque fichier est enregistré automatiquement à chaque nouvelle connexion socket.
+//   Ex : socket/session-resources.js → écoute 'update-session-resources'
 
-const fs = require('fs');
+const fs   = require('fs');
 const path = require('path');
 
 const SYSTEMS_DIR = path.join(__dirname);
+
 // Routes génériques partagées par tous les systèmes
-// Convention : systems/ = spécifique, routes/ = générique
 const SHARED_ROUTES = {
     sessions: path.join(__dirname, '../routes/sessions.js'),
     journal:  path.join(__dirname, '../routes/journal.js'),
@@ -24,8 +33,12 @@ const SHARED_ROUTES = {
     combat:   path.join(__dirname, '../routes/combat.js'),
     npc:      path.join(__dirname, '../routes/npc.js'),
 };
-// Routes obligatoires que chaque système doit fournir
+
+// Routes que chaque système DOIT fournir
 const REQUIRED_ROUTES = ['characters'];
+
+// Routes slug-spécifiques exclues du scan extra (gérées explicitement)
+const EXCLUDED_FROM_EXTRA_SCAN = new Set(['characters.js', 'combat.js']);
 
 // Cache des systèmes chargés : slug → systemConfig
 const _registry = new Map();
@@ -39,7 +52,7 @@ function loadAllSystems() {
 
     for (const entry of entries) {
         if (!entry.isDirectory()) continue;
-        const systemDir = path.join(SYSTEMS_DIR, entry.name);
+        const systemDir  = path.join(SYSTEMS_DIR, entry.name);
         const configPath = path.join(systemDir, 'config.js');
 
         if (!fs.existsSync(configPath)) continue;
@@ -83,7 +96,7 @@ function getAllSystems() {
  * Retourne le router Express d'une route spécifique au système.
  * @param {string} slug
  * @param {'characters'|'combat'} routeName
- * @returns {Router}
+ * @returns {import('express').Router}
  */
 function getSystemRoute(slug, routeName) {
     const system = getSystem(slug);
@@ -94,12 +107,57 @@ function getSystemRoute(slug, routeName) {
 /**
  * Retourne le router Express d'une route générique partagée.
  * @param {'sessions'|'journal'|'dice'|'npc'|'combat'} routeName
- * @returns {Router}
+ * @returns {import('express').Router}
  */
 function getSharedRoute(routeName) {
     const routePath = SHARED_ROUTES[routeName];
     if (!routePath) throw new Error(`Unknown shared route: ${routeName}`);
     return require(routePath);
+}
+
+/**
+ * Scanne le dossier routes/ du slug et retourne toutes les routes extra.
+ * Sont exclues : characters.js et combat.js (gérées explicitement par server.js).
+ *
+ * @param {string} slug
+ * @returns {Array<{ name: string, router: import('express').Router }>}
+ *   name  = nom du fichier sans extension  (ex: 'session-resources')
+ *   router = module Express Router chargé
+ */
+function getSystemExtraRoutes(slug) {
+    const routesDir = path.join(SYSTEMS_DIR, slug, 'routes');
+    if (!fs.existsSync(routesDir)) return [];
+
+    return fs.readdirSync(routesDir)
+        .filter(f => f.endsWith('.js') && !EXCLUDED_FROM_EXTRA_SCAN.has(f))
+        .map(f => ({
+            name:   f.replace('.js', ''),
+            router: require(path.join(routesDir, f)),
+        }));
+}
+
+/**
+ * Scanne le dossier socket/ du slug et retourne toutes les fonctions register.
+ * Chaque fichier doit exporter : function register(io, socket, db) { ... }
+ *
+ * @param {string} slug
+ * @returns {Array<Function>}  tableau de fonctions register
+ */
+function getSystemSocketHandlers(slug) {
+    const socketDir = path.join(SYSTEMS_DIR, slug, 'socket');
+    if (!fs.existsSync(socketDir)) return [];
+
+    return fs.readdirSync(socketDir)
+        .filter(f => f.endsWith('.js'))
+        .map(f => {
+            const handler = require(path.join(socketDir, f));
+            if (typeof handler !== 'function') {
+                console.warn(`⚠️  [${slug}] socket/${f} n'exporte pas une fonction — ignoré`);
+                return null;
+            }
+            return handler;
+        })
+        .filter(Boolean);
 }
 
 // ─── Privé ──────────────────────────────────────────────────────────────────
@@ -110,7 +168,6 @@ function _validateConfig(config, systemDir) {
     if (!config.dbPath)     throw new Error('Missing "dbPath" in config.js');
     if (!config.schemaPath) throw new Error('Missing "schemaPath" in config.js');
 
-    // Vérifier que les routes obligatoires existent
     for (const routeName of REQUIRED_ROUTES) {
         const routePath = path.join(systemDir, 'routes', `${routeName}.js`);
         if (!fs.existsSync(routePath)) {
@@ -119,4 +176,12 @@ function _validateConfig(config, systemDir) {
     }
 }
 
-module.exports = { loadAllSystems, getSystem, getAllSystems, getSystemRoute, getSharedRoute };
+module.exports = {
+    loadAllSystems,
+    getSystem,
+    getAllSystems,
+    getSystemRoute,
+    getSharedRoute,
+    getSystemExtraRoutes,
+    getSystemSocketHandlers,
+};

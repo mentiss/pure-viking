@@ -1,0 +1,118 @@
+/* src/client/src/systems/dune/theme.css */
+/* Thème Dune: Adventures in the Imperium                                    */
+/* Palette : désert — ocre / sable / or / rouge brique — jour & nuit        */
+
+:root {
+    /* ── Couleurs principales ────────────────────────────────────────────── */
+    --dune-sand:        #C8A96E;   /* sable doré */
+    --dune-gold:        #D4A017;   /* or impérial */
+    --dune-ochre:       #B5651D;   /* ocre brique */
+    --dune-spice:       #E07B39;   /* orange épice */
+    --dune-dust:        #8B6F47;   /* poussière */
+    --dune-dark:        #2C1A0E;   /* brun très sombre */
+    --dune-parchment:   #F5E6C8;   /* parchemin clair */
+    --dune-red:         #8B1A1A;   /* rouge Harkonnen */
+
+    /* ── Fond & surface (mode jour) ─────────────────────────────────────── */
+    --dune-bg:          #FDF3DC;
+    --dune-surface:     #F5E6C8;
+    --dune-surface-alt: #EDD9A3;
+    --dune-border:      #C8A96E;
+    --dune-text:        #2C1A0E;
+    --dune-text-muted:  #6B4F2A;
+
+    /* ── États ───────────────────────────────────────────────────────────── */
+    --dune-success:     #4A7C59;
+    --dune-danger:      #8B1A1A;
+    --dune-warning:     #D4A017;
+    --dune-info:        #3A6186;
+}
+
+/* ── Mode sombre ─────────────────────────────────────────────────────────── */
+.dark {
+    --dune-bg:          #1A0F06;
+    --dune-surface:     #2C1A0E;
+    --dune-surface-alt: #3D2410;
+    --dune-border:      #8B6F47;
+    --dune-text:        #F5E6C8;
+    --dune-text-muted:  #C8A96E;
+}
+
+/* ── Classes utilitaires ─────────────────────────────────────────────────── */
+
+.dune-card {
+    background-color: var(--dune-surface);
+    border: 1.5px solid var(--dune-border);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+}
+
+.dune-card-alt {
+    background-color: var(--dune-surface-alt);
+    border: 1.5px solid var(--dune-border);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+}
+
+.dune-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dune-text-muted);
+}
+
+.dune-btn-primary {
+    background-color: var(--dune-gold);
+    color: var(--dune-dark);
+    font-weight: 700;
+    padding: 0.4rem 0.9rem;
+    border-radius: 0.375rem;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+.dune-btn-primary:hover { opacity: 0.85; }
+
+.dune-btn-secondary {
+    background-color: var(--dune-dust);
+    color: var(--dune-parchment);
+    font-weight: 600;
+    padding: 0.4rem 0.9rem;
+    border-radius: 0.375rem;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+.dune-btn-secondary:hover { opacity: 0.85; }
+
+.dune-input {
+    background-color: var(--dune-bg);
+    border: 1.5px solid var(--dune-border);
+    border-radius: 0.375rem;
+    color: var(--dune-text);
+    padding: 0.35rem 0.6rem;
+    font-size: 0.85rem;
+    width: 100%;
+    outline: none;
+}
+.dune-input:focus { border-color: var(--dune-gold); }
+
+/* ── Ressources de session ───────────────────────────────────────────────── */
+
+.dune-resource-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.dune-pip {
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 50%;
+    border: 2px solid var(--dune-gold);
+    transition: background-color 0.2s;
+}
+.dune-pip.filled  { background-color: var(--dune-gold); }
+.dune-pip.empty   { background-color: transparent; }
