@@ -1,6 +1,7 @@
 // components/GMView/scene/GMSendModal.jsx - Modale envoi message GM (V2 : nouveau + depuis notes)
 import React, { useState, useEffect, useRef } from 'react';
 import { useFetch } from '../../../hooks/useFetch.js';
+import useSystem from "../../../hooks/useSystem.js";
 
 const TOAST_ANIMATIONS = [
     { id: 'default', label: 'Classique', icon: '📬' },
@@ -36,6 +37,7 @@ const GMSendModal = ({ onClose, onSend, sessionCharacters = [], preSelectedCharI
 
     const fileInputRef = useRef(null);
     const fetchWithAuth = useFetch();
+    const { apiBase } = useSystem();
 
     // --- Charger les notes du GM quand on passe en mode from_notes ---
     useEffect(() => {
@@ -47,7 +49,7 @@ const GMSendModal = ({ onClose, onSend, sessionCharacters = [], preSelectedCharI
     const loadGMNotes = async () => {
         setNotesLoading(true);
         try {
-            const response = await fetchWithAuth('/api/journal/-1?type=note');
+            const response = await fetchWithAuth(`${apiBase}/journal/-1?type=note`);
             if (response.ok) {
                 const data = await response.json();
                 setGmNotes(data);

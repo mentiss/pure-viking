@@ -51,4 +51,29 @@ function ensureUniqueCode(type = 'character', db, generateUrlFn = generateAccess
     return { code, url };
 }
 
-module.exports = { generateAccessCode, generateAccessUrl, ensureUniqueCode };
+// ─── Helper : expression SQL du nom de personnage (identique à sessions.js) ──
+// Cache par connexion pour ne pas re-pragma à chaque requête.
+const _nameExprCache = new WeakMap();
+
+function getCharNameExpr(db) {
+    if (_nameExprCache.has(db)) return _nameExprCache.get(db);
+
+    const cols = db.pragma('table_info(characters)').map(c => c.name);
+    let expr;
+    if (cols.includes('nom')) {
+        // Dune : champ `nom` direct
+        expr = "COALESCE(c.nom, c.player_name)";
+    } else if (cols.includes('prenom')) {
+        // Vikings : prénom + surnom optionnel
+        expr = cols.includes('surnom')
+            ? "c.prenom || COALESCE(' \"' || c.surnom || '\"', '')"
+            : "c.prenom";
+    } else {
+        expr = "c.player_name";
+    }
+
+    _nameExprCache.set(db, expr);
+    return expr;
+}
+
+module.exports = { generateAccessCode, generateAccessUrl, ensureUniqueCode, getCharNameExpr };

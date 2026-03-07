@@ -12,7 +12,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate, requireGM } = require('../middlewares/auth');
-const { ensureUniqueCode } = require('../utils/characters');
+const { ensureUniqueCode, getCharNameExpr} = require('../utils/characters');
 
 // ─── Helper ─────────────────────────────────────────────────────────────────
 
@@ -24,47 +24,12 @@ const { ensureUniqueCode } = require('../utils/characters');
  * @param {number|string} sessionId
  * @returns {object|null}
  */
-/**
- * Détecte dynamiquement l'expression SQL pour le nom d'affichage du personnage.
- * Inspecte les colonnes réelles de la table `characters` via pragma.
- *
- * - Dune  → colonne `nom`                         → expr = 'c.nom'
- * - Vikings → colonnes `prenom` + `surnom`         → expr = CONCAT style SQLite
- * - Fallback → pas de nom dédié                   → expr = 'c.player_name'
- *
- * Résultat mis en cache par connexion (Map globale) pour ne pas re-pragma à chaque appel.
- */
-const _nameExprCache = new WeakMap();
-
-function _getCharNameExpr(db) {
-    if (_nameExprCache.has(db)) return _nameExprCache.get(db);
-
-    const cols = db.pragma('table_info(characters)').map(c => c.name);
-    let expr;
-
-    if (cols.includes('nom')) {
-        // Dune : champ `nom` direct
-        expr = "COALESCE(c.nom, c.player_name)";
-    } else if (cols.includes('prenom')) {
-        // Vikings : prénom + surnom optionnel entre guillemets
-        expr = cols.includes('surnom')
-            ? "c.prenom || COALESCE(' \"' || c.surnom || '\"', '')"
-            : "c.prenom";
-    } else {
-        // Slug inconnu — repli sur player_name
-        expr = "c.player_name";
-    }
-
-    _nameExprCache.set(db, expr);
-    return expr;
-}
-
 function loadSessionWithCharacters(db, sessionId) {
     const session = db.prepare('SELECT * FROM game_sessions WHERE id = ?').get(sessionId);
     if (!session) return null;
 
     // Expression SQL du nom de personnage adaptée au schéma du slug
-    const nameExpr = _getCharNameExpr(db);
+    const nameExpr = getCharNameExpr(db);
 
     const characters = db.prepare(`
         SELECT c.id,

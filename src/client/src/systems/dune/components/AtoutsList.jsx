@@ -41,11 +41,11 @@ const AtoutsList = ({ items = [], editMode, onChange }) => {
                     <div key={idx} className="rounded p-2" style={{ background: 'var(--dune-surface-alt)' }}>
                         {editMode ? (
                             <div className="space-y-1">
-                                <div className="flex gap-1 items-center">
+                                <div className="flex gap-1 items-center group">
                                     <input
                                         value={item.nom}
                                         onChange={e => handleEdit(idx, 'nom', e.target.value)}
-                                        className="dune-input text-xs font-bold flex-1"
+                                        className="dune-input text-xs font-bold flex-1 min-w-0"
                                         placeholder="Nom de l'atout"
                                     />
                                     <input
@@ -53,11 +53,12 @@ const AtoutsList = ({ items = [], editMode, onChange }) => {
                                         min={1}
                                         value={item.quantite}
                                         onChange={e => handleEdit(idx, 'quantite', parseInt(e.target.value) || 1)}
-                                        className="dune-input text-xs w-14"
+                                        className="dune-input text-xs"
+                                        style={{ width: '3.5rem', flexShrink: 0 }}
                                     />
                                     <button
                                         onClick={() => handleRemove(idx)}
-                                        className="text-xs px-2 py-1 rounded"
+                                        className="opacity-45 group-hover:opacity-100 transition-opacity text-xs w-5 h-5 rounded flex items-center justify-center"
                                         style={{ background: 'var(--dune-red)', color: 'white' }}
                                     >✕</button>
                                 </div>
@@ -70,7 +71,7 @@ const AtoutsList = ({ items = [], editMode, onChange }) => {
                                 />
                             </div>
                         ) : (
-                            <div className="flex justify-between items-start gap-2">
+                            <div className="flex justify-between items-start gap-2 group">
                                 <div>
                                     <div className="text-xs font-bold" style={{ color: 'var(--dune-gold)' }}>{item.nom}</div>
                                     {item.description && (
@@ -82,6 +83,12 @@ const AtoutsList = ({ items = [], editMode, onChange }) => {
                                         ×{item.quantite}
                                     </span>
                                 )}
+                                <button
+                                    onClick={() => handleRemove(idx)}
+                                    className="opacity-45 group-hover:opacity-100 transition-opacity text-xs w-5 h-5 rounded flex items-center justify-center"
+                                    style={{ background: 'var(--dune-red)', color: 'white' }}
+                                    title="Supprimer"
+                                >✕</button>
                             </div>
                         )}
                     </div>
@@ -94,7 +101,7 @@ const AtoutsList = ({ items = [], editMode, onChange }) => {
                         <input
                             value={newItem.nom}
                             onChange={e => setNewItem(p => ({ ...p, nom: e.target.value }))}
-                            className="dune-input text-xs flex-1"
+                            className="dune-input text-xs flex-1 min-w-0"
                             placeholder="Nom de l'atout…"
                         />
                         <input
@@ -102,7 +109,8 @@ const AtoutsList = ({ items = [], editMode, onChange }) => {
                             min={1}
                             value={newItem.quantite}
                             onChange={e => setNewItem(p => ({ ...p, quantite: parseInt(e.target.value) || 1 }))}
-                            className="dune-input text-xs w-14"
+                            className="dune-input text-xs"
+                            style={{ width: '3.5rem', flexShrink: 0 }}
                         />
                     </div>
                     <textarea

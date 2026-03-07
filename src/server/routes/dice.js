@@ -8,6 +8,7 @@
 // Les deux peuvent coexister dans le même payload pour Vikings.
 
 const express = require('express');
+const {getCharNameExpr} = require("../utils/characters");
 const router  = express.Router();
 
 // ─── POST /roll ──────────────────────────────────────────────────────────────
@@ -136,13 +137,14 @@ router.post('/roll', (req, res) => {
 
 router.get('/history', (req, res) => {
     try {
-        const limit     = Math.min(parseInt(req.query.limit) || 100, 500);
+        const limit = Math.min(parseInt(req.query.limit) || 100, 500);
         const { sessionId } = req.query;
+        const nameExpr      = getCharNameExpr(req.db);
 
         let query = `
             SELECT
                 dh.*,
-                c.prenom || COALESCE(' "' || c.surnom || '"', '') AS character_name
+                (${nameExpr}) AS character_name
             FROM dice_history dh
             LEFT JOIN characters c ON dh.character_id = c.id
         `;
@@ -169,10 +171,11 @@ router.get('/history', (req, res) => {
 
 router.get('/history/:characterId', (req, res) => {
     try {
-        const limit     = Math.min(parseInt(req.query.limit) || 50, 200);
+        const limit = Math.min(parseInt(req.query.limit) || 50, 200);
         const { sessionId } = req.query;
+        const nameExpr      = getCharNameExpr(req.db);
 
-        let query  = 'SELECT * FROM dice_history WHERE character_id = ?';
+        let query  = `SELECT dh.*, (${nameExpr}) AS character_name FROM dice_history dh LEFT JOIN characters c ON dh.character_id = c.id WHERE character_id = ?`;
         const params = [req.params.characterId];
 
         if (sessionId) {

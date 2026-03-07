@@ -62,7 +62,8 @@ io.on('connection', (socket) => {
 
     socket.on('gm-set-active-session', ({ sessionId, system = 'vikings' } = {}) => {
         activeSessionId = sessionId;
-        if (activeSessionId) socket.emit('gm-session-active', activeSessionId);
+        if (activeSessionId) io.emit('gm-session-active', activeSessionId);
+
     });
 
     socket.on('join-session', ({ sessionId, system = 'vikings' } = {}) => {

@@ -44,7 +44,10 @@ export function usePlayerSession({ character, onCharacterUpdate, onCharacterHasU
 
         socket.emit('character-loaded', {
             characterId: character.id,
-            name:        character.name ?? `${character.prenom}${character.surnom ? ` "${character.surnom}"` : ''}`,
+            name: character.name
+                ?? character.nom
+                ?? ([character.prenom, character.surnom ? `"${character.surnom}"` : null].filter(Boolean).join(' ')
+                || character.playerName),
             playerName:  character.playerName,
             agilite:     character.agilite     ?? 1,
             actionsMax:  character.actionsDisponibles ?? 1,

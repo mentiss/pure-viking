@@ -31,6 +31,8 @@ import { useSocket }  from '../../context/SocketContext.jsx';
 import { useSystem }  from '../../hooks/useSystem.js';
 import { useFetch }   from '../../hooks/useFetch.js';
 import { usePlayerSession } from '../../hooks/usePlayerSession.js';
+import DiceHistoryPage from "../../components/gm/layout/DiceHistoryPage.jsx";
+import DuneHistoryEntry from "../../components/DuneHistoryEntry.jsx";
 
 // ── Onglets ───────────────────────────────────────────────────────────────────
 
@@ -66,28 +68,17 @@ const Sheet = ({
     const fetchWithAuth = useFetch();
     const { activeGMSession, activeSessionName } = useSession();
 
-    // ── Présence en ligne + sessions du personnage ────────────────────────────
-    // Émet character-loaded → le serveur répond gm-session-active si une session
-    // est déjà active (rattrapage joueur arrivé avant ou après le GM).
-    // Charge aussi characterSessions → SessionContext sait que ce joueur
-    // est membre de la session → isMember → join-session déclenché.
-    const { journalUnread: jUnread, resetJournalUnread } = usePlayerSession({
-        character,
-        onCharacterUpdate,
-        onCharacterHasUpdated: () => {},
-        onCharacterReload:     () => onCharacterUpdate(character),
-        apiBase,
-    });
-    // Fusionner le badge journal interne avec celui reçu en prop
-    const effectiveJournalUnread = (journalUnread ?? 0) + jUnread;
-
     // ── UI state ──────────────────────────────────────────────────────────────
-    const [activeTab,       setActiveTab]       = useState('fiche');
+    const [activeTab,       setActiveTab]       = useState(() => {
+        const hash = window.location.hash.replace('#', '');
+        return TABS.some(t => t.id === hash) ? hash : 'fiche';
+    });
     const [editMode,        setEditMode]        = useState(false);
     const [editableChar,    setEditableChar]    = useState(character);
 
     // Modales
-    const [diceModal,          setDiceModal]          = useState(null);
+    const [diceModal,                  setDiceModal]          = useState(null);
+    const [showDiceModal,              setShowDiceModal]      = useState(null);
     const [showMenu,           setShowMenu]           = useState(false);
     const [showDiceConfig,     setShowDiceConfig]     = useState(false);
     const [showCharList,       setShowCharList]       = useState(false);
@@ -176,7 +167,7 @@ const Sheet = ({
     };
 
     return (
-        <div className="min-h-screen" style={{ background: 'var(--dune-bg)', color: 'var(--dune-text)' }}>
+        <div className="min-h-screen flex flex-col" style={{ background: 'var(--dune-bg)', color: 'var(--dune-text)' }}>
             <ToastNotifications />
 
             {/* ── HEADER ──────────────────────────────────────────────────── */}
@@ -204,6 +195,15 @@ const Sheet = ({
 
                 {/* Actions header */}
                 <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setShowDiceModal(true)}
+                        className="text-xs px-2 py-1 rounded font-semibold"
+                        style={{ background: 'var(--dune-ochre)', color: 'white' }}
+                        title="Lancer des dés"
+                    >
+                        🎲 Dés
+                    </button>
+
                     <ThemeToggle darkMode={darkMode} onToggle={onToggleDarkMode} />
 
                     {/* Menu hamburger */}
@@ -296,7 +296,7 @@ const Sheet = ({
             </header>
 
             {/* ── CORPS PRINCIPAL ──────────────────────────────────────────── */}
-            <div className="flex">
+            <div className="flex flex-1">
 
                 {/* ── CENTRE : navigation + contenu ─────────────────────── */}
                 <div className="flex-1 flex flex-col min-w-0">
@@ -311,6 +311,7 @@ const Sheet = ({
                                 key={tab.id}
                                 onClick={() => {
                                     setActiveTab(tab.id);
+                                    window.location.hash = tab.id;
                                     if (tab.id === 'journal') onJournalRead?.();
                                 }}
                                 className="px-4 py-2 text-xs font-semibold whitespace-nowrap transition-colors relative"
@@ -320,12 +321,12 @@ const Sheet = ({
                                 }}
                             >
                                 {tab.label}
-                                {tab.id === 'journal' && effectiveJournalUnread > 0 && (
+                                {tab.id === 'journal' && journalUnread > 0 && (
                                     <span
                                         className="ml-1 px-1 py-0.5 text-[9px] rounded-full font-bold"
                                         style={{ background: 'var(--dune-gold)', color: 'var(--dune-dark)' }}
                                     >
-                                        {effectiveJournalUnread}
+                                        {journalUnread}
                                     </span>
                                 )}
                             </button>
@@ -505,12 +506,6 @@ const Sheet = ({
                                                                     <div className="text-xs" style={{ color: 'var(--dune-text-muted)' }}>
                                                                         {char.playerName}
                                                                     </div>
-                                                                    {char.statutSocial && (
-                                                                        <div className="text-xs italic">{char.statutSocial}</div>
-                                                                    )}
-                                                                    {char.description && (
-                                                                        <div className="text-xs mt-1 leading-relaxed">{char.description}</div>
-                                                                    )}
                                                                 </div>
                                                             </div>
                                                         )}
@@ -524,7 +519,7 @@ const Sheet = ({
                                                     {/* Détermination */}
                                                     <DeterminationTracker
                                                         determination={char.determination}
-                                                        determinationMax={char.determinationMax}
+                                                        determinationMax={9999}
                                                         editMode={editMode}
                                                         onChange={({ determination, determinationMax }) => {
                                                             setEditableChar(prev => ({ ...prev, determination, determinationMax }));
@@ -533,6 +528,17 @@ const Sheet = ({
                                                             }
                                                         }}
                                                     />
+                                                    <div className="dune-card">
+                                                        <div className="dune-label mb-2">Identité</div>
+                                                        <div className="gap-2">
+                                                            {char.statutSocial && (
+                                                                <div className="text-xs italic whitespace-pre-line">{char.statutSocial}</div>
+                                                            )}
+                                                            {char.description && (
+                                                                <div className="text-xs mt-1 leading-relaxed whitespace-pre-line">{char.description}</div>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
@@ -605,19 +611,29 @@ const Sheet = ({
                                             <AtoutsList
                                                 items={char.items}
                                                 editMode={editMode}
-                                                onChange={v => updateField('items', v)}
+                                                onChange={v => {
+                                                    if (editMode) {
+                                                        updateField('items', v);
+                                                    } else {
+                                                        onCharacterUpdate({ ...character, items: v });
+                                                    }
+                                                }}
                                             />
                                         </>
                                     )}
 
                                     {/* ── TAB JOURNAL ────────────────────────────────────── */}
                                     {activeTab === 'journal' && (
-                                        <JournalTab character={character} />
+                                        <JournalTab characterId={character.id} />
                                     )}
 
                                     {/* ── TAB HISTORIQUE ─────────────────────────────────── */}
                                     {activeTab === 'historique' && (
-                                        <HistoryPanel characterId={character.id} />
+                                        <DiceHistoryPage
+                                            character={character}
+                                            renderEntry={(roll) => <DuneHistoryEntry roll={roll} />}
+                                            sessionId={activeGMSession ?? null}
+                                        />
                                     )}
                                     {/* Fin contenu principal */}
                                 </div>
@@ -655,11 +671,14 @@ const Sheet = ({
             </div>
 
             {/* ── MODALE DÉS ────────────────────────────────────────────── */}
-            {diceModal && (
+            {(diceModal || showDiceModal) && (
                 <DuneDiceModal
                     character={character}
                     preselect={diceModal}
-                    onClose={() => setDiceModal(null)}
+                    onClose={() => {
+                        setDiceModal(null);
+                        setShowDiceModal(false);
+                    }}
                     onCharacterUpdate={onCharacterUpdate}
                     sessionResources={sessionResources}
                 />

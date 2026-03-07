@@ -18,16 +18,19 @@ const IMPULSION_COST = [0, 1, 3, 6];
  * @param {number[]} results  - Valeurs brutes des dés
  * @param {number}   rang     - Rang total (compétence + principe)
  * @param {boolean}  hasSpec  - Spécialisation active sur la compétence
+ * @param {number}   specSeuil - Rang de la compétence si spécialisée, 0 sinon
  * @returns {{ succes: number, complications: number }}
  */
-function countSuccesses(results, rang, hasSpec) {
+function countSuccesses(results, rang, hasSpec, specSeuil) {
     let succes = 0;
     let complications = 0;
     for (const val of results) {
         if (val === 20) {
             complications++;
+        } else if (hasSpec && val <= specSeuil) {
+            succes += 2;
         } else if (val <= rang) {
-            succes += hasSpec ? 2 : 1;
+            succes += 1;
         }
     }
     return { succes, complications };
@@ -83,9 +86,10 @@ const duneConfig = {
          * @returns {object} payload enrichi pour l'affichage et l'historique
          */
         afterRoll: (ctx, rollResult) => {
-            const { rang, hasSpecialisation, difficulte, useDetermination } = ctx.systemData;
+            const { rang, competenceRang, hasSpecialisation, difficulte, useDetermination } = ctx.systemData;
             const results = rollResult.rolls.map(r => r.value);
-            const { succes, complications } = countSuccesses(results, rang, hasSpecialisation);
+            const specSeuil = hasSpecialisation ? (competenceRang ?? 0) : 0;
+            const { succes, complications } = countSuccesses(results, rang, hasSpecialisation, specSeuil);
 
             // La Détermination ajoute 1 succès automatique si utilisée
             const succesTotal = succes + (useDetermination ? 1 : 0);

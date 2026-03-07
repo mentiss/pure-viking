@@ -25,19 +25,8 @@ const DeterminationTracker = ({ determination, determinationMax, editMode, onCha
     };
 
     return (
-        <div className="dune-card text-center">
+        <div className="dune-card">
             <div className="dune-label mb-2">Détermination</div>
-
-            {/* Pips */}
-            <div className="flex justify-center gap-1.5 mb-2 flex-wrap">
-                {Array.from({ length: determinationMax }).map((_, i) => (
-                    <div
-                        key={i}
-                        className={`dune-pip ${i < determination ? 'filled' : 'empty'}`}
-                        title={i < determination ? 'Utilisée' : 'Disponible'}
-                    />
-                ))}
-            </div>
 
             {/* Contrôles courants */}
             <div className="flex items-center justify-center gap-2">
@@ -48,11 +37,10 @@ const DeterminationTracker = ({ determination, determinationMax, editMode, onCha
                     style={{ background: 'var(--dune-ochre)', color: 'var(--dune-parchment)' }}
                 >−</button>
                 <span className="text-base font-bold w-12 text-center" style={{ color: 'var(--dune-gold)' }}>
-                    {determination} / {determinationMax}
+                    {determination}
                 </span>
                 <button
                     onClick={() => handleDelta(1)}
-                    disabled={determination >= determinationMax}
                     className="w-7 h-7 rounded-full font-bold text-sm disabled:opacity-30 transition-opacity hover:opacity-80"
                     style={{ background: 'var(--dune-gold)', color: 'var(--dune-dark)' }}
                 >+</button>

@@ -1,13 +1,10 @@
 // src/client/src/systems/dune/gm/GMView.jsx
-// Shell interface GM Dune.
-// Onglets : Session · Ressources · Journal
-// Hamburger : Tables · Config dés · Déconnexion
-
 import React, { useState, useEffect } from 'react';
 import { useParams }    from 'react-router-dom';
 import { useAuth }      from '../../../context/AuthContext.jsx';
 import { useSocket }    from '../../../context/SocketContext.jsx';
 import { useFetch }     from '../../../hooks/useFetch.js';
+import { useSystem }    from '../../../hooks/useSystem.js';
 
 import ToastNotifications   from '../../../components/layout/ToastNotifications.jsx';
 import HistoryPanel         from '../../../components/layout/HistoryPanel.jsx';
@@ -17,10 +14,8 @@ import DiceConfigModal      from '../../../components/modals/DiceConfigModal.jsx
 
 import TabSession   from './tabs/TabSession.jsx';
 import TabResources from './tabs/TabResources.jsx';
-import TabJournal         from '../../../components/gm/tabs/TabJournal.jsx';
+import TabJournal   from '../../../components/gm/tabs/TabJournal.jsx';
 import GMDiceModal  from './modals/GMDiceModal.jsx';
-
-// ── Onglets disponibles ───────────────────────────────────────────────────────
 
 const GM_TABS = [
     { id: 'session',    label: '📜 Session' },
@@ -28,21 +23,14 @@ const GM_TABS = [
     { id: 'journal',    label: '📓 Journal' },
 ];
 
-/**
- * @param {object}   props.activeSession
- * @param {Function} props.onSessionChange
- * @param {Array}    props.onlineCharacters
- * @param {boolean}  props.darkMode
- * @param {Function} props.onToggleDarkMode
- */
 const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, onToggleDarkMode }) => {
-    const { system } = useParams();
-    const { logout } = useAuth();
-    // ✅ useFetch() retourne directement la fonction — pas de destructuring
+    const { system }    = useParams();
+    const { logout }    = useAuth();
     const fetchWithAuth = useFetch();
-    const socket = useSocket();
+    const { apiBase }   = useSystem();
+    const socket        = useSocket();
 
-    // ── Tab actif (persisté dans le hash) ────────────────────────────────────
+    // ── Tab actif ────────────────────────────────────────────────────────────
     const [activeTab, setActiveTab] = useState(() => {
         const hash = window.location.hash.replace('#', '');
         return GM_TABS.some(t => t.id === hash) ? hash : 'session';
@@ -53,9 +41,20 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
         window.location.hash = id;
     };
 
-    // ── Ressources courantes (pour passer la menace au GMDiceModal) ──────────
+    // ── Ressources courantes ──────────────────────────────────────────────────
     const [resources, setResources] = useState({ impulsions: 0, menace: 0, complications: 0 });
 
+    // Chargement initial HTTP — évite d'avoir menace=0 si la page est rechargée
+    // après que le socket ait déjà émis ses derniers événements
+    useEffect(() => {
+        if (!activeSession?.id) return;
+        fetchWithAuth(`${apiBase}/session-resources/${activeSession.id}`)
+            .then(r => r.ok ? r.json() : null)
+            .then(data => { if (data) setResources(prev => ({ ...prev, ...data })); })
+            .catch(console.error);
+    }, [activeSession?.id, apiBase]);
+
+    // Mise à jour socket temps réel
     useEffect(() => {
         if (!socket) return;
         const onUpdate = data => setResources(prev => ({ ...prev, ...data }));
@@ -67,14 +66,14 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
         };
     }, [socket]);
 
-    // ── Modales globales ─────────────────────────────────────────────────────
+    // ── Modales globales ──────────────────────────────────────────────────────
     const [showDiceModal,  setShowDiceModal]  = useState(false);
     const [showTableMgmt,  setShowTableMgmt]  = useState(false);
     const [showHistory,    setShowHistory]    = useState(false);
     const [showDiceConfig, setShowDiceConfig] = useState(false);
     const [showMenu,       setShowMenu]       = useState(false);
 
-    // ── Déconnexion ──────────────────────────────────────────────────────────
+    // ── Déconnexion ───────────────────────────────────────────────────────────
     const handleLogout = async () => {
         setShowMenu(false);
         await logout();
@@ -132,7 +131,6 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
 
                     {/* Actions header */}
                     <div className="flex items-center gap-2 flex-shrink-0">
-                        {/* Bouton dés */}
                         <button
                             onClick={() => setShowDiceModal(true)}
                             className="text-xs px-2 py-1 rounded font-semibold"
@@ -157,58 +155,31 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
 
                             {showMenu && (
                                 <>
-                                    {/* Overlay pour fermer */}
-                                    <div
-                                        className="fixed inset-0 z-40"
-                                        onClick={() => setShowMenu(false)}
-                                    />
+                                    <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
                                     <div
                                         className="absolute right-0 mt-2 w-52 rounded-xl shadow-2xl z-50 overflow-hidden"
-                                        style={{
-                                            background: 'var(--dune-surface)',
-                                            border: '1px solid var(--dune-border)',
-                                        }}
+                                        style={{ background: 'var(--dune-surface)', border: '1px solid var(--dune-border)' }}
                                     >
-                                        {/* Gérer les tables */}
-                                        <button
-                                            onClick={() => { setShowMenu(false); setShowTableMgmt(true); }}
-                                            className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 transition-colors"
-                                            style={{ color: 'var(--dune-text)' }}
-                                            onMouseEnter={e => e.currentTarget.style.background = 'var(--dune-surface-alt)'}
-                                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                        >
-                                            📋 Gérer les tables
-                                        </button>
-
-                                        {/* Historique des jets */}
-                                        <button
-                                            onClick={() => { setShowMenu(false); setShowHistory(true); }}
-                                            className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 transition-colors"
-                                            style={{ color: 'var(--dune-text)' }}
-                                            onMouseEnter={e => e.currentTarget.style.background = 'var(--dune-surface-alt)'}
-                                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                        >
-                                            📜 Historique des jets
-                                        </button>
-
-                                        {/* Config dés */}
-                                        <button
-                                            onClick={() => { setShowMenu(false); setShowDiceConfig(true); }}
-                                            className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 transition-colors"
-                                            style={{ color: 'var(--dune-text)' }}
-                                            onMouseEnter={e => e.currentTarget.style.background = 'var(--dune-surface-alt)'}
-                                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                        >
-                                            🎲 Config animations dés
-                                        </button>
-
-                                        {/* Séparateur */}
-                                        <div style={{ borderTop: '1px solid var(--dune-border)', margin: '2px 0' }} />
-
-                                        {/* Déconnexion */}
+                                        {[
+                                            { icon: '📋', label: 'Gérer les tables',    action: () => setShowTableMgmt(true) },
+                                            { icon: '📜', label: 'Historique des jets', action: () => setShowHistory(true) },
+                                            { icon: '🎲', label: 'Config dés',          action: () => setShowDiceConfig(true) },
+                                        ].map(item => (
+                                            <button
+                                                key={item.label}
+                                                onClick={() => { setShowMenu(false); item.action(); }}
+                                                className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 transition-colors"
+                                                style={{ color: 'var(--dune-text)' }}
+                                                onMouseEnter={e => e.currentTarget.style.background = 'var(--dune-surface-alt)'}
+                                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                            >
+                                                {item.icon} {item.label}
+                                            </button>
+                                        ))}
+                                        <div style={{ borderTop: '1px solid var(--dune-border)' }} />
                                         <button
                                             onClick={handleLogout}
-                                            className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 transition-colors"
+                                            className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2"
                                             style={{ color: 'var(--dune-red)' }}
                                             onMouseEnter={e => e.currentTarget.style.background = 'var(--dune-surface-alt)'}
                                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -224,12 +195,9 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
             </header>
 
             {/* ── CONTENU ─────────────────────────────────────────────────── */}
-            <main className="max-w-7xl mx-auto p-4">
+            <main className="max-w-7xl mx-auto px-4 py-4">
                 {activeTab === 'session' && (
-                    <TabSession
-                        activeSession={activeSession}
-                        onlineCharacters={onlineCharacters}
-                    />
+                    <TabSession activeSession={activeSession} onlineCharacters={onlineCharacters} />
                 )}
                 {activeTab === 'ressources' && (
                     <TabResources activeSession={activeSession} />
@@ -240,7 +208,6 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
             </main>
 
             {/* ── MODALES GLOBALES ────────────────────────────────────────── */}
-
             {showTableMgmt && (
                 <TableManagementModal
                     isOpen={showTableMgmt}
@@ -268,7 +235,6 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
                 sessionId={activeSession?.id}
             />
 
-            {/* Bouton flottant historique */}
             <button
                 onClick={() => setShowHistory(true)}
                 className="fixed bottom-4 right-4 w-10 h-10 rounded-full shadow-lg z-30 flex items-center justify-center text-lg border-2"

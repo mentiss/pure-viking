@@ -206,7 +206,10 @@ router.put('/:id', authenticate, requireOwnerOrGM, (req, res) => {
                 'SELECT session_id FROM session_characters WHERE character_id = ?'
             ).all(id);
             for (const { session_id } of sessions) {
-                io.to(`dune_session_${session_id}`).emit('character-update', updated);
+                const payload = { characterId: id, character: updated };
+                for (const { session_id } of sessions) {
+                    io.to(`dune_session_${session_id}`).emit('character-full-update', payload);
+                }
             }
         }
 

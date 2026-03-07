@@ -52,7 +52,7 @@ const PlayerPage = () => {
                     if (!cancelled) {
                         setCharacter(user.character);
                         setAppState('playing');
-                        window.history.replaceState({}, '', `/${system}/${user.character.accessUrl}`);
+                        window.history.replaceState({}, '', `/${system}/${user.character.accessUrl}${window.location.hash}`);
                     }
                     return;
                 }

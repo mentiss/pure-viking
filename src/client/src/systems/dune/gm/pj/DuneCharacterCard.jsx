@@ -31,6 +31,14 @@ const DuneCharacterCard = ({ character, isOnline, onSendNote, onSendItem, onEdit
             <div className="flex items-center justify-between">
                 <div>
                     <div className="font-bold text-base" style={{ color: 'var(--dune-gold)' }}>
+                        {character.avatar && (
+                            <img
+                                src={character.avatar}
+                                alt={character.nom}
+                                className="w-14 h-14 rounded-full object-cover"
+                                style={{ border: '2px solid var(--dune-gold)' }}
+                            />
+                        )}
                         {character.nom}
                         <span
                             className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
@@ -52,8 +60,26 @@ const DuneCharacterCard = ({ character, isOnline, onSendNote, onSendItem, onEdit
                 <div className="text-right">
                     <div className="dune-label">Détermination</div>
                     <div className="text-lg font-bold" style={{ color: 'var(--dune-gold)' }}>
-                        {character.determination} / {character.determinationMax}
+                        {character.determination}
                     </div>
+                </div>
+            </div>
+
+            {/* ── Principes ────────────────────────────────────────── */}
+            <div className="dune-card">
+                <div className="dune-label mb-1">Principes</div>
+                <div className="grid grid-cols-3 gap-1">
+                    {(character.principes ?? []).map(p => (
+                        <div key={p.key} className="text-center rounded p-1"
+                             style={{ background: 'var(--dune-surface-alt)' }}>
+                            <div className="text-[9px]" style={{ color: 'var(--dune-text-muted)' }}>
+                                {PRINC_LABELS[p.key]}
+                            </div>
+                            <div className="font-bold text-sm" style={{ color: 'var(--dune-spice)' }}>
+                                {p.rang}
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
 
@@ -75,24 +101,6 @@ const DuneCharacterCard = ({ character, isOnline, onSendNote, onSendItem, onEdit
                                     {c.specialisation}
                                 </div>
                             )}
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* ── Principes ────────────────────────────────────────── */}
-            <div className="dune-card">
-                <div className="dune-label mb-1">Principes</div>
-                <div className="grid grid-cols-3 gap-1">
-                    {(character.principes ?? []).map(p => (
-                        <div key={p.key} className="text-center rounded p-1"
-                             style={{ background: 'var(--dune-surface-alt)' }}>
-                            <div className="text-[9px]" style={{ color: 'var(--dune-text-muted)' }}>
-                                {PRINC_LABELS[p.key]}
-                            </div>
-                            <div className="font-bold text-sm" style={{ color: 'var(--dune-spice)' }}>
-                                {p.rang}
-                            </div>
                         </div>
                     ))}
                 </div>
@@ -135,28 +143,6 @@ const DuneCharacterCard = ({ character, isOnline, onSendNote, onSendItem, onEdit
                     </div>
                 </div>
             )}
-
-            {/* ── Actions GM ───────────────────────────────────────── */}
-            <div className="flex gap-2 flex-wrap pt-1">
-                <button
-                    onClick={onEditCharacter}
-                    className="dune-btn-secondary text-xs flex-1"
-                >
-                    ✏️ Détermination
-                </button>
-                <button
-                    onClick={onSendNote}
-                    className="dune-btn-secondary text-xs flex-1"
-                >
-                    📩 Note
-                </button>
-                <button
-                    onClick={onSendItem}
-                    className="dune-btn-primary text-xs flex-1"
-                >
-                    🎁 Atout
-                </button>
-            </div>
         </div>
     );
 };

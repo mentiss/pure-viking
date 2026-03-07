@@ -198,15 +198,30 @@ CREATE INDEX IF NOT EXISTS idx_dice_created_at   ON dice_history(created_at DESC
 -- JOURNAL DE PERSONNAGE
 -- ============================================
 
-CREATE TABLE IF NOT EXISTS character_journal (
-                                                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                                                 character_id    INTEGER NOT NULL,
-                                                 content         TEXT    DEFAULT '',
-                                                 updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
-                                                 FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
+create table character_journal
+(
+    id           INTEGER primary key autoincrement,
+    character_id INTEGER not null references characters on delete cascade,
+    session_id   INTEGER references game_sessions on delete set null,
+    type         TEXT    default 'note' not null,
+    title        TEXT,
+    body         TEXT,
+    metadata     TEXT,
+    is_read      BOOLEAN  default 0,
+    created_at   DATETIME default CURRENT_TIMESTAMP,
+    updated_at   DATETIME default CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_journal_character_id ON character_journal(character_id);
+create index idx_journal_character
+    on character_journal (character_id);
+
+create index idx_journal_session
+    on character_journal (session_id);
+
+create index idx_journal_type
+    on character_journal (type);
+
+
 
 -- ============================================
 -- REFRESH TOKENS

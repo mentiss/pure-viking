@@ -116,3 +116,18 @@
 }
 .dune-pip.filled  { background-color: var(--dune-gold); }
 .dune-pip.empty   { background-color: transparent; }
+
+:root {
+    --color-primary:      var(--dune-ochre);
+    --color-primary-dark: var(--dune-dark);
+    --color-surface:      var(--dune-surface);
+    --color-border:       var(--dune-border);
+    --color-text:         var(--dune-text);
+    --color-text-muted:   var(--dune-text-muted);
+}
+.dark {
+    --color-surface:      var(--dune-surface);
+    --color-border:       var(--dune-border);
+    --color-text:         var(--dune-text);
+    --color-text-muted:   var(--dune-text-muted);
+}
