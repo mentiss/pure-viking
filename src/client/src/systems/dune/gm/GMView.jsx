@@ -91,8 +91,8 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
 
                     {/* Titre + table active */}
                     <div className="flex-shrink-0">
-                        <div className="text-sm font-bold" style={{ color: 'var(--dune-gold)' }}>
-                            🎭 MJ — Dune
+                        <div className="text-sm dune-font" style={{ color: 'var(--dune-gold)' }}>
+                            MJ — Dune
                         </div>
                         {activeSession && (
                             <div className="text-[10px]" style={{ color: 'var(--dune-sand)' }}>

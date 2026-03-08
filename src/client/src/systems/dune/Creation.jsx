@@ -151,8 +151,7 @@ const Creation = ({ onCreated, onCancel }) => {
 
             {/* BANDEAU TITRE */}
             <div className="max-w-3xl mx-auto mb-6 text-center">
-                <div className="text-5xl mb-2">🏜️</div>
-                <h1 className="text-3xl font-bold uppercase" style={{ color: 'var(--dune-gold)', letterSpacing: '0.15em' }}>
+                <h1 className="text-3xl font-bold dune-font uppercase" style={{ color: 'var(--dune-gold)', letterSpacing: '0.15em' }}>
                     Dune
                 </h1>
                 <p className="text-sm mt-1" style={{ color: 'var(--dune-sand)', letterSpacing: '0.05em' }}>

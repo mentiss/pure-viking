@@ -26,6 +26,12 @@
     --dune-danger:      #8B1A1A;
     --dune-warning:     #D4A017;
     --dune-info:        #3A6186;
+
+    --font-dune: 'DuneRise', Georgia, serif;  /* fallback propre */
+}
+
+.dune-font {
+    font-family: var(--font-dune);
 }
 
 /* ── Mode sombre ─────────────────────────────────────────────────────────── */
@@ -118,16 +124,23 @@
 .dune-pip.empty   { background-color: transparent; }
 
 :root {
-    --color-primary:      var(--dune-ochre);
-    --color-primary-dark: var(--dune-dark);
-    --color-surface:      var(--dune-surface);
-    --color-border:       var(--dune-border);
-    --color-text:         var(--dune-text);
-    --color-text-muted:   var(--dune-text-muted);
+    --color-primary:        var(--dune-ochre);
+    --color-primary-dark:   var(--dune-dark);
+    --color-surface:        var(--dune-surface);
+    --color-border:         var(--dune-border);
+    --color-text:           var(--dune-text);
+    --color-text-muted:     var(--dune-text-muted);
+    --color-bg:             var(--dune-bg);
+    --color-surface-alt:    var(--dune-surface-alt);
+    --color-success:        var(--dune-success);
+    --color-danger:         var(--dune-danger);
+    --color-primary-hover:  var(--dune-spice);
 }
 .dark {
-    --color-surface:      var(--dune-surface);
-    --color-border:       var(--dune-border);
-    --color-text:         var(--dune-text);
-    --color-text-muted:   var(--dune-text-muted);
+    --color-surface:        var(--dune-surface);
+    --color-border:         var(--dune-border);
+    --color-text:           var(--dune-text);
+    --color-text-muted:     var(--dune-text-muted);
+    --color-bg:             var(--dune-bg);
+    --color-surface-alt:    var(--dune-surface-alt);
 }

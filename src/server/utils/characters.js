@@ -14,16 +14,6 @@ function generateAccessCode() {
     return code;
 }
 
-// Implémentation par défaut — vocabulaire Viking (backward compat).
-function generateAccessUrl() {
-    const adjectives = ['brave', 'fierce', 'wise', 'swift', 'strong', 'cunning', 'bold', 'mighty'];
-    const nouns      = ['warrior', 'raider', 'skald', 'jarl', 'berserker', 'shield', 'axe', 'raven'];
-    const adj  = adjectives[Math.floor(Math.random() * adjectives.length)];
-    const noun = nouns[Math.floor(Math.random() * nouns.length)];
-    const num  = Math.floor(Math.random() * 9999);
-    return `${adj}-${noun}-${num}`;
-}
-
 /**
  * Génère un code et une URL uniques pour un personnage ou une session.
  *
@@ -62,7 +52,9 @@ function getCharNameExpr(db) {
     let expr;
     if (cols.includes('nom')) {
         // Dune : champ `nom` direct
-        expr = "COALESCE(c.nom, c.player_name)";
+        expr = cols.includes('prenom')
+            ? "c.prenom || c.nom"
+            : "c.nom";
     } else if (cols.includes('prenom')) {
         // Vikings : prénom + surnom optionnel
         expr = cols.includes('surnom')
@@ -76,4 +68,4 @@ function getCharNameExpr(db) {
     return expr;
 }
 
-module.exports = { generateAccessCode, generateAccessUrl, ensureUniqueCode, getCharNameExpr };
+module.exports = { generateAccessCode, ensureUniqueCode, getCharNameExpr };

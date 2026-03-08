@@ -178,7 +178,7 @@ const Sheet = ({
                 {/* Identité */}
                 <div>
                     <div className="text-sm font-bold" style={{ color: 'var(--dune-gold)' }}>
-                        {char.nom || 'Personnage sans nom'}
+                        {char.prenom || ''} {char.nom || ''}
                     </div>
                     <div className="text-[10px]" style={{ color: 'var(--dune-sand)' }}>
                         {char.playerName}{char.statutSocial ? ` · ${char.statutSocial}` : ''}
@@ -186,15 +186,18 @@ const Sheet = ({
                 </div>
 
                 {/* Code d'accès — masqué sur mobile */}
-                <div className="text-center hidden sm:block">
-                    <div className="dune-label" style={{ color: 'var(--dune-sand)', fontSize: '9px' }}>Code</div>
-                    <div className="font-mono text-xs font-bold tracking-widest" style={{ color: 'var(--dune-gold)' }}>
-                        {char.accessCode}
-                    </div>
+                <div className="text-center">
+                    <div className="dune-label dune-font" style={{ color: 'var(--dune-sand)', fontSize: '25px' }}>DUNE</div>
                 </div>
 
                 {/* Actions header */}
                 <div className="flex items-center gap-2">
+                    <div className="text-center hidden sm:block">
+                        <div className="dune-label" style={{ color: 'var(--dune-sand)', fontSize: '9px' }}>Code</div>
+                        <div className="font-mono text-xs font-bold tracking-widest" style={{ color: 'var(--dune-gold)' }}>
+                            {char.accessCode}
+                        </div>
+                    </div>
                     <button
                         onClick={() => setShowDiceModal(true)}
                         className="text-xs px-2 py-1 rounded font-semibold"
@@ -382,7 +385,7 @@ const Sheet = ({
                                     {/* ── TAB FICHE ──────────────────────────────────────── */}
                                     {activeTab === 'fiche' && (
                                         <>
-                                            {/* Barre d'actions édition */}
+                                            {/* ── Barre d'actions édition ────────────────────────────── */}
                                             <div className="flex justify-end gap-2 mb-4">
                                                 {editMode ? (
                                                     <>
@@ -400,184 +403,315 @@ const Sheet = ({
                                                 )}
                                             </div>
 
-                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                            {/* ── BANNIÈRE IDENTITÉ — pleine largeur ─────────────────── */}
+                                            <div className="dune-card mb-4">
+                                                {editMode ? (
+                                                    /* ── MODE ÉDITION ─────────────────────────────────── */
+                                                    <div className="flex flex-col gap-4">
 
-                                                {/* ── Colonne gauche ─────────────────────── */}
-                                                <div className="space-y-4">
+                                                        {/* Ligne 1 : Avatar + champs principaux */}
+                                                        <div className="flex gap-4 items-start">
 
-                                                    {/* Identité */}
-                                                    <div className="dune-card">
-                                                        <div className="dune-label mb-2">Identité</div>
-                                                        {editMode ? (
-                                                            <div className="space-y-2">
-                                                                {/* Avatar — clic pour ouvrir AvatarUploader */}
-                                                                <div className="flex items-start gap-3 mb-3">
+                                                            {/* Avatar */}
+                                                            <div
+                                                                onClick={() => setShowAvatarUploader(true)}
+                                                                className="relative group cursor-pointer flex-shrink-0"
+                                                                title={char.avatar ? "Modifier l'avatar" : 'Ajouter un avatar'}
+                                                            >
+                                                                {char.avatar ? (
+                                                                    <>
+                                                                        <img
+                                                                            src={char.avatar}
+                                                                            alt="Avatar"
+                                                                            className="w-24 h-24 rounded-full object-cover group-hover:opacity-75 transition-opacity"
+                                                                            style={{ border: '3px solid var(--dune-gold)' }}
+                                                                        />
+                                                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 rounded-full">
+                                                                            <span className="text-2xl">📸</span>
+                                                                        </div>
+                                                                    </>
+                                                                ) : (
                                                                     <div
-                                                                        onClick={() => setShowAvatarUploader(true)}
-                                                                        className="relative group cursor-pointer flex-shrink-0"
-                                                                        title={char.avatar ? "Modifier l'avatar" : 'Ajouter un avatar'}
+                                                                        className="w-24 h-24 rounded-full flex items-center justify-center group-hover:opacity-75 transition-opacity"
+                                                                        style={{ background: 'var(--dune-surface-alt)', border: '3px dashed var(--dune-border)' }}
                                                                     >
-                                                                        {char.avatar ? (
-                                                                            <>
-                                                                                <img
-                                                                                    src={char.avatar}
-                                                                                    alt="Avatar"
-                                                                                    className="w-20 h-20 rounded-full object-cover group-hover:opacity-75 transition-opacity"
-                                                                                    style={{ border: '3px solid var(--dune-gold)' }}
-                                                                                />
-                                                                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 rounded-full">
-                                                                                    <span className="text-2xl">📸</span>
-                                                                                </div>
-                                                                            </>
-                                                                        ) : (
-                                                                            <div
-                                                                                className="w-20 h-20 rounded-full flex items-center justify-center group-hover:opacity-75 transition-opacity"
-                                                                                style={{ background: 'var(--dune-surface-alt)', border: '3px dashed var(--dune-border)' }}
-                                                                            >
-                                                                                <span className="text-2xl">📸</span>
-                                                                            </div>
-                                                                        )}
+                                                                        <span className="text-2xl">📸</span>
                                                                     </div>
-                                                                    <div className="flex-1 space-y-2">
-                                                                        {/* Nom */}
-                                                                        <input
-                                                                            value={char.nom ?? ''}
-                                                                            onChange={e => updateField('nom', e.target.value)}
-                                                                            className="dune-input text-sm font-bold w-full"
-                                                                            placeholder="Nom du personnage"
-                                                                        />
-                                                                        <input
-                                                                            value={char.playerName ?? ''}
-                                                                            onChange={e => updateField('playerName', e.target.value)}
-                                                                            className="dune-input text-xs w-full"
-                                                                            placeholder="Nom du joueur"
-                                                                        />
-                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Nom / Prénom / Joueur / Statut */}
+                                                            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                                <div>
+                                                                    <div className="text-[10px] mb-1" style={{ color: 'var(--dune-text-muted)' }}>Prénom</div>
+                                                                    <input
+                                                                        value={char.prenom ?? ''}
+                                                                        onChange={e => updateField('prenom', e.target.value)}
+                                                                        className="dune-input text-sm font-bold w-full"
+                                                                        placeholder="Prénom…"
+                                                                    />
                                                                 </div>
+                                                                <div>
+                                                                    <div className="text-[10px] mb-1" style={{ color: 'var(--dune-text-muted)' }}>Nom du personnage</div>
+                                                                    <input
+                                                                        value={char.nom ?? ''}
+                                                                        onChange={e => updateField('nom', e.target.value)}
+                                                                        className="dune-input text-sm w-full"
+                                                                        placeholder="Nom…"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <div className="text-[10px] mb-1" style={{ color: 'var(--dune-text-muted)' }}>Nom du joueur</div>
+                                                                    <input
+                                                                        value={char.playerName ?? ''}
+                                                                        onChange={e => updateField('playerName', e.target.value)}
+                                                                        className="dune-input text-xs w-full"
+                                                                        placeholder="Joueur…"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <div className="text-[10px] mb-1" style={{ color: 'var(--dune-text-muted)' }}>Statut social</div>
+                                                                    <input
+                                                                        value={char.statutSocial ?? ''}
+                                                                        onChange={e => updateField('statutSocial', e.target.value)}
+                                                                        className="dune-input text-xs w-full"
+                                                                        placeholder="Statut social…"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Ligne 2 : Stats physiques */}
+                                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                                            <div>
+                                                                <div className="text-[10px] mb-1" style={{ color: 'var(--dune-text-muted)' }}>Âge</div>
                                                                 <input
-                                                                    value={char.statutSocial ?? ''}
-                                                                    onChange={e => updateField('statutSocial', e.target.value)}
-                                                                    className="dune-input text-xs"
-                                                                    placeholder="Statut social…"
+                                                                    type="number"
+                                                                    value={char.age ?? ''}
+                                                                    onChange={e => updateField('age', e.target.value ? parseInt(e.target.value) : null)}
+                                                                    className="dune-input text-xs w-full"
+                                                                    placeholder="—"
+                                                                    min={0}
                                                                 />
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-[10px] mb-1" style={{ color: 'var(--dune-text-muted)' }}>Taille (cm)</div>
+                                                                <input
+                                                                    type="number"
+                                                                    value={char.taille ?? ''}
+                                                                    onChange={e => updateField('taille', e.target.value ? parseInt(e.target.value) : null)}
+                                                                    className="dune-input text-xs w-full"
+                                                                    placeholder="—"
+                                                                    min={0}
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-[10px] mb-1" style={{ color: 'var(--dune-text-muted)' }}>Poids (kg)</div>
+                                                                <input
+                                                                    type="number"
+                                                                    value={char.poids ?? ''}
+                                                                    onChange={e => updateField('poids', e.target.value ? parseInt(e.target.value) : null)}
+                                                                    className="dune-input text-xs w-full"
+                                                                    placeholder="—"
+                                                                    min={0}
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-[10px] mb-1" style={{ color: 'var(--dune-text-muted)' }}>Sexe</div>
+                                                                <input
+                                                                    value={char.sexe ?? ''}
+                                                                    onChange={e => updateField('sexe', e.target.value)}
+                                                                    className="dune-input text-xs w-full"
+                                                                    placeholder="—"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Ligne 3 : Motto + Description */}
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                            <div>
+                                                                <div className="text-[10px] mb-1" style={{ color: 'var(--dune-text-muted)' }}>Devise / Motto</div>
+                                                                <input
+                                                                    value={char.motto ?? ''}
+                                                                    onChange={e => updateField('motto', e.target.value)}
+                                                                    className="dune-input text-xs w-full italic"
+                                                                    placeholder="« … »"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-[10px] mb-1" style={{ color: 'var(--dune-text-muted)' }}>Description</div>
                                                                 <textarea
                                                                     value={char.description ?? ''}
                                                                     onChange={e => updateField('description', e.target.value)}
-                                                                    className="dune-input text-xs"
-                                                                    rows={3}
+                                                                    className="dune-input text-xs w-full"
+                                                                    rows={2}
                                                                     placeholder="Description libre…"
                                                                 />
-                                                                {/* Code d'accès */}
-                                                                <div>
-                                                                    <div className="text-[10px] mb-1" style={{ color: 'var(--dune-text-muted)' }}>Code d'accès</div>
-                                                                    <input
-                                                                        value={char.accessCode ?? ''}
-                                                                        onChange={e => updateField('accessCode', e.target.value.toUpperCase().slice(0, 6))}
-                                                                        className="dune-input text-xs font-mono tracking-widest"
-                                                                        placeholder="CODE"
-                                                                        maxLength={6}
-                                                                    />
-                                                                </div>
                                                             </div>
-                                                        ) : (
-                                                            <div className="flex gap-3">
-                                                                {/* Avatar */}
-                                                                {char.avatar ? (
-                                                                    <img
-                                                                        src={char.avatar}
-                                                                        alt={char.nom}
-                                                                        className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-                                                                        style={{ border: '2px solid var(--dune-gold)' }}
-                                                                        onError={e => { e.target.style.display = 'none'; }}
-                                                                    />
-                                                                ) : (
-                                                                    <div
-                                                                        className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 text-2xl"
-                                                                        style={{ background: 'var(--dune-surface-alt)', border: '2px solid var(--dune-border)' }}
-                                                                    >
-                                                                        👤
-                                                                    </div>
-                                                                )}
-                                                                {/* Texte */}
-                                                                <div className="space-y-0.5 text-sm min-w-0">
-                                                                    <div className="font-bold text-base truncate" style={{ color: 'var(--dune-gold)' }}>
-                                                                        {char.nom}
-                                                                    </div>
-                                                                    <div className="text-xs" style={{ color: 'var(--dune-text-muted)' }}>
-                                                                        {char.playerName}
-                                                                    </div>
-                                                                </div>
+                                                        </div>
+
+                                                        {/* Ligne 4 : Détermination + Code d'accès */}
+                                                        <div className="flex flex-wrap gap-4 items-start">
+                                                            <div className="flex-shrink-0">
+                                                                <DeterminationTracker
+                                                                    determination={char.determination}
+                                                                    determinationMax={char.determinationMax ?? 9999}
+                                                                    editMode={editMode}
+                                                                    noCard
+                                                                    onChange={({ determination, determinationMax }) => {
+                                                                        setEditableChar(prev => ({ ...prev, determination, determinationMax }));
+                                                                    }}
+                                                                />
                                                             </div>
-                                                        )}
-                                                    </div>
-
-                                                </div>
-
-                                                {/* ── Colonne droite ─────────────────────── */}
-                                                <div className="space-y-4">
-
-                                                    {/* Détermination */}
-                                                    <DeterminationTracker
-                                                        determination={char.determination}
-                                                        determinationMax={9999}
-                                                        editMode={editMode}
-                                                        onChange={({ determination, determinationMax }) => {
-                                                            setEditableChar(prev => ({ ...prev, determination, determinationMax }));
-                                                            if (!editMode) {
-                                                                onCharacterUpdate({ ...character, determination, determinationMax });
-                                                            }
-                                                        }}
-                                                    />
-                                                    <div className="dune-card">
-                                                        <div className="dune-label mb-2">Identité</div>
-                                                        <div className="gap-2">
-                                                            {char.statutSocial && (
-                                                                <div className="text-xs italic whitespace-pre-line">{char.statutSocial}</div>
-                                                            )}
-                                                            {char.description && (
-                                                                <div className="text-xs mt-1 leading-relaxed whitespace-pre-line">{char.description}</div>
-                                                            )}
+                                                            <div>
+                                                                <div className="text-[10px] mb-1" style={{ color: 'var(--dune-text-muted)' }}>Code d'accès</div>
+                                                                <input
+                                                                    value={char.accessCode ?? ''}
+                                                                    onChange={e => updateField('accessCode', e.target.value.toUpperCase().slice(0, 6))}
+                                                                    className="dune-input text-xs font-mono tracking-widest"
+                                                                    placeholder="CODE"
+                                                                    maxLength={6}
+                                                                    style={{ width: 80 }}
+                                                                />
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
-                                                {/* ── Colonne gauche ─────────────────────── */}
-                                                <div className="space-y-4">
-                                                    {/* Principes */}
-                                                    <div className="dune-card">
-                                                        <div className="dune-label mb-2">Principes</div>
-                                                        {(char.principes ?? []).map(p => (
-                                                            <PrincipleRow
-                                                                key={p.key}
-                                                                principe={p}
-                                                                editMode={editMode}
-                                                                onChange={updatePrincipe}
-                                                                onRoll={p => setDiceModal({ type: 'principe', key: p.key })}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                </div>
 
-                                                {/* ── Colonne droite ─────────────────────── */}
-                                                <div className="space-y-4">
-                                                    {/* Compétences */}
-                                                    <div className="dune-card">
-                                                        <div className="dune-label mb-2">Compétences</div>
-                                                        {(char.competences ?? []).map(c => (
-                                                            <SkillRow
-                                                                key={c.key}
-                                                                competence={c}
-                                                                editMode={editMode}
-                                                                onChange={updateCompetence}
-                                                                onRoll={c => setDiceModal({ type: 'competence', key: c.key })}
+                                                ) : (
+                                                    /* ── MODE LECTURE ──────────────────────────────────── */
+                                                    <div className="grid gap-4" style={{ gridTemplateColumns: 'auto 1fr auto' }}>
+
+                                                        <div className="flex gap-3 items-start" style={{ minWidth: 200 }}>
+                                                            {char.avatar ? (
+                                                                <img
+                                                                    src={char.avatar}
+                                                                    alt={char.nom}
+                                                                    className="w-20 h-20 rounded-full object-cover flex-shrink-0"
+                                                                    style={{ border: '2px solid var(--dune-gold)' }}
+                                                                    onError={e => { e.target.style.display = 'none'; }}
+                                                                />
+                                                            ) : (
+                                                                <div
+                                                                    className="w-20 h-20 rounded-full flex items-center justify-center flex-shrink-0 text-2xl"
+                                                                    style={{ background: 'var(--dune-surface-alt)', border: '2px solid var(--dune-border)' }}
+                                                                >
+                                                                    👤
+                                                                </div>
+                                                            )}
+                                                            <div className="space-y-1 min-w-0">
+                                                                <div>
+                                                                    {char.prenom && (
+                                                                        <span className="font-bold text-base" style={{ color: 'var(--dune-gold)' }}>
+                                                                            {char.prenom}
+                                                                        </span>
+                                                                    )}
+                                                                    <span className="text-sm ml-1" style={{ color: 'var(--dune-text-muted)' }}>
+                                                                        {char.nom}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="text-xs" style={{ color: 'var(--dune-text-muted)' }}>
+                                                                    {char.playerName}
+                                                                    {char.statutSocial && <span> · {char.statutSocial}</span>}
+                                                                </div>
+                                                                {char.motto && (
+                                                                    <div className="text-xs italic pt-1" style={{ color: 'var(--dune-ochre)' }}>
+                                                                        « {char.motto} »
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+
+                                                        <div
+                                                            className="flex flex-col justify-between py-1 px-4"
+                                                            style={{ borderLeft: '1px solid var(--dune-border)', borderRight: '1px solid var(--dune-border)' }}
+                                                        >
+                                                            {/* Stats physiques en grille 2×2 */}
+                                                            {(char.age || char.taille || char.poids || char.sexe) && (
+                                                                <div className="grid grid-cols-2 gap-x-6 gap-y-1 mb-3">
+                                                                    {char.age && (
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-xs" style={{ color: 'var(--dune-text-muted)', minWidth: 48 }}>Âge</span>
+                                                                            <span className="text-xs font-semibold" style={{ color: 'var(--dune-sand)' }}>{char.age} ans</span>
+                                                                        </div>
+                                                                    )}
+                                                                    {char.taille && (
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-xs" style={{ color: 'var(--dune-text-muted)', minWidth: 48 }}>Taille</span>
+                                                                            <span className="text-xs font-semibold" style={{ color: 'var(--dune-sand)' }}>{char.taille} cm</span>
+                                                                        </div>
+                                                                    )}
+                                                                    {char.poids && (
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-xs" style={{ color: 'var(--dune-text-muted)', minWidth: 48 }}>Poids</span>
+                                                                            <span className="text-xs font-semibold" style={{ color: 'var(--dune-sand)' }}>{char.poids} kg</span>
+                                                                        </div>
+                                                                    )}
+                                                                    {char.sexe && (
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-xs" style={{ color: 'var(--dune-text-muted)', minWidth: 48 }}>Sexe</span>
+                                                                            <span className="text-xs font-semibold" style={{ color: 'var(--dune-sand)' }}>{char.sexe}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )}
+
+                                                            {/* Description — prend le reste de la hauteur */}
+                                                            {char.description && (
+                                                                <div className="text-xs leading-relaxed whitespace-pre-line" style={{ color: 'var(--dune-text)' }}>
+                                                                    {char.description}
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+
+                                                        <div className="flex items-center justify-center" style={{ minWidth: 120 }}>
+                                                            <DeterminationTracker
+                                                                determination={char.determination}
+                                                                determinationMax={char.determinationMax ?? 9999}
+                                                                editMode={false}
+                                                                noCard
+                                                                onChange={({ determination, determinationMax }) => {
+                                                                    onCharacterUpdate({ ...character, determination, determinationMax });
+                                                                }}
                                                             />
-                                                        ))}
+                                                        </div>
+
                                                     </div>
+                                                )}
+                                            </div>
+                                            {/* ── FIN BANNIÈRE ────────────────────────────────────────── */}
+
+                                            {/* ── Principes | Compétences ─────────────────────────────── */}
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                                <div className="dune-card">
+                                                    <div className="dune-label dune-font mb-2">Principes</div>
+                                                    {(char.principes ?? []).map(p => (
+                                                        <PrincipleRow
+                                                            key={p.key}
+                                                            principe={p}
+                                                            editMode={editMode}
+                                                            onChange={updatePrincipe}
+                                                            onRoll={p => setDiceModal({ type: 'principe', key: p.key })}
+                                                        />
+                                                    ))}
+                                                </div>
+                                                <div className="dune-card">
+                                                    <div className="dune-label dune-font mb-2">Competences</div>
+                                                    {(char.competences ?? []).map(c => (
+                                                        <SkillRow
+                                                            key={c.key}
+                                                            competence={c}
+                                                            editMode={editMode}
+                                                            onChange={updateCompetence}
+                                                            onRoll={c => setDiceModal({ type: 'competence', key: c.key })}
+                                                        />
+                                                    ))}
                                                 </div>
                                             </div>
-                                            <div className="gap-4 mt-2">
-                                                {/* Talents */}
+
+                                            {/* ── Talents ─────────────────────────────────────────────── */}
+                                            <div className="mt-4">
                                                 <TalentsList
                                                     talents={char.talents}
                                                     editMode={editMode}

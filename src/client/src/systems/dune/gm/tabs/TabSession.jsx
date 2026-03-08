@@ -156,7 +156,7 @@ const TabSession = ({ activeSession, onlineCharacters }) => {
                                 style={{ background: isOnline ? 'var(--dune-success)' : 'var(--dune-dust)' }}
                             />
                             <span className="text-sm whitespace-nowrap">
-                                {char?.nom ?? sc.name ?? `Perso ${sc.id}`}
+                                {char?.prenom ?? sc.prenom} {char?.nom ?? sc.name ?? `Perso ${sc.id}`}
                             </span>
                         </button>
                     );

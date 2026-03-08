@@ -20,54 +20,127 @@ const PRINC_LABELS = {
  * @param {boolean}  props.isOnline
  * @param {Function} props.onSendNote      - () => void
  * @param {Function} props.onSendItem      - () => void
- * @param {Function} props.onEditCharacter - () => void   (modif détermination)
+ * @param {Function} props.onEditCharacter - () => void
  */
 const DuneCharacterCard = ({ character, isOnline, onSendNote, onSendItem, onEditCharacter }) => {
     if (!character) return null;
 
     return (
         <div className="space-y-3">
-            {/* ── En-tête ──────────────────────────────────────────── */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <div className="font-bold text-base" style={{ color: 'var(--dune-gold)' }}>
-                        {character.avatar && (
-                            <img
-                                src={character.avatar}
-                                alt={character.nom}
-                                className="w-14 h-14 rounded-full object-cover"
-                                style={{ border: '2px solid var(--dune-gold)' }}
-                            />
-                        )}
-                        {character.nom}
-                        <span
-                            className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
-                            style={{
-                                background: isOnline ? 'var(--dune-success)' : 'var(--dune-surface-alt)',
-                                color:      isOnline ? 'white' : 'var(--dune-text-muted)',
-                            }}
+
+            {/* ── BANNIÈRE IDENTITÉ ─────────────────────────────────────── */}
+            <div className="grid gap-3" style={{ gridTemplateColumns: 'auto 1fr auto' }}>
+
+                {/* Zone 1 : Avatar + nom + joueur + statut + badge */}
+                <div className="flex gap-3 items-start" style={{ minWidth: 180 }}>
+                    {character.avatar ? (
+                        <img
+                            src={character.avatar}
+                            alt={character.nom}
+                            className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                            style={{ border: '2px solid var(--dune-gold)' }}
+                            onError={e => { e.target.style.display = 'none'; }}
+                        />
+                    ) : (
+                        <div
+                            className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 text-xl"
+                            style={{ background: 'var(--dune-surface-alt)', border: '2px solid var(--dune-border)' }}
                         >
-                            {isOnline ? '● en ligne' : '○ hors ligne'}
-                        </span>
-                    </div>
-                    <div className="text-xs" style={{ color: 'var(--dune-text-muted)' }}>
-                        {character.playerName}
-                        {character.statutSocial ? ` · ${character.statutSocial}` : ''}
+                            👤
+                        </div>
+                    )}
+                    <div className="space-y-1 min-w-0">
+                        {/* Prénom + Nom */}
+                        <div className="flex flex-wrap items-baseline gap-1">
+                            {character.prenom && (
+                                <span className="font-bold text-sm" style={{ color: 'var(--dune-gold)' }}>
+                                    {character.prenom}
+                                </span>
+                            )}
+                            <span className="text-xs" style={{ color: 'var(--dune-text-muted)' }}>
+                                {character.nom}
+                            </span>
+                            <span
+                                className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
+                                style={{
+                                    background: isOnline ? 'var(--dune-success)' : 'var(--dune-surface-alt)',
+                                    color:      isOnline ? 'white' : 'var(--dune-text-muted)',
+                                }}
+                            >
+                                {isOnline ? '● en ligne' : '○ hors ligne'}
+                            </span>
+                        </div>
+                        {/* Joueur + statut */}
+                        <div className="text-xs" style={{ color: 'var(--dune-text-muted)' }}>
+                            {character.playerName}
+                            {character.statutSocial && <span> · {character.statutSocial}</span>}
+                        </div>
+                        {/* Motto */}
+                        {character.motto && (
+                            <div className="text-xs italic" style={{ color: 'var(--dune-ochre)' }}>
+                                « {character.motto} »
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Détermination */}
-                <div className="text-right">
-                    <div className="dune-label">Détermination</div>
-                    <div className="text-lg font-bold" style={{ color: 'var(--dune-gold)' }}>
+                {/* Zone 2 : Stats physiques + description */}
+                <div
+                    className="flex flex-col justify-center gap-2 px-3"
+                    style={{ borderLeft: '1px solid var(--dune-border)', borderRight: '1px solid var(--dune-border)' }}
+                >
+                    {(character.age || character.taille || character.poids || character.sexe) && (
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+                            {character.age && (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px]" style={{ color: 'var(--dune-text-muted)', minWidth: 40 }}>Âge</span>
+                                    <span className="text-xs font-semibold" style={{ color: 'var(--dune-sand)' }}>{character.age} ans</span>
+                                </div>
+                            )}
+                            {character.taille && (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px]" style={{ color: 'var(--dune-text-muted)', minWidth: 40 }}>Taille</span>
+                                    <span className="text-xs font-semibold" style={{ color: 'var(--dune-sand)' }}>{character.taille} cm</span>
+                                </div>
+                            )}
+                            {character.poids && (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px]" style={{ color: 'var(--dune-text-muted)', minWidth: 40 }}>Poids</span>
+                                    <span className="text-xs font-semibold" style={{ color: 'var(--dune-sand)' }}>{character.poids} kg</span>
+                                </div>
+                            )}
+                            {character.sexe && (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px]" style={{ color: 'var(--dune-text-muted)', minWidth: 40 }}>Sexe</span>
+                                    <span className="text-xs font-semibold" style={{ color: 'var(--dune-sand)' }}>{character.sexe}</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {character.description && (
+                        <div className="text-xs leading-relaxed whitespace-pre-line" style={{ color: 'var(--dune-text)' }}>
+                            {character.description}
+                        </div>
+                    )}
+                </div>
+
+                {/* Zone 3 : Détermination */}
+                <div className="flex flex-col items-center justify-center gap-1" style={{ minWidth: 90 }}>
+                    <div className="dune-label text-center">Détermination</div>
+                    <div className="text-2xl font-bold" style={{ color: 'var(--dune-gold)' }}>
                         {character.determination}
                     </div>
+                    {character.determinationMax && character.determinationMax < 9999 && (
+                        <div className="text-[10px]" style={{ color: 'var(--dune-text-muted)' }}>
+                            / {character.determinationMax}
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* ── Principes ────────────────────────────────────────── */}
+            {/* ── Principes ────────────────────────────────────────────── */}
             <div className="dune-card">
-                <div className="dune-label mb-1">Principes</div>
+                <div className="dune-label dune-font mb-1">Principes</div>
                 <div className="grid grid-cols-3 gap-1">
                     {(character.principes ?? []).map(p => (
                         <div key={p.key} className="text-center rounded p-1"
@@ -83,9 +156,9 @@ const DuneCharacterCard = ({ character, isOnline, onSendNote, onSendItem, onEdit
                 </div>
             </div>
 
-            {/* ── Compétences ──────────────────────────────────────── */}
+            {/* ── Compétences ──────────────────────────────────────────── */}
             <div className="dune-card">
-                <div className="dune-label mb-1">Compétences</div>
+                <div className="dune-label dune-font mb-1">Competences</div>
                 <div className="grid grid-cols-3 gap-1">
                     {(character.competences ?? []).map(c => (
                         <div key={c.key} className="text-center rounded p-1"
@@ -106,10 +179,10 @@ const DuneCharacterCard = ({ character, isOnline, onSendNote, onSendItem, onEdit
                 </div>
             </div>
 
-            {/* ── Talents ──────────────────────────────────────────── */}
+            {/* ── Talents ──────────────────────────────────────────────── */}
             {character.talents?.length > 0 && (
                 <div className="dune-card">
-                    <div className="dune-label mb-1">Talents</div>
+                    <div className="dune-label dune-font mb-1">Talents</div>
                     <div className="space-y-1">
                         {character.talents.map((t, i) => (
                             <div key={i}>
@@ -127,10 +200,10 @@ const DuneCharacterCard = ({ character, isOnline, onSendNote, onSendItem, onEdit
                 </div>
             )}
 
-            {/* ── Atouts ───────────────────────────────────────────── */}
+            {/* ── Atouts ───────────────────────────────────────────────── */}
             {character.items?.length > 0 && (
                 <div className="dune-card">
-                    <div className="dune-label mb-1">Atouts</div>
+                    <div className="dune-label dune-font mb-1">Atouts</div>
                     <div className="space-y-1">
                         {character.items.map((item, i) => (
                             <div key={i} className="flex justify-between text-xs">

@@ -40,6 +40,7 @@ const RichTextEditor = ({
                             placeholder = 'Écrivez ici...',
                             maxImageSize = 20 * 1024 * 1024,
                             className = '',
+                            onImageDoubleClick = null,
                         }) => {
     const [alertMessage, setAlertMessage] = useState(null);
     // Convertir du texte brut en HTML basique (rétrocompatibilité)
@@ -109,6 +110,21 @@ const RichTextEditor = ({
                     }
                 }
                 return false;
+            },
+            handleDOMEvents: {
+                dblclick: (view, event) => {
+                    if (!onImageDoubleClick) return false;
+                    const target = event.target;
+                    // Remonter jusqu'à une img (peut venir d'un wrapper resize)
+                    const img = target.closest
+                        ? target.closest('[data-resize-container] img, img')
+                        : (target.tagName === 'IMG' ? target : null);
+                    if (img?.src) {
+                        onImageDoubleClick(img.src);
+                        return true; // consommé, ProseMirror ne traite pas
+                    }
+                    return false;
+                },
             },
         },
     });

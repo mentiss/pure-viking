@@ -32,7 +32,7 @@ const TalentsList = ({ talents = [], editMode, onChange }) => {
 
     return (
         <div className="dune-card">
-            <div className="dune-label mb-2">Talents</div>
+            <div className="dune-label dune-font mb-2">Talents</div>
 
             {talents.length === 0 && !editMode && (
                 <p className="text-xs italic" style={{ color: 'var(--dune-text-muted)' }}>Aucun talent.</p>

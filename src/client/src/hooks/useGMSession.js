@@ -79,14 +79,26 @@ export function useGMSession({ apiBase }) {
     }, [socket, activeSession?.id]);
 
     // ── setActiveSession avec effet de bord localStorage ───────────────────
-    const setActiveSession = useCallback((session) => {
-        setActiveSessionState(session);
-        if (session) {
-            localStorage.setItem('activeSessionId', session.id);
-        } else {
+    const setActiveSession = useCallback(async (session) => {
+        if (!session) {
+            setActiveSessionState(null);
             localStorage.removeItem('activeSessionId');
+            return;
         }
-    }, []);
+
+        // Si l'objet session vient de la liste, il n'a pas forcément `characters`.
+        // On force un fetch de l'endpoint détail pour garantir les données complètes.
+        try {
+            const r = await fetchWithAuth(`${apiBase}/sessions/${session.id}`);
+            const full = r.ok ? await r.json() : session; // fallback sur l'objet partiel
+            setActiveSessionState(full);
+            localStorage.setItem('activeSessionId', full.id);
+        } catch {
+            // fallback silencieux
+            setActiveSessionState(session);
+            localStorage.setItem('activeSessionId', session.id);
+        }
+    }, [apiBase, fetchWithAuth]);
 
     return { activeSession, setActiveSession, onlineCharacters };
 }

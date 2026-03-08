@@ -6,8 +6,9 @@ import React, { useState, useEffect } from 'react';
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { loadTheme, saveTheme } from './tools/utils';
 import SystemLayout from './pages/SystemLayout.jsx';
-import GMPage      from './pages/GMPage.jsx';
-import PlayerPage  from './pages/PlayerPage.jsx';
+import GMPage       from './pages/GMPage.jsx';
+import PlayerPage   from './pages/PlayerPage.jsx';
+import HomePage     from './pages/HomePage.jsx';
 
 const AppRouter = () => {
     const [darkMode, setDarkMode] = useState(false);
@@ -26,8 +27,13 @@ const AppRouter = () => {
     };
 
     const router = createBrowserRouter([
+        // Page d'accueil — liste des systèmes
+        {
+            path: '/',
+            element: <HomePage darkMode={darkMode} onToggleDarkMode={toggleDarkMode} />,
+        },
+
         // Redirections legacy
-        { path: '/',   element: <Navigate to="/vikings/" replace /> },
         { path: '/mj', element: <Navigate to="/vikings/gm" replace /> },
         { path: '/gm', element: <Navigate to="/vikings/gm" replace /> },
 
@@ -39,7 +45,7 @@ const AppRouter = () => {
                 { index: true,        element: <PlayerPage /> },
                 { path: 'gm',         element: <GMPage /> },
                 { path: ':accessUrl', element: <PlayerPage /> },
-            ]
+            ],
         },
     ]);
 

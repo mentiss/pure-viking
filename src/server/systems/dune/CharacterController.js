@@ -101,8 +101,14 @@ function loadFullCharacter(db, id) {
 
         // Identité
         nom:          row.nom          ?? '',
+        prenom:       row.prenom       ?? '',
         statutSocial: row.statut_social ?? '',
         description:  row.description   ?? '',
+        sexe:         row.sexe ?? 'homme',
+        age:          row.age ?? '',
+        taille:       row.taille ?? '',
+        poids:        row.poids ?? '',
+        motto:        row.motto ?? '',
 
         // Détermination
         determination:    row.determination     ?? 1,
@@ -146,6 +152,7 @@ function saveFullCharacter(db, id, data) {
         determination, determinationMax,
         competences, principes,
         talents, items, avatar,
+        prenom, age, taille, poids, sexe, motto,
     } = data;
 
     const competenceCols = _flattenCompetences(competences);
@@ -163,6 +170,12 @@ function saveFullCharacter(db, id, data) {
                 determination     = COALESCE(?, determination),
                 determination_max = COALESCE(?, determination_max),
                 avatar            = COALESCE(?, avatar),
+                prenom            = COALESCE(?, prenom),
+                age               = COALESCE(?, age),
+                sexe              = COALESCE(?, sexe),
+                taille            = COALESCE(?, taille),
+                poids             = COALESCE(?, poids),
+                motto             = COALESCE(?, motto),
 
                 -- Compétences
                 analyse_rang              = COALESCE(?, analyse_rang),
@@ -198,6 +211,12 @@ function saveFullCharacter(db, id, data) {
             determination    != null ? Number(determination)    : null,
             determinationMax != null ? Number(determinationMax) : null,
             avatar   ?? null,
+            prenom ?? null,
+            age  ?? null,
+            sexe ?? null,
+            taille ?? null,
+            poids ?? null,
+            motto ?? null,
 
             competenceCols.analyse_rang              ?? null,
             competenceCols.analyse_specialisation    ?? null,

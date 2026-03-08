@@ -11,8 +11,9 @@ import React from 'react';
  * @param {number}   props.determinationMax
  * @param {boolean}  props.editMode
  * @param {Function} props.onChange     - ({ determination, determinationMax }) => void
+ * @param {boolean}  [props.noCard]     - si true, pas de wrapper dune-card (intégration dans une bannière)
  */
-const DeterminationTracker = ({ determination, determinationMax, editMode, onChange }) => {
+const DeterminationTracker = ({ determination, determinationMax, editMode, onChange, noCard = false }) => {
     const handleDelta = (delta) => {
         const next = Math.min(determinationMax, Math.max(0, determination + delta));
         onChange({ determination: next, determinationMax });
@@ -24,9 +25,9 @@ const DeterminationTracker = ({ determination, determinationMax, editMode, onCha
         onChange({ determination: nextCur, determinationMax: nextMax });
     };
 
-    return (
-        <div className="dune-card">
-            <div className="dune-label mb-2">Détermination</div>
+    const inner = (
+        <>
+            <div className="dune-label dune-font mb-2">Determination</div>
 
             {/* Contrôles courants */}
             <div className="flex items-center justify-center gap-2">
@@ -63,8 +64,11 @@ const DeterminationTracker = ({ determination, determinationMax, editMode, onCha
                     >+</button>
                 </div>
             )}
-        </div>
+        </>
     );
+
+    if (noCard) return <div>{inner}</div>;
+    return <div className="dune-card">{inner}</div>;
 };
 
 export default DeterminationTracker;

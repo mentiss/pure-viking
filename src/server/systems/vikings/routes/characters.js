@@ -5,7 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate, requireOwnerOrGM, requireGM } = require('../../../middlewares/auth');
-const { ensureUniqueCode, generateAccessUrl } = require('../../../utils/characters');
+const { ensureUniqueCode } = require('../../../utils/characters');
 const { loadFullCharacter, saveFullCharacter } = require('../CharacterController');
 
 // GET / - Liste tous les personnages
