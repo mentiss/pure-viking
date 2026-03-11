@@ -1,200 +1,145 @@
 // src/client/src/systems/vikings/components/modals/PostureModal.jsx
-// Modal Posture Défensive Vikings.
-// Flux :
-//   1. Sélection de la compétence CàC (si plusieurs disponibles)
-//   2. Sélection du type (passif / actif)
-//   3a. Passif → calcul immédiat, activation
-//   3b. Actif  → roll diceEngine direct + animation, puis activation
+// ─────────────────────────────────────────────────────────────────────────────
+// Modale posture défensive active Vikings — VERSION v2 (diceEngine async).
+//
+// Suppressions par rapport à v1 :
+//   - Plus de DiceAnimationOverlay local (singleton dans PlayerPage)
+//   - Plus de pendingResultRef / animationData
+//   - roll() est maintenant async (animation + persist inclus)
+// ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState, useRef, useCallback } from 'react';
-import { roll }           from '../../../../tools/diceEngine.js';
-import vikingsConfig      from '../../config.jsx';
-import DiceAnimationOverlay from '../../../../components/shared/DiceAnimationOverlay.jsx';
-import { readDiceConfig } from '../../../../components/modals/DiceConfigModal.jsx';
-import { useFetch }       from '../../../../hooks/useFetch.js';
-import { useSystem }      from '../../../../hooks/useSystem.js';
+import React, { useState, useCallback } from 'react';
 import {
     getBestCharacteristic,
     getExplosionThreshold,
     getSuccessThreshold,
     getBlessureMalus,
     getFatigueMalus,
+    formatSkillName,
 } from '../../../../tools/utils.js';
+import { roll, RollError } from '../../../../tools/diceEngine.js';
+import vikingsConfig       from '../../config.jsx';
+import { useFetch }        from '../../../../hooks/useFetch.js';
+import { useSystem }       from '../../../../hooks/useSystem.js';
 
-const PostureModal = ({ character, combatant, onClose }) => {
+const PostureModal = ({
+                          character,
+                          combatant,
+                          isBerserk = false,
+                          onClose,
+                          onActivatePosture, // (mode, successes) => void
+                          sessionId = null,
+                      }) => {
+    const [rollResult, setRollResult] = useState(null);
+    const [rolling,    setRolling]    = useState(false);
+    const [error,      setError]      = useState(null);
+
+    // Compétences défensives disponibles
+    const defensiveSkills = (character.skills || []).filter(s =>
+        ['Esquive', 'Parade', 'Combat CàC armé'].includes(s.name) && s.level > 0
+    );
+    const [selectedSkill, setSelectedSkill] = useState(defensiveSkills[0] ?? null);
+
     const fetchWithAuth = useFetch();
     const { apiBase }   = useSystem();
 
-    // ── Compétences CàC disponibles ──────────────────────────────────────────
-    const combatSkills = character.skills?.filter(
-        s => (s.name === 'Combat CàC armé' || s.name === 'Combat CàC non armé') && s.specialization != null
-    ) ?? [];
-    console.log('[PostureModal] combatSkills:', combatSkills, 'all skills:', character.skills);
-    // ── États ────────────────────────────────────────────────────────────────
-    const [selectedSkill, setSelectedSkill] = useState(combatSkills[0] ?? null);
-    const [type,          setType]          = useState('passif');
-    const [animationData, setAnimationData] = useState(null);
-    const [rollResult,    setRollResult]    = useState(null);
-    const [loading,       setLoading]       = useState(false);
-    const [error,         setError]         = useState(null);
+    const handleRollActif = useCallback(async () => {
+        if (rolling || !selectedSkill) return;
+        setRolling(true);
+        setError(null);
 
-    const pendingResultRef = useRef(null);
-    const isBerserk = combatant.activeStates?.some(s => s.id === 'berserk') ?? false;
-
-    // ── Valeur passive calculée ───────────────────────────────────────────────
-    const passifValue = selectedSkill
-        ? Math.min(3, Math.floor(selectedSkill.level / 2))
-        : 0;
-
-    // ── Activation effective (après roll ou directe) ──────────────────────────
-    const activate = useCallback(async (postureType, value) => {
-        setLoading(true);
         try {
-            // 1. Burn d'action
-            await fetchWithAuth(`${apiBase}/combat/action`, {
-                method: 'POST',
-                body:   JSON.stringify({ combatantId: combatant.id }),
-            });
+            const caracLevel = getBestCharacteristic(character, selectedSkill).level;
 
-            // 2. Ajouter l'état dans activeStates
-            const newState = {
-                id:   'posture-defensive',
-                name: 'Posture Défensive',
-                data: { type: postureType, value, skillName: selectedSkill?.name ?? null },
+            const ctx = {
+                apiBase,
+                fetchFn:       fetchWithAuth,
+                characterId:   character.id,
+                characterName: `${character.prenom}${character.surnom ? ` "${character.surnom}"` : ''}`,
+                sessionId,
+                rollType:      'vikings_posture',
+                label:         'Posture Défensive Active',
+                character,
+                systemData: {
+                    rollType:       'skill',
+                    selectedCarac:  null,
+                    selectedSkill,
+                    autoSuccesses:  0,
+                    activeConditionalBonuses: [],
+                    traitAutoBonus: 0,
+                    caracLevel,
+                    threshold:      getSuccessThreshold(selectedSkill.level),
+                    skillLevel:     selectedSkill.level,
+                    tokensBlessure: combatant.healthData?.tokensBlessure ?? 0,
+                    tokensFatigue:  combatant.healthData?.tokensFatigue  ?? 0,
+                    isBerserk,
+                    sagaActuelle:   character.sagaActuelle ?? 0,
+                    declaredMode:   null,
+                },
             };
-            await fetchWithAuth(`${apiBase}/combat/combatant/${combatant.id}`, {
-                method: 'PUT',
-                body:   JSON.stringify({
-                    updates: {
-                        activeStates: [...(combatant.activeStates ?? []), newState],
-                    },
-                }),
-            });
 
-            onClose();
+            const notation = vikingsConfig.dice.buildNotation(ctx);
+            // await : animation + persist inclus dans roll()
+            const result   = await roll(notation, ctx, vikingsConfig.dice);
+
+            setRollResult(result);
+
         } catch (err) {
-            console.error('[PostureModal] activate error:', err);
-            setError('Erreur lors de l\'activation.');
-            setLoading(false);
+            setError(err instanceof RollError ? err.message : 'Erreur lors du jet.');
+            console.error('[PostureModal]', err);
+        } finally {
+            setRolling(false);
         }
-    }, [fetchWithAuth, apiBase, combatant, selectedSkill, onClose]);
+    }, [rolling, selectedSkill, character, combatant, isBerserk, sessionId, apiBase, fetchWithAuth]);
 
-    // ── Fin d'animation ───────────────────────────────────────────────────────
-    const handleAnimationComplete = useCallback(() => {
-        const pending = pendingResultRef.current;
-        if (!pending) return;
-        pendingResultRef.current = null;
-        setAnimationData(null);
-        setRollResult(pending.result);
-        // On affiche le résultat — l'utilisateur clique "Confirmer"
-    }, []);
-
-    // ── Lancer dés (mode actif) ───────────────────────────────────────────────
-    const handleRollActif = useCallback(() => {
-        if (!selectedSkill) return;
-
-        const bestCarac = getBestCharacteristic(character, selectedSkill);
-        const caracLevel = bestCarac?.level ?? 2;
-
-        const ctx = {
-            characterId:   character.id,
-            characterName: `${character.prenom}${character.surnom ? ` "${character.surnom}"` : ''}`,
-            sessionId:     null,
-            systemSlug:    'vikings',
-            label:         `Posture Défensive — ${selectedSkill.name}`,
-            rollType:      'skill',
-            declaredMode:  null,
-            character,
-            systemData: {
-                rollType:               'skill',
-                selectedCarac:          bestCarac?.name ?? 'force',
-                selectedSkill,
-                autoSuccesses:          0,
-                activeConditionalBonuses: [],
-                traitAutoBonus:         0,
-                caracLevel,
-                tokensBlessure:         combatant.healthData?.tokensBlessure ?? 0,
-                tokensFatigue:          combatant.healthData?.tokensFatigue  ?? 0,
-                isBerserk,
-                sagaActuelle:           character.sagaActuelle ?? 0,
-                declaredMode:           null,
-            },
-        };
-
-        try {
-            const engineResult = roll(ctx, vikingsConfig.dice);
-            const { animationEnabled } = readDiceConfig();
-
-            if (animationEnabled !== false) {
-                pendingResultRef.current = { result: engineResult.result };
-                setAnimationData({ animationSequence: engineResult.animationSequence });
-            } else {
-                setRollResult(engineResult.result);
-            }
-        } catch (err) {
-            setError(err.message ?? 'Erreur lors du jet.');
-        }
-    }, [character, selectedSkill, combatant, isBerserk]);
-
-    // ── Si animation en cours ─────────────────────────────────────────────────
-    if (animationData) {
-        return (
-            <DiceAnimationOverlay
-                animationSequence={animationData.animationSequence}
-                onComplete={handleAnimationComplete}
-                onSkip={handleAnimationComplete}
-            />
-        );
-    }
-
-    // ── Résultat actif affiché — confirmation ─────────────────────────────────
+    // ── Résultat affiché ──────────────────────────────────────────────────────
     if (rollResult) {
-        const mr = rollResult.successes ?? 0;
+        const successes = rollResult.successes ?? 0;
         return (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
                 <div className="bg-white dark:bg-viking-brown rounded-lg shadow-2xl max-w-sm w-full border-4 border-viking-bronze p-4"
                      onClick={e => e.stopPropagation()}>
+
                     <h3 className="text-lg font-bold text-viking-brown dark:text-viking-parchment mb-4">
                         🛡️ Posture Défensive Active
                     </h3>
 
-                    {/* Résumé dés */}
                     <div className="p-3 bg-viking-bronze/10 rounded mb-4 text-center">
                         <div className="text-2xl font-bold text-viking-brown dark:text-viking-parchment">
-                            {mr} succès
+                            {successes} succès
                         </div>
                         <div className="flex flex-wrap gap-1 justify-center mt-2">
                             {(rollResult.allDice ?? []).map((v, i) => {
                                 const threshold = rollResult.detail?.threshold ?? 7;
                                 const isSuccess = v >= threshold;
-                                const exploded  = rollResult.flags?.exploded?.includes?.(v);
+                                const isExploded = rollResult.flags?.exploded?.includes?.(v);
                                 return (
-                                    <span key={i} className={`w-8 h-8 flex items-center justify-center rounded font-bold text-sm border-2 ${
-                                        exploded  ? 'bg-viking-bronze border-viking-bronze text-viking-brown' :
-                                            isSuccess ? 'bg-viking-success border-viking-success text-white' :
-                                                'bg-gray-200 dark:bg-gray-700 border-gray-400 text-viking-text dark:text-viking-parchment'
-                                    }`}>{v}</span>
+                                    <span key={i} className={`w-9 h-9 rounded flex items-center justify-center font-bold text-sm border-2 ${
+                                        isExploded
+                                            ? 'bg-orange-500 text-white border-orange-700'
+                                            : isSuccess
+                                                ? 'bg-green-600 text-white border-green-800'
+                                                : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-400'
+                                    }`}>
+                                        {v}
+                                    </span>
                                 );
                             })}
-                        </div>
-                        <div className="text-xs text-viking-leather dark:text-viking-bronze mt-2">
-                            {mr > 0
-                                ? `+${mr} au seuil des attaquants`
-                                : 'Aucun succès — posture inactive'}
                         </div>
                     </div>
 
                     <div className="flex gap-2">
-                        <button onClick={onClose} disabled={loading}
-                                className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-700 text-viking-brown dark:text-viking-parchment rounded font-semibold hover:bg-gray-400">
-                            Annuler
+                        <button
+                            onClick={() => onActivatePosture('actif', successes)}
+                            className="flex-1 py-2 rounded bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700"
+                        >
+                            ✅ Activer ({successes} succès)
                         </button>
                         <button
-                            onClick={() => activate('actif', mr)}
-                            disabled={loading || mr === 0}
-                            className="flex-1 px-4 py-2 bg-viking-success text-white rounded font-semibold hover:bg-green-700 disabled:opacity-50"
+                            onClick={onClose}
+                            className="flex-1 py-2 rounded bg-gray-200 dark:bg-gray-700 text-viking-brown dark:text-viking-parchment font-semibold text-sm"
                         >
-                            {loading ? 'Activation…' : mr > 0 ? 'Confirmer' : 'Aucun effet'}
+                            Annuler
                         </button>
                     </div>
                 </div>
@@ -202,99 +147,65 @@ const PostureModal = ({ character, combatant, onClose }) => {
         );
     }
 
-    // ── Formulaire principal ──────────────────────────────────────────────────
+    // ── Formulaire ────────────────────────────────────────────────────────────
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
             <div className="bg-white dark:bg-viking-brown rounded-lg shadow-2xl max-w-sm w-full border-4 border-viking-bronze p-4"
                  onClick={e => e.stopPropagation()}>
 
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold text-viking-brown dark:text-viking-parchment">
-                        🛡️ Posture Défensive
-                    </h3>
-                    <button onClick={onClose} className="text-2xl text-viking-leather hover:text-viking-danger">✕</button>
-                </div>
+                <h3 className="text-lg font-bold text-viking-brown dark:text-viking-parchment mb-4">
+                    🛡️ Posture Défensive
+                </h3>
 
-                {/* Sélection compétence */}
-                {combatSkills.length > 0 && (
+                {error && (
+                    <div className="p-2 mb-3 bg-red-100 dark:bg-red-900/30 border border-red-400 rounded text-red-700 dark:text-red-300 text-xs">
+                        ⚠️ {error}
+                    </div>
+                )}
+
+                {/* Sélection compétence défensive */}
+                {defensiveSkills.length > 1 && (
                     <div className="mb-4">
                         <label className="block text-sm font-semibold text-viking-brown dark:text-viking-parchment mb-2">
                             Compétence
                         </label>
                         <div className="space-y-1">
-                            {combatSkills.map(skill => (
+                            {defensiveSkills.map((skill, i) => (
                                 <button
-                                    key={`${skill.name}-${skill.specialization}`}
+                                    key={i}
                                     onClick={() => setSelectedSkill(skill)}
-                                    className={`w-full px-3 py-2 rounded text-sm text-left ${
-                                        selectedSkill === skill
-                                            ? 'bg-viking-bronze text-viking-brown font-semibold'
-                                            : 'bg-gray-100 dark:bg-gray-800 text-viking-text dark:text-viking-parchment hover:bg-viking-bronze/30'
+                                    className={`w-full px-3 py-1.5 rounded text-xs text-left font-semibold ${
+                                        selectedSkill?.name === skill.name
+                                            ? 'bg-viking-bronze text-viking-brown'
+                                            : 'bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment'
                                     }`}
                                 >
-                                    {skill.name}
-                                    {skill.specialization && ` — ${skill.specialization}`}
-                                    <span className="ml-2 opacity-70">niv. {skill.level}</span>
+                                    {formatSkillName(skill)} — seuil {getSuccessThreshold(skill.level)}+
                                 </button>
                             ))}
                         </div>
                     </div>
                 )}
 
-                {/* Sélection type */}
-                <div className="mb-4">
-                    <label className="block text-sm font-semibold text-viking-brown dark:text-viking-parchment mb-2">
-                        Type
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                        {['passif', 'actif'].map(t => (
-                            <button key={t} onClick={() => setType(t)}
-                                    className={`px-3 py-2 rounded text-sm font-semibold ${
-                                        type === t
-                                            ? 'bg-viking-bronze text-viking-brown'
-                                            : 'bg-gray-200 dark:bg-gray-700 text-viking-text dark:text-viking-parchment'
-                                    }`}
-                            >
-                                {t === 'actif' ? 'Actif (jet)' : 'Passif'}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Description */}
-                <div className="mb-4 p-3 bg-viking-bronze/10 rounded text-sm text-viking-text dark:text-viking-parchment">
-                    {type === 'passif' ? (
-                        <>
-                            <strong>Passif :</strong> +{passifValue} au seuil des attaquants.
-                            {selectedSkill && (
-                                <span className="block text-xs mt-1 text-viking-leather dark:text-viking-bronze">
-                                    {selectedSkill.name} niv.{selectedSkill.level} → {passifValue} pts
-                                </span>
-                            )}
-                        </>
-                    ) : (
-                        <><strong>Actif :</strong> Jet de {selectedSkill?.name ?? 'Combat'} — chaque succès augmente le seuil des attaquants de 1.</>
-                    )}
-                </div>
-
-                {error && (
-                    <div className="mb-3 text-xs text-viking-danger bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded">
-                        {error}
+                {!selectedSkill && (
+                    <div className="text-sm text-viking-leather dark:text-viking-bronze mb-4">
+                        Aucune compétence défensive disponible.
                     </div>
                 )}
 
-                {/* Actions */}
                 <div className="flex gap-2">
-                    <button onClick={onClose} disabled={loading}
-                            className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-700 text-viking-brown dark:text-viking-parchment rounded font-semibold hover:bg-gray-400">
-                        Annuler
+                    <button
+                        onClick={handleRollActif}
+                        disabled={rolling || !selectedSkill}
+                        className="flex-1 py-2 rounded bg-viking-bronze text-viking-brown font-semibold text-sm hover:bg-viking-leather hover:text-viking-parchment disabled:opacity-50"
+                    >
+                        {rolling ? '⏳ Jet…' : '🎲 Lancer'}
                     </button>
                     <button
-                        disabled={loading || !selectedSkill}
-                        onClick={() => type === 'passif' ? activate('passif', passifValue) : handleRollActif()}
-                        className="flex-1 px-4 py-2 bg-viking-success text-white rounded font-semibold hover:bg-green-700 disabled:opacity-50"
+                        onClick={() => onActivatePosture('passive', 0)}
+                        className="flex-1 py-2 rounded bg-gray-200 dark:bg-gray-700 text-viking-brown dark:text-viking-parchment font-semibold text-sm"
                     >
-                        {loading ? 'Activation…' : type === 'actif' ? '🎲 Lancer' : 'Activer'}
+                        Posture passive
                     </button>
                 </div>
             </div>

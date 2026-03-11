@@ -1,25 +1,23 @@
 // src/client/src/systems/dune/gm/modals/GMDiceModal.jsx
-// Modale de jet de dés pour le GM Dune.
-//   - Rang saisi librement (valeur numérique)
-//   - Difficulté saisie librement
-//   - Dés supplémentaires via dépense de Menace (1:1, max 5d20)
-//   - Pas de Détermination, pas d'Impulsions
-//   - Résultats diffusés via POST /dice/roll
-//   - Animation 3D via DiceAnimationOverlay si animationEnabled dans la config
+// ─────────────────────────────────────────────────────────────────────────────
+// Modale de jet de dés MJ Dune — VERSION v2 (diceEngine async).
+//
+// Suppressions par rapport à v1 :
+//   - Plus d'import DiceRoll direct
+//   - Plus de DiceAnimationOverlay local (singleton dans GMPage)
+//   - Plus de animSequence / pendingResult
+//   - roll() est async (animation + persist inclus)
+// ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useCallback } from 'react';
-import { DiceRoll }           from '@dice-roller/rpg-dice-roller';
-import { useSocket }          from '../../../../context/SocketContext.jsx';
-import { useFetch }           from '../../../../hooks/useFetch.js';
-import { useSystem }          from '../../../../hooks/useSystem.js';
-import { readDiceConfig }     from '../../../../components/modals/DiceConfigModal.jsx';
-import DiceAnimationOverlay   from '../../../../components/shared/DiceAnimationOverlay.jsx';
-import duneConfig             from '../../config.jsx';
+import { roll, RollError } from '../../../../tools/diceEngine.js';
+import { useSocket }       from '../../../../context/SocketContext.jsx';
+import { useFetch }        from '../../../../hooks/useFetch.js';
+import { useSystem }       from '../../../../hooks/useSystem.js';
+import duneConfig          from '../../config.jsx';
 
 const { countSuccesses } = duneConfig;
 const MAX_DES = 5;
-
-// ── Sous-composant dé ─────────────────────────────────────────────────────────
 
 const DieResult = ({ value, rang }) => {
     let bg;
@@ -36,233 +34,188 @@ const DieResult = ({ value, rang }) => {
     );
 };
 
-/**
- * @param {Function} props.onClose
- * @param {number}   props.sessionId
- * @param {number}   props.menaceDisponible
- */
-const GMDiceModal = ({ onClose, sessionId, menaceDisponible = 0 }) => {
-    const { apiBase }  = useSystem();
-    const fetchWithAuth = useFetch(); // ✅ useFetch() retourne directement la fonction
-    const socket       = useSocket();
+// Hooks MJ inline — pas de logique Dune avancée (pas de spécialisation, pas de détermination)
+const GM_DICE_HOOKS = {
+    buildNotation: (ctx) => `${ctx.systemData.nbDes}d20`,
 
-    const [rang,           setRang]           = useState(10);
-    const [difficulte,     setDifficulte]     = useState(2);
+    beforeRoll: (ctx) => {
+        if (ctx.systemData.nbDes < 1) throw new RollError('NO_DICE', 'Aucun dé à lancer');
+        return ctx;
+    },
+
+    afterRoll: (raw, ctx) => {
+        const { rang, difficulte } = ctx.systemData;
+        const results = raw.groups[0].values;
+        let succesTotal = 0, complications = 0;
+        for (const v of results) {
+            if (v === 20) { complications++; continue; }
+            if (v <= rang) succesTotal++;
+        }
+        const reussite = succesTotal >= difficulte;
+        const excedent = Math.max(0, succesTotal - difficulte);
+        return { results, rang, succes: succesTotal, complications, difficulte, reussite, excedent, successes: succesTotal };
+    },
+
+    buildAnimationSequence: (raw, ctx, result) => ({
+        mode: 'single',
+        groups: [{
+            id:       'gm-roll',
+            diceType: 'd20',
+            color:    result.reussite ? 'fortune' : 'default',
+            label:    `MJ — ${ctx.systemData.nbDes}d20`,
+            waves:    raw.groups[0].waves,
+        }],
+    }),
+};
+
+const GMDiceModal = ({ onClose, sessionId = null }) => {
+    const fetchWithAuth = useFetch();
+    const { apiBase }   = useSystem();
+    const socket        = useSocket();
+
+    const [rang,       setRang]       = useState(3);
+    const [difficulte, setDifficulte] = useState(1);
+    const [nbDes,      setNbDes]      = useState(2);
     const [menaceDepensee, setMenaceDepensee] = useState(0);
-    const [rolling,        setRolling]        = useState(false);
-    const [result,         setResult]         = useState(null);
-
-    // Animation 3D
-    const [animSequence,   setAnimSequence]   = useState(null); // déclenche l'overlay
-    const [pendingResult,  setPendingResult]  = useState(null); // résultat en attente de l'animation
-
-    const nbDes = 2 + menaceDepensee;
+    const [rolling,    setRolling]    = useState(false);
+    const [result,     setResult]     = useState(null);
+    const [broadcast,  setBroadcast]  = useState(false);
 
     const handleRoll = useCallback(async () => {
         if (rolling) return;
         setRolling(true);
+        setResult(null);
+
         try {
-            const notation = `${nbDes}d20`;
-            const diceRoll = new DiceRoll(notation);
-            const results  = diceRoll.rolls[0].rolls.map(r => r.value);
-            const { succes, complications } = countSuccesses(results, rang, false);
-            const reussite = succes >= difficulte;
-            const excedent = Math.max(0, succes - difficulte);
+            const ctx = {
+                apiBase,
+                fetchFn:        fetchWithAuth,
+                characterId:    null,
+                characterName:  'MJ',
+                sessionId,
+                rollType:       'dune_gm_2d20',
+                label:          `MJ — ${nbDes}d20`,
+                persistHistory: broadcast,
+                systemData: {
+                    nbDes,
+                    rang,
+                    difficulte,
+                    hasSpec:              false,
+                    competenceRang:       0,
+                    impulsionsDepensees:  0,
+                    menaceGeneree:        menaceDepensee,
+                    useDetermination:     false,
+                },
+            };
 
-            const rollData = { results, rang, succes, complications, reussite, excedent };
+            const notation = GM_DICE_HOOKS.buildNotation(ctx);
+            const res      = await roll(notation, ctx, GM_DICE_HOOKS);
+            setResult(res);
 
-            // ── Effets socket (menace + complications) ────────────────────────
-            if (socket && sessionId) {
-                if (menaceDepensee > 0) {
-                    socket.emit('update-session-resources', {
-                        sessionId, field: 'menace', delta: -menaceDepensee,
-                    });
-                }
-                if (complications > 0) {
-                    socket.emit('update-session-resources', {
-                        sessionId, field: 'complications', delta: complications,
-                    });
-                }
+            // Mise à jour ressources session
+            if (socket && sessionId && menaceDepensee > 0) {
+                socket.emit('update-session-resources', {
+                    sessionId,
+                    menaceSpent:   menaceDepensee,
+                    complications: res.complications,
+                });
             }
 
-            // ── Persistance historique ────────────────────────────────────────
-            await fetchWithAuth(`${apiBase}/dice/roll`, {
-                method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    character_id:   -1,
-                    character_name: 'MJ',
-                    session_id:     sessionId ?? null,
-                    notation,
-                    roll_result: JSON.stringify({ results, rang, succes, complications, reussite, difficulte, menaceDepensee }),
-                    roll_type: 'dune_gm_2d20',
-                    successes: succes,
-                }),
-            }).catch(() => {});
-
-            // ── Animation ou affichage direct ─────────────────────────────────
-            const diceConfig = readDiceConfig();
-            if (diceConfig.animationEnabled) {
-                // Construire une AnimationSequence minimale pour les d20
-                const animSeq = {
-                    mode: 'single',
-                    groups: [{
-                        id: 'gm-roll',
-                        diceType: 'd20',
-                        color: 'default',
-                        label: `MJ — ${nbDes}d20`,
-                        waves: [{ dice: results }],
-                    }],
-                    insuranceData: null,
-                };
-                setPendingResult(rollData);
-                setAnimSequence(animSeq);
-            } else {
-                setResult(rollData);
-            }
         } catch (err) {
-            console.error('[GMDiceModal] Erreur roll:', err);
+            console.error('[DuneGMDiceModal] handleRoll error:', err);
         } finally {
             setRolling(false);
         }
-    }, [rolling, nbDes, rang, difficulte, menaceDepensee, socket, sessionId, fetchWithAuth, apiBase]);
-
-    // Appelé quand l'animation 3D se termine
-    const handleAnimComplete = useCallback(() => {
-        setAnimSequence(null);
-        setResult(pendingResult);
-        setPendingResult(null);
-    }, [pendingResult]);
+    }, [rolling, rang, difficulte, nbDes, menaceDepensee, broadcast, sessionId, apiBase, fetchWithAuth, socket]);
 
     return (
-        <>
-            {/* ── Overlay animation 3D ─────────────────────────────────────── */}
-            {animSequence && (
-                <DiceAnimationOverlay
-                    animationSequence={animSequence}
-                    onComplete={handleAnimComplete}
-                    onSkip={handleAnimComplete}
-                />
-            )}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            <div className="w-full max-w-sm rounded-xl shadow-2xl overflow-hidden"
+                 style={{ background: 'var(--dune-surface)', border: '2px solid var(--dune-ochre)' }}>
 
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-                <div className="w-full max-w-sm rounded-xl shadow-2xl overflow-hidden"
-                     style={{ background: 'var(--dune-surface)', border: '2px solid var(--dune-ochre)' }}>
-
-                    {/* En-tête */}
-                    <div className="flex items-center justify-between px-4 py-3"
-                         style={{ background: 'var(--dune-dark)', borderBottom: '1px solid var(--dune-ochre)' }}>
-                        <div className="text-sm font-bold" style={{ color: 'var(--dune-gold)' }}>
-                            Jet MJ — {nbDes}d20
-                        </div>
-                        <button onClick={onClose} style={{ color: 'var(--dune-sand)' }}>✕</button>
+                {/* En-tête */}
+                <div className="flex items-center justify-between px-4 py-3"
+                     style={{ background: 'var(--dune-dark)', borderBottom: '1px solid var(--dune-ochre)' }}>
+                    <div className="text-sm font-bold" style={{ color: 'var(--dune-gold)' }}>
+                        Jet MJ — {nbDes}d20
                     </div>
+                    <button onClick={onClose} style={{ color: 'var(--dune-sand)' }}>✕</button>
+                </div>
 
-                    <div className="p-4 space-y-4">
-                        {!result ? (
-                            <>
-                                {/* Rang */}
-                                <div>
-                                    <div className="dune-label mb-1">Rang</div>
-                                    <div className="flex items-center gap-2">
-                                        <button onClick={() => setRang(r => Math.max(1, r - 1))}
-                                                className="w-8 h-8 rounded font-bold"
-                                                style={{ background: 'var(--dune-surface-alt)', color: 'var(--dune-text)' }}>−</button>
-                                        <span className="text-2xl font-bold w-12 text-center"
-                                              style={{ color: 'var(--dune-gold)' }}>{rang}</span>
-                                        <button onClick={() => setRang(r => r + 1)}
-                                                className="w-8 h-8 rounded font-bold"
-                                                style={{ background: 'var(--dune-surface-alt)', color: 'var(--dune-text)' }}>+</button>
-                                    </div>
+                <div className="p-4 space-y-4">
+                    {!result ? (
+                        <>
+                            {/* Rang */}
+                            <div>
+                                <div className="dune-label mb-2">Rang cible</div>
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => setRang(r => Math.max(1, r - 1))} className="dune-btn-secondary px-3">-</button>
+                                    <span className="text-lg font-bold w-8 text-center" style={{ color: 'var(--dune-gold)' }}>{rang}</span>
+                                    <button onClick={() => setRang(r => Math.min(20, r + 1))} className="dune-btn-secondary px-3">+</button>
                                 </div>
+                            </div>
 
-                                {/* Difficulté */}
-                                <div>
-                                    <div className="dune-label mb-1">Difficulté</div>
-                                    <div className="flex items-center gap-2">
-                                        <button onClick={() => setDifficulte(d => Math.max(1, d - 1))}
-                                                className="w-8 h-8 rounded font-bold"
-                                                style={{ background: 'var(--dune-surface-alt)', color: 'var(--dune-text)' }}>−</button>
-                                        <span className="text-2xl font-bold w-12 text-center"
-                                              style={{ color: 'var(--dune-gold)' }}>{difficulte}</span>
-                                        <button onClick={() => setDifficulte(d => d + 1)}
-                                                className="w-8 h-8 rounded font-bold"
-                                                style={{ background: 'var(--dune-surface-alt)', color: 'var(--dune-text)' }}>+</button>
-                                    </div>
+                            {/* Difficulté */}
+                            <div>
+                                <div className="dune-label mb-2">Difficulté</div>
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => setDifficulte(d => Math.max(1, d - 1))} className="dune-btn-secondary px-3">-</button>
+                                    <span className="text-lg font-bold w-8 text-center" style={{ color: 'var(--dune-gold)' }}>{difficulte}</span>
+                                    <button onClick={() => setDifficulte(d => Math.min(5, d + 1))} className="dune-btn-secondary px-3">+</button>
                                 </div>
+                            </div>
 
-                                {/* Menace */}
-                                <div className="dune-card-alt">
-                                    <div className="dune-label mb-1">
-                                        Dépenser de la Menace (+1 dé / menace) — disponible : {menaceDisponible}
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <button onClick={() => setMenaceDepensee(m => Math.max(0, m - 1))}
-                                                disabled={menaceDepensee <= 0}
-                                                className="w-7 h-7 rounded font-bold disabled:opacity-30"
-                                                style={{ background: 'var(--dune-ochre)', color: 'white' }}>−</button>
-                                        <span className="font-bold text-lg w-6 text-center"
-                                              style={{ color: 'var(--dune-red)' }}>{menaceDepensee}</span>
-                                        <button
-                                            onClick={() => { if (nbDes < MAX_DES && menaceDepensee < menaceDisponible) setMenaceDepensee(m => m + 1); }}
-                                            disabled={nbDes >= MAX_DES || menaceDepensee >= menaceDisponible}
-                                            className="w-7 h-7 rounded font-bold disabled:opacity-30"
-                                            style={{ background: 'var(--dune-red)', color: 'white' }}>+</button>
-                                        <span className="text-xs ml-1" style={{ color: 'var(--dune-text-muted)' }}>
-                                            → {nbDes} dés
-                                        </span>
-                                    </div>
+                            {/* Dés */}
+                            <div>
+                                <div className="dune-label mb-2">Nombre de dés</div>
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => setNbDes(n => Math.max(2, n - 1))} className="dune-btn-secondary px-3">-</button>
+                                    <span className="text-lg font-bold w-8 text-center" style={{ color: 'var(--dune-gold)' }}>{nbDes}</span>
+                                    <button onClick={() => setNbDes(n => Math.min(MAX_DES, n + 1))} className="dune-btn-secondary px-3">+</button>
                                 </div>
+                            </div>
 
-                                <button onClick={handleRoll} disabled={rolling}
-                                        className="dune-btn-primary w-full disabled:opacity-50">
-                                    {rolling ? 'Lancement…' : `🎲 Lancer ${nbDes}d20`}
-                                </button>
-                            </>
-                        ) : (
-                            <>
-                                {/* Résultats */}
-                                <div className="flex flex-wrap gap-2 justify-center">
-                                    {result.results.map((v, i) => (
-                                        <DieResult key={i} value={v} rang={result.rang} />
-                                    ))}
-                                </div>
+                            {/* Broadcast */}
+                            <label className="flex items-center gap-2 text-xs cursor-pointer" style={{ color: 'var(--dune-text-muted)' }}>
+                                <input type="checkbox" checked={broadcast}
+                                       onChange={e => setBroadcast(e.target.checked)}
+                                       className="accent-amber-500" />
+                                Visible dans l'historique
+                            </label>
 
-                                <div className="text-center p-3 rounded-lg"
-                                     style={{ background: 'var(--dune-surface-alt)' }}>
-                                    <div className="text-2xl font-bold mb-1"
-                                         style={{ color: result.reussite ? 'var(--dune-success)' : 'var(--dune-red)' }}>
-                                        {result.reussite ? '✅ Succès' : '❌ Échec'}
-                                    </div>
-                                    <div className="text-sm" style={{ color: 'var(--dune-text-muted)' }}>
-                                        {result.succes} / {difficulte} succès requis
-                                    </div>
-                                    {result.excedent > 0 && (
-                                        <div className="text-xs mt-1" style={{ color: 'var(--dune-gold)' }}>
-                                            +{result.excedent} succès en excédent
-                                        </div>
-                                    )}
-                                    {result.complications > 0 && (
-                                        <div className="text-xs mt-1" style={{ color: 'var(--dune-red)' }}>
-                                            {result.complications} complication(s)
-                                        </div>
-                                    )}
+                            <button
+                                onClick={handleRoll}
+                                disabled={rolling}
+                                className="dune-btn-primary w-full disabled:opacity-50"
+                            >
+                                {rolling ? '⏳ Lancement…' : `🎲 Lancer ${nbDes}d20`}
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            {/* Résultats */}
+                            <div className="text-center">
+                                <div className="text-2xl font-bold mb-1"
+                                     style={{ color: result.reussite ? 'var(--dune-success)' : 'var(--dune-red)' }}>
+                                    {result.reussite ? '✅ Réussite' : '❌ Échec'}
                                 </div>
-
-                                <div className="flex gap-2">
-                                    <button onClick={() => setResult(null)} className="dune-btn-secondary flex-1 text-xs">
-                                        Nouveau jet
-                                    </button>
-                                    <button onClick={onClose} className="dune-btn-primary flex-1 text-xs">
-                                        Fermer
-                                    </button>
+                                <div className="text-sm" style={{ color: 'var(--dune-text-muted)' }}>
+                                    {result.succes} succès / {result.difficulte} requis
+                                    {result.complications > 0 && ` · ⚠️ ${result.complications} complication(s)`}
                                 </div>
-                            </>
-                        )}
-                    </div>
+                            </div>
+                            <div className="flex gap-2 flex-wrap justify-center">
+                                {(result.results ?? []).map((v, i) => (
+                                    <DieResult key={i} value={v} rang={rang} />
+                                ))}
+                            </div>
+                            <button onClick={() => setResult(null)} className="dune-btn-secondary w-full text-xs">Nouveau jet</button>
+                            <button onClick={onClose} className="dune-btn-primary w-full">Fermer</button>
+                        </>
+                    )}
                 </div>
             </div>
-        </>
+        </div>
     );
 };
 

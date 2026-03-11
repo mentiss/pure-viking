@@ -28,10 +28,11 @@ export function useGMSession({ apiBase }) {
     const [onlineCharacters, setOnlineCharacters]   = useState([]);
 
     const slug = apiBase.replace(/^\/api\//, '').replace(/\/$/, '');
+    const storageKey = `activeSessionId_${slug}`;
 
     // ── Chargement initial depuis localStorage ──────────────────────────────
     useEffect(() => {
-        const savedId = localStorage.getItem('activeSessionId');
+        const savedId = localStorage.getItem(storageKey);
         if (!savedId) return;
 
         fetchWithAuth(`${apiBase}/sessions/${savedId}`)
@@ -39,7 +40,7 @@ export function useGMSession({ apiBase }) {
             .then(session => { if (session) setActiveSessionState(session); })
             .catch(err => {
                 console.error('[useGMSession] Error loading saved session:', err);
-                localStorage.removeItem('activeSessionId');
+                localStorage.removeItem(storageKey);
             });
     }, [apiBase]);
 
@@ -82,7 +83,7 @@ export function useGMSession({ apiBase }) {
     const setActiveSession = useCallback(async (session) => {
         if (!session) {
             setActiveSessionState(null);
-            localStorage.removeItem('activeSessionId');
+            localStorage.removeItem(storageKey);
             return;
         }
 
@@ -92,11 +93,11 @@ export function useGMSession({ apiBase }) {
             const r = await fetchWithAuth(`${apiBase}/sessions/${session.id}`);
             const full = r.ok ? await r.json() : session; // fallback sur l'objet partiel
             setActiveSessionState(full);
-            localStorage.setItem('activeSessionId', full.id);
+            localStorage.setItem(storageKey, full.id);
         } catch {
             // fallback silencieux
             setActiveSessionState(session);
-            localStorage.setItem('activeSessionId', session.id);
+            localStorage.setItem(storageKey, session.id);
         }
     }, [apiBase, fetchWithAuth]);
 

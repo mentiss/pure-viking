@@ -3,13 +3,32 @@
 // Valide le slug via SystemsContext (plus de KNOWN_SYSTEMS statique).
 // Affiche un loader pendant le fetch initial des systèmes.
 
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import { useParams, Outlet } from 'react-router-dom';
 import { useSystems } from '../context/SystemsContext.jsx';
+import {loadTheme, saveTheme} from "../tools/utils.js";
 
-const SystemLayout = ({ darkMode, onToggleDarkMode }) => {
+const SystemLayout = () => {
     const { system } = useParams();
     const { systems, error } = useSystems();
+    const [darkMode, setDarkMode] = useState(() => false);
+
+    useEffect(() => {
+        if (!system) return;
+        const saved = loadTheme(system);
+        setDarkMode(saved);
+    }, [system]);
+
+    useEffect(() => {
+        document.documentElement.classList.toggle('dark', darkMode);
+    }, [darkMode]);
+
+    const toggleDarkMode = () => {
+        const next = !darkMode;
+        setDarkMode(next);
+        saveTheme(next, system);
+        document.documentElement.classList.toggle('dark', next);
+    };
 
     // Chargement initial
     if (systems === null) {
@@ -58,7 +77,7 @@ const SystemLayout = ({ darkMode, onToggleDarkMode }) => {
         );
     }
 
-    return <Outlet context={{ darkMode, onToggleDarkMode }} />;
+    return <Outlet context={{ darkMode, onToggleDarkMode: toggleDarkMode }} />;
 };
 
 export default SystemLayout;

@@ -7,6 +7,7 @@ import { useParams, useOutletContext } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useGMSession } from '../hooks/useGMSession.js';
 import CodeModal from '../components/modals/CodeModal.jsx';
+import DiceAnimationOverlay from "../components/shared/DiceAnimationOverlay.jsx";
 
 const SYSTEM_GM_APPS = import.meta.glob('../systems/*/GMApp.jsx');
 
@@ -60,15 +61,18 @@ const GMPage = () => {
 
     if (user?.isGM) {
         return (
-            <Suspense fallback={<LoadingScreen />}>
-                <SystemGMApp
-                    activeSession={activeSession}
-                    onSessionChange={setActiveSession}
-                    onlineCharacters={onlineCharacters}
-                    darkMode={darkMode}
-                    onToggleDarkMode={onToggleDarkMode}
-                />
-            </Suspense>
+            <>
+                <Suspense fallback={<LoadingScreen />}>
+                    <SystemGMApp
+                        activeSession={activeSession}
+                        onSessionChange={setActiveSession}
+                        onlineCharacters={onlineCharacters}
+                        darkMode={darkMode}
+                        onToggleDarkMode={onToggleDarkMode}
+                    />
+                    <DiceAnimationOverlay />
+                </Suspense>
+            </>
         );
     }
 

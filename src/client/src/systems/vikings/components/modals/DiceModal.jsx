@@ -1,59 +1,58 @@
 // src/client/src/systems/vikings/components/modals/DiceModal.jsx
 // ─────────────────────────────────────────────────────────────────────────────
-// Modale lanceur de dés Vikings.
-// Responsabilité : UX/UI uniquement.
-//   - Construit le RollContext depuis les choix du joueur
-//   - Délègue TOUT le calcul à diceEngine (via vikingsConfig.dice)
-//   - Gère l'animation via DiceAnimationOverlay
-//   - Gère le workflow en 2 phases du jet Héroïque/Épique (confirm SAGA)
+// Modale lanceur de dés Vikings — VERSION v2 (diceEngine async).
 //
-// Ce composant ne contient AUCUNE logique de dés — elle est dans
-// src/client/src/systems/vikings/config.js (hooks dice).
+// Responsabilité : UX/UI uniquement.
+//   - Construit le ctx depuis les choix du joueur
+//   - Appelle vikingsConfig.dice.buildNotation(ctx) puis await roll(notation, ctx, hooks)
+//   - Affiche le résultat rendu par roll() (animation + persist inclus dans roll())
+//
+// Suppressions par rapport à v1 :
+//   - Plus d'état animationData / DiceAnimationOverlay local (singleton dans PlayerPage)
+//   - Plus de showSagaConfirm / phase de confirmation entre jet principal et jet SAGA
+//   - Plus de sendRollToAPI (maintenant dans diceEngine)
+//   - Plus d'imports rollWithInsurance / rollSagaBonus
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     formatSkillName,
-    getBestCharacteristic,
-    getExplosionThreshold,
+    getBestCharacteristic, getBlessureMalus,
+    getExplosionThreshold, getFatigueMalus,
     getSuccessThreshold,
 } from '../../../../tools/utils.js';
-import getTraitBonuses          from '../../../../tools/traitBonuses.js';
-import { CARACNAMES }           from '../../../../tools/data.js';
-import { roll, rollWithInsurance, rollSagaBonus, RollError } from '../../../../tools/diceEngine.js';
-import vikingsConfig            from '../../config.jsx';
-import DiceAnimationOverlay     from '../../../../components/shared/DiceAnimationOverlay.jsx';
-import { readDiceConfig }       from '../../../../components/modals/DiceConfigModal.jsx';
-import { useFetch }             from '../../../../hooks/useFetch.js';
+import getTraitBonuses from '../../../../tools/traitBonuses.js';
+import { CARACNAMES }  from '../../../../tools/data.js';
+import { roll, RollError } from '../../../../tools/diceEngine.js';
+import vikingsConfig   from '../../config.jsx';
+import { useFetch }    from '../../../../hooks/useFetch.js';
+import { useParams }   from 'react-router-dom';
+import { useSystem }   from '../../../../hooks/useSystem.js';
 
 const DiceModal = ({ character, isBerserk, context, onClose, onUpdate, sessionId = null }) => {
 
     // ── État UI ───────────────────────────────────────────────────────────────
-    const [rollType,    setRollType]    = useState('carac');
+    const [rollType,      setRollType]      = useState('carac');
     const [selectedCarac, setSelectedCarac] = useState('force');
     const [selectedSkill, setSelectedSkill] = useState(null);
     const [autoSuccesses, setAutoSuccesses] = useState(0);
-    const [sagaMode,    setSagaMode]    = useState(null); // null | 'insurance' | 'heroic' | 'epic'
-    const [diceResults, setDiceResults] = useState(null);
-    const [rolling,     setRolling]     = useState(false);
-    const [animationData, setAnimationData] = useState(null);
-
-    // Confirmation jet SAGA (entre jet initial et jet bonus)
-    const [showSagaConfirm, setShowSagaConfirm] = useState(null);
+    const [sagaMode,      setSagaMode]      = useState(null); // null | 'insurance' | 'heroic' | 'epic'
+    const [diceResults,   setDiceResults]   = useState(null);
+    const [rolling,       setRolling]       = useState(false);
+    const [error,         setError]         = useState(null);
 
     // Bonus traits
-    const [traitAutoBonus,          setTraitAutoBonus]          = useState(0);
-    const [conditionalBonuses,      setConditionalBonuses]      = useState([]);
+    const [traitAutoBonus,           setTraitAutoBonus]           = useState(0);
+    const [conditionalBonuses,       setConditionalBonuses]       = useState([]);
     const [activeConditionalBonuses, setActiveConditionalBonuses] = useState([]);
 
     const fetchWithAuth = useFetch();
+    const { apiBase }   = useSystem();
 
-    // Refs pour éviter les stale closures dans les callbacks
-    const pendingResultRef = useRef(null);
-    const contextRef       = useRef(context);
+    const contextRef = useRef(context);
     useEffect(() => { contextRef.current = context; }, [context]);
 
-    // ── Contexte pré-rempli (depuis la fiche personnage) ─────────────────────
+    // ── Contexte pré-rempli depuis la fiche ──────────────────────────────────
     useEffect(() => {
         if (context?.type === 'carac') {
             setRollType('carac');
@@ -64,129 +63,57 @@ const DiceModal = ({ character, isBerserk, context, onClose, onUpdate, sessionId
         }
     }, [context]);
 
-    // ── Recalcul des bonus traits à chaque changement de cible ───────────────
+    // ── Recalcul des bonus traits ─────────────────────────────────────────────
     useEffect(() => {
         const rollTarget = rollType === 'skill' ? selectedSkill?.name : null;
-        const caracUsed  = rollType === 'carac'
+        const caracUsedName = rollType === 'carac'
             ? selectedCarac
             : (selectedSkill ? getBestCharacteristic(character, selectedSkill).name : null);
 
-        const bonuses    = getTraitBonuses(character, caracUsed, rollTarget);
-        setTraitAutoBonus(bonuses.auto);
-        const applicable = bonuses.conditional.filter(c => c.applies);
-        setConditionalBonuses(applicable);
+        const traitBonuses = getTraitBonuses(character, caracUsedName, rollTarget);
+        setTraitAutoBonus(traitBonuses.auto);
+        setConditionalBonuses(traitBonuses.conditional.filter(c => c.applies !== false));
         setActiveConditionalBonuses([]);
-    }, [rollType, selectedCarac, selectedSkill]);
+    }, [rollType, selectedCarac, selectedSkill, character]);
 
-    // ── Envoi API ─────────────────────────────────────────────────────────────
-    const sendRollToAPI = useCallback(async (result, notation) => {
-        try {
-            const characterName = `${character.prenom}${character.surnom ? ` "${character.surnom}"` : ''}`;
-            await fetchWithAuth('/api/dice/roll', {
-                method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    character_id:   character.id,
-                    character_name: characterName,
-                    session_id:     sessionId,
+    // ── Construire le ctx de base ─────────────────────────────────────────────
+    const buildCtx = useCallback(() => {
+        const caracLevel = rollType === 'carac'
+            ? (character[selectedCarac] || 2)
+            : (selectedSkill ? getBestCharacteristic(character, selectedSkill).level : 2);
 
-                    // Format générique
-                    notation,
-                    roll_result: result,
+        const threshold = rollType === 'skill' && selectedSkill
+            ? getSuccessThreshold(selectedSkill.level)
+            : 7;
 
-                    // Format legacy Vikings (rétrocompatibilité historique)
-                    roll_type:      result.detail?.rollType || rollType,
-                    roll_target:    result.detail?.rollTarget,
-                    pool:           result.detail?.pool,
-                    threshold:      result.detail?.threshold,
-                    results:        result.allDice,
-                    successes:      result.successes,
-                    saga_spent:     result.meta?.resourceSpent  || 0,
-                    saga_recovered: result.meta?.resourceGained || 0,
-                })
-            });
-        } catch (err) {
-            console.error('[DiceModal] sendRollToAPI error:', err);
-        }
-    }, [character, sessionId, rollType, fetchWithAuth]);
+        const blessureMalus = isBerserk ? 0 : getBlessureMalus(character.tokensBlessure);
+        const pool = Math.max(1, 3 - blessureMalus);
 
-    // ── Fin d'animation ───────────────────────────────────────────────────────
-    const handleAnimationComplete = useCallback(() => {
-        const pending = pendingResultRef.current;
-        if (!pending) return;
-
-        if (pending.isSagaPending) {
-            // Jet initial terminé → afficher résultat + ouvrir confirmation SAGA
-            setDiceResults(pending.engineResult.result);
-            setShowSagaConfirm({
-                engineResult: pending.engineResult,
-                finalTarget:  pending.finalTarget,
-                sagaMode:     pending.sagaMode,
-            });
-        } else {
-            // Jet normal ou bonus SAGA : afficher + envoyer API
-            setDiceResults(pending.engineResult.result);
-            sendRollToAPI(pending.engineResult.result, pending.engineResult.notation);
-            contextRef.current?.onRollComplete?.(pending.engineResult.result);
-        }
-
-        pendingResultRef.current = null;
-        setAnimationData(null);
-        setRolling(false);
-    }, [sendRollToAPI]);
-
-    // ── Helper : déclenche animation ou court-circuite ────────────────────────
-    const triggerAnimation = useCallback((engineResult, options = {}) => {
-        const { animationEnabled } = readDiceConfig();
-
-        if (animationEnabled !== false) {
-            pendingResultRef.current = { engineResult, ...options };
-            setAnimationData({ animationSequence: engineResult.animationSequence });
-        } else {
-            // Résultat instantané
-            if (options.isSagaPending) {
-                setDiceResults(engineResult.result);
-                setShowSagaConfirm({
-                    engineResult,
-                    finalTarget: options.finalTarget,
-                    sagaMode:    options.sagaMode,
-                });
-            } else {
-                setDiceResults(engineResult.result);
-                sendRollToAPI(engineResult.result, engineResult.notation);
-                contextRef.current?.onRollComplete?.(engineResult.result);
-            }
-            setRolling(false);
-        }
-    }, [sendRollToAPI]);
-
-    // ── Lancer les dés ────────────────────────────────────────────────────────
-    const handleRoll = () => {
-        setRolling(true);
-        setDiceResults(null);
-
-        // Construction du RollContext
-        const ctx = {
+        return {
+            // Accès réseau (pour persist dans diceEngine)
+            apiBase,
+            fetchFn:       fetchWithAuth,
+            // Métadonnées historique
             characterId:   character.id,
             characterName: `${character.prenom}${character.surnom ? ` "${character.surnom}"` : ''}`,
             sessionId,
-            systemSlug:    'vikings',
-            label:         rollType === 'skill' && selectedSkill
+            rollType:      'vikings_skill', // identifiant libre pour l'historique
+            // Affichage
+            label: rollType === 'skill' && selectedSkill
                 ? formatSkillName(selectedSkill)
                 : CARACNAMES[selectedCarac] || selectedCarac,
-            rollType,
-            declaredMode: sagaMode,
-            character,      // objet complet pour les hooks
+            // Données système opaques
+            character, // objet complet pour getTraitBonuses dans beforeRoll
             systemData: {
+                pool,
                 rollType,
                 selectedCarac,
                 selectedSkill,
                 autoSuccesses,
                 activeConditionalBonuses,
                 traitAutoBonus,
-                caracLevel: rollType === 'carac'
-                    ? (character[selectedCarac] || 2)
-                    : (selectedSkill ? getBestCharacteristic(character, selectedSkill).level : 2),
+                caracLevel,
+                threshold,
                 skillLevel:     selectedSkill?.level || 0,
                 tokensBlessure: character.tokensBlessure,
                 tokensFatigue:  character.tokensFatigue,
@@ -195,26 +122,30 @@ const DiceModal = ({ character, isBerserk, context, onClose, onUpdate, sessionId
                 declaredMode:   sagaMode,
             },
         };
+    }, [
+        character, isBerserk, rollType, selectedCarac, selectedSkill,
+        autoSuccesses, activeConditionalBonuses, traitAutoBonus,
+        sagaMode, sessionId, apiBase, fetchWithAuth,
+    ]);
+
+    // ── Lancer les dés ────────────────────────────────────────────────────────
+    const handleRoll = useCallback(async () => {
+        if (rolling) return;
+        setRolling(true);
+        setDiceResults(null);
+        setError(null);
 
         try {
-            let engineResult;
+            const ctx      = buildCtx();
+            const notation = vikingsConfig.dice.buildNotation(ctx);
 
-            // ── Assurance ─────────────────────────────────────────────────────
-            if (sagaMode === 'insurance') {
-                engineResult = rollWithInsurance(ctx, vikingsConfig.dice);
-
-                // Dépenser SAGA immédiatement (avant animation)
-                onUpdate({ ...character, sagaActuelle: character.sagaActuelle - 1, sagaTotale: character.sagaTotale + 1 });
-
-                triggerAnimation(engineResult);
-                return;
+            // Dépenser les ressources AVANT roll() (UI optimiste)
+            if (sagaMode === 'insurance' || sagaMode === 'heroic' || sagaMode === 'epic') {
+                // Décrémente sagaActuelle immédiatement
+                onUpdate({ ...character, sagaActuelle: Math.max(0, character.sagaActuelle - 1) });
             }
-
-            // ── Jet normal ────────────────────────────────────────────────────
-            engineResult = roll(ctx, vikingsConfig.dice);
-
-            // Dépenser points compétence si succès auto
             if (rollType === 'skill' && selectedSkill && autoSuccesses > 0) {
+                // Dépense les points de compétence auto
                 const newSkills = character.skills.map(s =>
                     (s.name === selectedSkill.name && s.specialization === selectedSkill.specialization)
                         ? { ...s, currentPoints: Math.max(0, s.currentPoints - autoSuccesses) }
@@ -227,132 +158,99 @@ const DiceModal = ({ character, isBerserk, context, onClose, onUpdate, sessionId
                 );
             }
 
-            // ── Héroïque / Épique ─────────────────────────────────────────────
-            // Si le joueur a déclaré un mode Saga ET atteint 3 succès → phase 2
-            if ((sagaMode === 'heroic' || sagaMode === 'epic')
-                && character.sagaActuelle >= 1
-                && engineResult.result.successes >= 3) {
+            // roll() est async : gère animation + persist en interne
+            const result = await roll(notation, ctx, vikingsConfig.dice);
 
-                const finalTarget = sagaMode === 'heroic' ? 4 : 5;
-                triggerAnimation(engineResult, {
-                    isSagaPending: true,
-                    finalTarget,
-                    sagaMode,
-                });
-                return;
+            // SAGA : restituer 1 point si sagaSuccess
+            if (result.meta?.sagaSuccess) {
+                onUpdate({ ...character, sagaActuelle: character.sagaActuelle }); // déjà décrémenté + restitué = inchangé
             }
 
-            // Jet normal sans saga
-            triggerAnimation(engineResult);
+            setDiceResults(result);
+            context?.onRollComplete?.(result);
 
         } catch (err) {
             if (err instanceof RollError) {
-                setDiceResults({ error: true, message: err.message });
+                setError(err.message);
+                // Annuler la dépense si validation échouée
+                onUpdate({ ...character }); // re-passer le character original annule l'optimiste
             } else {
-                console.error('[DiceModal] handleRoll error:', err);
-                setDiceResults({ error: true, message: 'Erreur inattendue lors du jet.' });
+                console.error('[DiceModal]', err);
+                setError('Erreur inattendue lors du jet.');
             }
+        } finally {
             setRolling(false);
         }
-    };
+    }, [
+        rolling, buildCtx, sagaMode, rollType, selectedSkill, autoSuccesses,
+        character, onUpdate, context,
+    ]);
 
-    // ── Confirmation jet SAGA ─────────────────────────────────────────────────
-    const confirmSagaRoll = () => {
-        if (!showSagaConfirm) return;
+    // ── Rendu : résultats ────────────────────────────────────────────────────
+    if (diceResults) {
+        return <DiceResultsView
+            results={diceResults}
+            character={character}
+            onClose={onClose}
+            onRollAgain={() => { setDiceResults(null); setSagaMode(null); }}
+        />;
+    }
 
-        const { engineResult: baseEngineResult, finalTarget, sagaMode: mode } = showSagaConfirm;
-        setShowSagaConfirm(null);
-        setRolling(true);
-
-        try {
-            // Construire le contexte pour le jet bonus
-            const bonusCtx = {
-                ...baseEngineResult.result,
-                systemData: { sagaMode: mode },
-            };
-
-            const bonusEngineResult = rollSagaBonus(
-                baseEngineResult.result,
-                bonusCtx,
-                vikingsConfig.dice,
-                finalTarget
-            );
-
-            // Consommer ou récupérer Saga selon résultat
-            const sagaMeta = bonusEngineResult.result.meta;
-            if (sagaMeta.sagaSuccess) {
-                // Saga récupérée
-                onUpdate({ ...character, sagaActuelle: character.sagaActuelle });
-            } else {
-                // Saga perdue
-                onUpdate({ ...character, sagaActuelle: character.sagaActuelle - 1, sagaTotale: character.sagaTotale + 1 });
-            }
-
-            triggerAnimation(bonusEngineResult);
-
-        } catch (err) {
-            console.error('[DiceModal] confirmSagaRoll error:', err);
-            setRolling(false);
-        }
-    };
-
-    const cancelSagaRoll = () => {
-        if (!showSagaConfirm) return;
-        setDiceResults(showSagaConfirm.engineResult.result);
-        setShowSagaConfirm(null);
-    };
-
-    // ─── Render ───────────────────────────────────────────────────────────────
-    const caracOptions = ['force', 'agilite', 'perception', 'intelligence', 'charisme', 'chance'];
-
+    // ── Rendu : formulaire ────────────────────────────────────────────────────
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-            <div
-                className="bg-white dark:bg-viking-brown rounded-lg shadow-2xl max-w-2xl w-full border-4 border-viking-bronze max-h-[90vh] overflow-y-auto"
-                onClick={e => e.stopPropagation()}
-            >
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2"
+             onClick={onClose}>
+            <div className="bg-white dark:bg-viking-brown rounded-lg shadow-2xl max-w-lg w-full border-4 border-viking-bronze overflow-y-auto max-h-[90vh]"
+                 onClick={e => e.stopPropagation()}>
+
                 {/* Header */}
-                <div className="p-4 border-b-2 border-viking-bronze flex justify-between items-center sticky top-0 bg-white dark:bg-viking-brown z-10">
-                    <h3 className="text-lg font-viking font-bold text-viking-brown dark:text-viking-parchment">🎲 Lanceur de dés</h3>
-                    <button onClick={onClose} className="text-2xl text-viking-leather dark:text-viking-bronze hover:text-viking-danger">✕</button>
+                <div className="flex items-center justify-between p-4 border-b-2 border-viking-bronze">
+                    <h2 className="text-xl font-bold text-viking-brown dark:text-viking-parchment">🎲 Lancer les dés</h2>
+                    <button onClick={onClose} className="text-viking-leather dark:text-viking-bronze hover:text-viking-brown text-xl">✕</button>
                 </div>
 
                 <div className="p-4 space-y-4">
 
+                    {/* Erreur */}
+                    {error && (
+                        <div className="p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 rounded text-red-700 dark:text-red-300 text-sm">
+                            ⚠️ {error}
+                        </div>
+                    )}
+
                     {/* Type de jet */}
                     <div>
-                        <label className="block text-sm font-semibold text-viking-brown dark:text-viking-parchment mb-2">Type</label>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => setRollType('carac')}
-                                className={`flex-1 px-4 py-2 rounded text-sm font-semibold ${rollType === 'carac' ? 'bg-viking-bronze text-viking-brown' : 'bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment'}`}
-                            >Caractéristique</button>
-                            <button
-                                onClick={() => setRollType('skill')}
-                                className={`flex-1 px-4 py-2 rounded text-sm font-semibold ${rollType === 'skill' ? 'bg-viking-bronze text-viking-brown' : 'bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment'}`}
-                            >Compétence</button>
+                        <label className="block text-sm font-semibold text-viking-brown dark:text-viking-parchment mb-2">Type de jet</label>
+                        <div className="grid grid-cols-2 gap-2">
+                            {[
+                                { value: 'carac', label: 'Caractéristique' },
+                                { value: 'skill', label: 'Compétence' },
+                            ].map(({ value, label }) => (
+                                <button
+                                    key={value}
+                                    onClick={() => setRollType(value)}
+                                    className={`px-3 py-2 rounded text-sm font-semibold ${rollType === value ? 'bg-viking-bronze text-viking-brown' : 'bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment'}`}
+                                >
+                                    {label}
+                                </button>
+                            ))}
                         </div>
                     </div>
 
-                    {/* Sélection caractéristique */}
+                    {/* Sélection carac */}
                     {rollType === 'carac' && (
                         <div>
                             <label className="block text-sm font-semibold text-viking-brown dark:text-viking-parchment mb-2">Caractéristique</label>
                             <div className="grid grid-cols-3 gap-2">
-                                {caracOptions.map(carac => {
-                                    const level     = character[carac] || 2;
-                                    const explThres = getExplosionThreshold(level);
-                                    return (
-                                        <button
-                                            key={carac}
-                                            onClick={() => setSelectedCarac(carac)}
-                                            className={`px-2 py-2 rounded text-xs font-semibold ${selectedCarac === carac ? 'bg-viking-bronze text-viking-brown' : 'bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment'}`}
-                                        >
-                                            <div>{CARACNAMES[carac]}</div>
-                                            <div className="text-xs opacity-75">Niv.{level} — Exp:{explThres.join(',')}</div>
-                                        </button>
-                                    );
-                                })}
+                                {Object.entries(CARACNAMES).map(([key, name]) => (
+                                    <button
+                                        key={key}
+                                        onClick={() => setSelectedCarac(key)}
+                                        className={`px-2 py-1.5 rounded text-xs font-semibold ${selectedCarac === key ? 'bg-viking-bronze text-viking-brown' : 'bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment'}`}
+                                    >
+                                        {name} ({character[key] || 2})
+                                    </button>
+                                ))}
                             </div>
                         </div>
                     )}
@@ -361,90 +259,86 @@ const DiceModal = ({ character, isBerserk, context, onClose, onUpdate, sessionId
                     {rollType === 'skill' && (
                         <div>
                             <label className="block text-sm font-semibold text-viking-brown dark:text-viking-parchment mb-2">Compétence</label>
-                            <div className="max-h-40 overflow-y-auto space-y-1">
-                                {(character.skills || []).map((skill, idx) => {
-                                    const bestCarac = getBestCharacteristic(character, skill);
-                                    const threshold = getSuccessThreshold(skill.level);
-                                    const isSelected = selectedSkill?.name === skill.name
-                                        && selectedSkill?.specialization === skill.specialization;
-                                    return (
+                            <div className="grid grid-cols-1 gap-1 max-h-40 overflow-y-auto">
+                                {(character.skills || [])
+                                    .filter(s => s.level > 0)
+                                    .sort((a, b) => b.level - a.level)
+                                    .map((skill, i) => (
                                         <button
-                                            key={idx}
+                                            key={i}
                                             onClick={() => setSelectedSkill(skill)}
-                                            className={`w-full px-3 py-2 rounded text-xs text-left ${isSelected ? 'bg-viking-bronze text-viking-brown' : 'bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment'}`}
+                                            className={`px-3 py-1.5 rounded text-xs font-semibold text-left ${
+                                                selectedSkill?.name === skill.name && selectedSkill?.specialization === skill.specialization
+                                                    ? 'bg-viking-bronze text-viking-brown'
+                                                    : 'bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment'
+                                            }`}
                                         >
-                                            <span className="font-semibold">{formatSkillName(skill)}</span>
-                                            <span className="ml-2 opacity-75">Niv.{skill.level} — Seuil:{threshold}+ — {bestCarac.name}</span>
-                                            {skill.currentPoints > 0 && (
-                                                <span className="ml-2 text-viking-bronze">({skill.currentPoints} pts)</span>
-                                            )}
+                                            {formatSkillName(skill)} — seuil {getSuccessThreshold(skill.level)}+ / pts: {skill.currentPoints}/{skill.level}
                                         </button>
-                                    );
-                                })}
+                                    ))}
                             </div>
                         </div>
                     )}
 
-                    {/* Succès automatiques (compétence comme ressource) */}
+                    {/* Résumé jet */}
+                    <RollSummary
+                        character={character}
+                        rollType={rollType}
+                        selectedCarac={selectedCarac}
+                        selectedSkill={selectedSkill}
+                        traitAutoBonus={traitAutoBonus}
+                        activeConditionalBonuses={activeConditionalBonuses}
+                        autoSuccesses={autoSuccesses}
+                        isBerserk={isBerserk}
+                        sagaMode={sagaMode}
+                    />
+
+                    {/* Succès auto */}
                     {rollType === 'skill' && selectedSkill && selectedSkill.currentPoints > 0 && (
                         <div>
                             <label className="block text-sm font-semibold text-viking-brown dark:text-viking-parchment mb-2">
-                                Succès automatiques (max {selectedSkill.currentPoints} pts)
+                                Succès automatiques ({selectedSkill.currentPoints} pts disponibles)
                             </label>
-                            <div className="flex items-center gap-3">
-                                <button onClick={() => setAutoSuccesses(Math.max(0, autoSuccesses - 1))} className="px-3 py-1 bg-viking-leather text-white rounded">−</button>
-                                <span className="font-bold text-viking-brown dark:text-viking-parchment">{autoSuccesses}</span>
-                                <button onClick={() => setAutoSuccesses(Math.min(selectedSkill.currentPoints, autoSuccesses + 1))} className="px-3 py-1 bg-viking-leather text-white rounded">+</button>
+                            <div className="flex gap-2">
+                                {[0, 1, 2, 3].filter(n => n <= selectedSkill.currentPoints).map(n => (
+                                    <button
+                                        key={n}
+                                        onClick={() => setAutoSuccesses(n)}
+                                        className={`px-3 py-1.5 rounded text-sm font-semibold ${autoSuccesses === n ? 'bg-viking-bronze text-viking-brown' : 'bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment'}`}
+                                    >
+                                        {n}
+                                    </button>
+                                ))}
                             </div>
                         </div>
                     )}
 
-                    {/* Bonus automatiques */}
-                    {traitAutoBonus !== 0 && (
-                        <div>
-                            <label className="block text-sm font-semibold text-viking-brown dark:text-viking-parchment mb-2">
-                                Bonus automatiques (traits)
-                            </label>
-                            <div className={`p-3 rounded border-2 ${
-                                traitAutoBonus > 0
-                                    ? 'bg-viking-success/10 border-viking-success'
-                                    : 'bg-viking-danger/10 border-viking-danger'
-                            }`}>
-                                <div className={`text-sm font-semibold ${
-                                    traitAutoBonus > 0 ? 'text-viking-success' : 'text-viking-danger'
-                                }`}>
-                                    {traitAutoBonus > 0 ? '✓' : '✕'} {traitAutoBonus > 0 ? '+' : ''}{traitAutoBonus} succès
-                                </div>
-                                <div className="text-xs text-viking-text dark:text-viking-parchment opacity-75 mt-1">
-                                    Appliqué automatiquement selon vos traits/backgrounds
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Bonus conditionnels traits */}
+                    {/* Bonus traits conditionnels */}
                     {conditionalBonuses.length > 0 && (
                         <div>
-                            <label className="block text-sm font-semibold text-viking-brown dark:text-viking-parchment mb-2">Bonus situationnels (traits)</label>
+                            <label className="block text-sm font-semibold text-viking-brown dark:text-viking-parchment mb-2">Traits conditionnels</label>
                             <div className="space-y-1">
-                                {conditionalBonuses.map(cond => {
-                                    const isActive = activeConditionalBonuses.some(
-                                        b => b.name === cond.name && b.condition === cond.condition
-                                    );
+                                {conditionalBonuses.map((cond, i) => {
+                                    const isActive = activeConditionalBonuses.some(b => b.name === cond.name);
                                     return (
                                         <button
-                                            key={`${cond.name}-${cond.condition}`}
-                                            onClick={() => {
-                                                if (isActive) setActiveConditionalBonuses(prev => prev.filter(b => !(b.name === cond.name && b.condition === cond.condition)));
-                                                else setActiveConditionalBonuses(prev => [...prev, cond]);
-                                            }}
-                                            className={`w-full px-3 py-2 rounded text-sm text-left border-2 ${isActive ? 'bg-viking-bronze text-viking-brown border-viking-leather' : 'bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment border-viking-leather/30 dark:border-viking-bronze/30 hover:border-viking-bronze'}`}
+                                            key={i}
+                                            onClick={() => setActiveConditionalBonuses(prev =>
+                                                isActive
+                                                    ? prev.filter(b => b.name !== cond.name)
+                                                    : [...prev, cond]
+                                            )}
+                                            className={`w-full px-3 py-1.5 rounded text-xs text-left border-2 ${
+                                                isActive
+                                                    ? 'bg-viking-bronze text-viking-brown border-viking-leather'
+                                                    : 'bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment border-viking-leather/30 dark:border-viking-bronze/30 hover:border-viking-bronze'
+                                            }`}
                                         >
                                             <div className="font-semibold flex justify-between">
                                                 <span>{cond.name}</span>
                                                 <span className={isActive ? 'text-viking-leather' : 'text-viking-bronze'}>{cond.bonus > 0 ? '+' : ''}{cond.bonus}</span>
                                             </div>
-                                            <div className="text-xs opacity-75 mt-1">{cond.condition}</div>
+                                            <div className="text-xs opacity-75 mt-0.5">{cond.condition}</div>
                                         </button>
                                     );
                                 })}
@@ -459,10 +353,10 @@ const DiceModal = ({ character, isBerserk, context, onClose, onUpdate, sessionId
                         </label>
                         <div className="grid grid-cols-2 gap-2">
                             {[
-                                { value: null,        label: 'Normal',          icon: '' },
-                                { value: 'heroic',    label: '🔥 Héroïque (4)', icon: '' },
-                                { value: 'epic',      label: '⚡ Épique (5)',    icon: '' },
-                                { value: 'insurance', label: '🛡️ Assurance',   icon: '' },
+                                { value: null,        label: 'Normal' },
+                                { value: 'heroic',    label: '🔥 Héroïque (4)' },
+                                { value: 'epic',      label: '⚡ Épique (5)' },
+                                { value: 'insurance', label: '🛡️ Assurance' },
                             ].map(({ value, label }) => (
                                 <button
                                     key={String(value)}
@@ -478,150 +372,136 @@ const DiceModal = ({ character, isBerserk, context, onClose, onUpdate, sessionId
                             <div className="text-xs text-viking-leather dark:text-viking-bronze mt-2">
                                 {sagaMode === 'heroic'    && '3+ succès → dépense 1 SAGA → 3d10 bonus (seuil 7+). Si total ≥4 : SAGA revient.'}
                                 {sagaMode === 'epic'      && '3+ succès → dépense 1 SAGA → 3d10 bonus (seuil 7+). Si total ≥5 : SAGA revient.'}
-                                {sagaMode === 'insurance' && '1 SAGA perdue avant → 2 lancers, garde le meilleur.'}
+                                {sagaMode === 'insurance' && 'Deux jets → garde le meilleur. Dépense 1 SAGA.'}
                             </div>
                         )}
                     </div>
 
-                    {/* Résultats */}
-                    {diceResults && !diceResults.error && (
-                        <DiceResults results={diceResults} />
-                    )}
-
                     {/* Bouton lancer */}
-                    <div className="pt-2">
-                        {(!diceResults || diceResults.error || !context?.proceedButton) ? (
-                            <button
-                                onClick={handleRoll}
-                                disabled={rolling || (rollType === 'skill' && !selectedSkill)}
-                                className={`w-full py-3 rounded-lg font-bold text-lg ${
-                                    rolling || (rollType === 'skill' && !selectedSkill)
-                                        ? 'bg-gray-400 cursor-not-allowed'
-                                        : 'bg-viking-bronze hover:bg-viking-leather text-viking-brown'
-                                }`}
-                            >
-                                {rolling ? '🎲 Lancer...' : '🎲 Lancer !'}
-                            </button>
-                        ) : context?.proceedButton ? (
-                            <button
-                                onClick={context.proceedButton.onClick}
-                                className="w-full py-3 rounded-lg font-bold text-lg bg-viking-danger hover:bg-red-700 text-white"
-                            >
-                                {context.proceedButton.label}
-                            </button>
-                        ) : null}
-                    </div>
-                    {context?.proceedButton && diceResults && (
-                        <button
-                            onClick={context.proceedButton.onClick}
-                            className="w-full mt-2 px-4 py-2 bg-viking-danger text-white rounded font-semibold hover:bg-red-700"
-                        >
-                            {context.proceedButton.label}
-                        </button>
-                    )}
+                    <button
+                        onClick={handleRoll}
+                        disabled={rolling || (rollType === 'skill' && !selectedSkill)}
+                        className="w-full py-3 rounded-lg font-bold text-base bg-viking-bronze text-viking-brown hover:bg-viking-leather hover:text-viking-parchment disabled:opacity-50 transition-all"
+                    >
+                        {rolling ? '⏳ Lancer…' : '🎲 Lancer les dés'}
+                    </button>
+
                 </div>
-
-                {/* Modal confirmation SAGA */}
-                {showSagaConfirm && (
-                    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60]" onClick={cancelSagaRoll}>
-                        <div className="bg-white dark:bg-viking-brown rounded-lg shadow-2xl max-w-md w-full border-4 border-viking-bronze p-6 m-4" onClick={e => e.stopPropagation()}>
-                            <h3 className="text-xl font-bold text-viking-brown dark:text-viking-parchment mb-4">
-                                {showSagaConfirm.sagaMode === 'heroic' ? '🔥 Jet Héroïque' : '⚡ Jet Épique'}
-                            </h3>
-                            <div className="space-y-3 text-sm text-viking-text dark:text-viking-parchment">
-                                <p>Vous avez obtenu <span className="font-bold text-viking-bronze">{showSagaConfirm.engineResult.result.successes} succès</span>.</p>
-                                <p>Voulez-vous dépenser <span className="font-bold text-viking-bronze">1 point de SAGA</span> pour lancer 3d10 bonus (seuil 7+) ?</p>
-                                <p className="text-xs text-viking-leather dark:text-viking-bronze">Objectif : {showSagaConfirm.finalTarget} succès total. Si réussi, SAGA revient.</p>
-                            </div>
-                            <div className="flex gap-3 mt-6">
-                                <button onClick={cancelSagaRoll} className="flex-1 px-4 py-2 bg-gray-500 text-white rounded font-semibold">Non</button>
-                                <button onClick={confirmSagaRoll} className="flex-1 px-4 py-2 bg-viking-bronze text-viking-brown rounded font-semibold hover:bg-viking-leather">Oui, dépenser SAGA</button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Overlay animation 3D */}
-                {animationData && (
-                    <DiceAnimationOverlay
-                        animationSequence={animationData.animationSequence}
-                        onComplete={handleAnimationComplete}
-                        onSkip={handleAnimationComplete}
-                    />
-                )}
             </div>
         </div>
     );
 };
 
-// ─── Sous-composant : affichage des résultats ─────────────────────────────────
+// ─── Résumé pré-jet ───────────────────────────────────────────────────────────
+const RollSummary = ({
+                         character, rollType, selectedCarac, selectedSkill,
+                         traitAutoBonus, activeConditionalBonuses, autoSuccesses, isBerserk, sagaMode,
+                     }) => {
 
-const DiceResults = ({ results }) => {
-    const { detail, successes, meta, flags } = results;
-    if (!detail) return null;
+    const caracLevel = rollType === 'carac'
+        ? (character[selectedCarac] || 2)
+        : (selectedSkill ? getBestCharacteristic(character, selectedSkill).level : 2);
 
-    const isInsurance = !!meta?.keptRoll;
-    const hasSagaBonus = meta?.bonusRoll != null;
+    const blessureMalus  = isBerserk ? 0 : getBlessureMalus(character.tokensBlessure);
+    const fatigueMalus   = character.traits?.some(t => t.name === 'Infatigable')
+        ? 0 : getFatigueMalus(character.tokensFatigue);
+    const pool           = Math.max(1, 3 - blessureMalus);
+    const threshold      = rollType === 'skill' && selectedSkill
+        ? getSuccessThreshold(selectedSkill.level) : 7;
+    const explodeMin     = getExplosionThreshold(caracLevel)[0];
+    const activeCondSum  = activeConditionalBonuses.reduce((s, b) => s + b.bonus, 0);
+    const bonusTotal     = traitAutoBonus + activeCondSum + (isBerserk ? 2 : 0);
 
     return (
-        <div className="p-4 bg-viking-parchment dark:bg-gray-800 rounded-lg border-2 border-viking-bronze space-y-3">
+        <div className="bg-viking-parchment/50 dark:bg-gray-800/50 rounded p-3 text-xs text-viking-leather dark:text-viking-bronze space-y-1">
+            <div>Dés : <strong>{pool}d10</strong> — explosion {explodeMin}+ — succès {threshold}+</div>
+            {bonusTotal !== 0 && <div>Bonus traits : <strong>{bonusTotal > 0 ? '+' : ''}{bonusTotal}</strong></div>}
+            {autoSuccesses > 0 && <div>Succès auto : <strong>+{autoSuccesses}</strong></div>}
+            {fatigueMalus > 0  && <div>Malus fatigue : <strong>-{fatigueMalus}</strong></div>}
+            {blessureMalus > 0 && <div>Malus blessure : <strong>-{blessureMalus} dé(s)</strong></div>}
+            {sagaMode          && <div>Mode : <strong>{sagaMode == 'insurance' ? 'Assurance' : (sagaMode == 'epic' ? 'Épique' : (sagaMode == 'heroic' ? 'Héroïque' : sagaMode))}</strong> — 1 point SAGA dépensé</div>}
+        </div>
+    );
+};
 
-            {/* Assurance : affiche les 2 pools */}
-            {isInsurance && meta.secondRoll ? (
-                <>
-                    <div className="text-xs font-semibold mb-2 text-viking-brown dark:text-viking-parchment">🛡️ Assurance : 2 lancers</div>
-                    {(() => {
-                        // results = kept, meta.secondRoll = discarded
-                        // On remet dans l'ordre chronologique : jet1 et jet2
-                        const jet1 = meta.keptRoll === 1 ? results : meta.secondRoll;
-                        const jet2 = meta.keptRoll === 2 ? results : meta.secondRoll;
-                        return [jet1, jet2].map((r, i) => {
-                            const isKept = meta.keptRoll === (i + 1);
+// ─── Vue résultats ────────────────────────────────────────────────────────────
+const DiceResultsView = ({ results, character, onClose, onRollAgain }) => {
+    const { detail, meta, successes, allDice, flags } = results;
+    const threshold = detail?.threshold ?? 7;
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2"
+             onClick={onClose}>
+            <div className="bg-white dark:bg-viking-brown rounded-lg shadow-2xl max-w-sm w-full border-4 border-viking-bronze p-4"
+                 onClick={e => e.stopPropagation()}>
+
+                <h3 className="text-lg font-bold text-viking-brown dark:text-viking-parchment mb-3">
+                    🎲 Résultat
+                </h3>
+
+
+                <div className="p-4 bg-viking-parchment dark:bg-gray-800 rounded-lg border-2 border-viking-bronze space-y-3">
+                    {meta?.keptGroup != null ? (
+                        // ── Assurance : deux jets séparés ────────────────────────────
+                        [allDice.slice(0, detail.pool), meta.secondaryValues ?? []].map((groupValues, gi) => {
+                            const isKept = meta.keptGroup === gi;
                             return (
-                                <div key={i} className={`p-2 rounded ${isKept ? 'bg-viking-success/20 border-2 border-viking-success' : 'opacity-50'}`}>
+                                <div key={gi} className={`p-2 rounded ${isKept ? 'bg-viking-success/20 border-2 border-viking-success' : 'opacity-50'}`}>
                                     <div className="text-xs font-semibold mb-1 text-viking-brown dark:text-viking-parchment">
-                                        Jet {i + 1} : {r.successes} succès {isKept && '✅ GARDÉ'}
+                                        Jet {gi + 1} : {groupValues.filter(v => v >= detail.threshold).length} succès {isKept && '✅ GARDÉ'}
                                     </div>
-                                    <DiceRow dice={r.allDice || []} threshold={detail.threshold} explosionThresholds={detail.explosionThresholds} />
+                                    <DiceRow dice={groupValues} threshold={detail.threshold} explosionThresholds={detail.explosionThresholds} />
                                 </div>
                             );
-                        });
-                    })()}
-                </>
-            ) : (
-                <>
-                    <div className="text-xs font-semibold mb-2 text-viking-brown dark:text-viking-parchment">Dés lancés :</div>
-                    <DiceRow dice={results.allDice} threshold={detail.threshold} explosionThresholds={detail.explosionThresholds} />
-                </>
-            )}
+                        })
+                    ) : meta?.sagaValues?.length > 0 && !meta?.sagaFailed ? (
+                        // ── SAGA : jet principal + jet bonus séparés ─────────────────
+                        <>
+                            <div className="text-xs font-semibold mb-2 text-viking-brown dark:text-viking-parchment">Jet principal</div>
+                            <DiceRow dice={allDice.slice(0, detail.pool + (flags?.exploded?.length ?? 0))} threshold={threshold} explosionThresholds={detail.explosionThresholds} />
 
-            {/* Jet bonus SAGA */}
-            {hasSagaBonus && meta.bonusRoll && (
-                <div className="mt-2 p-2 bg-amber-100 dark:bg-amber-900/30 rounded border border-amber-400">
-                    <div className="text-xs font-semibold mb-1 text-amber-700 dark:text-amber-300">
-                        ✨ Jet SAGA bonus : {meta.bonusSuccesses} succès
-                    </div>
-                    <DiceRow dice={meta.bonusRoll.allDice || []} threshold={7} explosionThresholds={[10]} />
-                    {meta.failReason && (
-                        <div className="text-xs text-viking-danger mt-1">{meta.failReason}</div>
+                            <div className="mt-2 p-2 bg-amber-100 dark:bg-amber-900/30 rounded border border-amber-400">
+                                <div className="text-xs font-semibold mb-1 text-amber-700 dark:text-amber-300">
+                                    Jet SAGA {meta.finalTarget === 5 ? 'Épique' : 'Héroïque'} : {meta.bonusSuccesses} succès
+                                </div>
+                                <DiceRow dice={meta.sagaValues} threshold={7} explosionThresholds={[10]} />
+                                {meta.failReason && (
+                                    <div className="text-xs text-viking-danger mt-1">{meta.failReason}</div>
+                                )}
+                            </div>
+                        </>
+
+                    ) : (
+                        // ── Jet normal : flat ─────────────────────────────────────────
+                        <>
+                            <DiceRow dice={allDice} threshold={threshold} explosionThresholds={detail.explosionThresholds} />
+                        </>
                     )}
                 </div>
-            )}
 
-            {/* Total succès */}
-            <div className="text-center pt-2 border-t border-viking-bronze/30">
-                <div className="text-2xl font-bold text-viking-brown dark:text-viking-parchment">
-                    {successes} succès
-                </div>
-                {detail && (
-                    <div className="text-xs text-viking-leather dark:text-viking-bronze mt-1 space-y-0.5">
-                        <div>Base : {detail.baseSuccesses} | Auto : {detail.autoSuccesses} | Traits : {detail.traitBonus > 0 ? '+' : ''}{detail.traitBonus}</div>
-                        {detail.fatigueMalus > 0 && <div>Malus fatigue : −{detail.fatigueMalus}</div>}
-                        {detail.blessureMalus > 0 && <div>Malus blessure : −{detail.blessureMalus} dés</div>}
-                        <div>Seuil : {detail.threshold}+ | Pool : {detail.pool}d10</div>
-                        {detail.rollTarget && <div>Cible : {detail.rollTarget}</div>}
+                <div className="text-center pt-2 border-t border-viking-bronze/30">
+                    <div className="text-2xl font-bold text-viking-brown dark:text-viking-parchment">
+                        {successes} succès
                     </div>
-                )}
+                    {detail && (
+                        <div className="text-xs text-viking-leather dark:text-viking-bronze mt-1 space-y-0.5">
+                            <div>Base : {detail.baseSuccesses} | Auto : {detail.autoSuccesses} | Traits : {detail.traitBonus > 0 ? '+' : ''}{detail.traitBonus}</div>
+                            {detail.fatigueMalus > 0 && <div>Malus fatigue : −{detail.fatigueMalus}</div>}
+                            {detail.blessureMalus > 0 && <div>Malus blessure : −{detail.blessureMalus} dés</div>}
+                            <div>Seuil : {detail.threshold}+ | Explosion: {detail.explosionThresholds[0]}+ | Pool : {detail.pool}d10</div>
+                            {detail.rollTarget && <div>Cible : {detail.rollTarget}</div>}
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex gap-2">
+                    <button onClick={onRollAgain} className="flex-1 py-2 rounded bg-viking-bronze text-viking-brown font-semibold text-sm hover:bg-viking-leather hover:text-viking-parchment">
+                        Relancer
+                    </button>
+                    <button onClick={onClose} className="flex-1 py-2 rounded bg-gray-200 dark:bg-gray-700 text-viking-brown dark:text-viking-parchment font-semibold text-sm">
+                        Fermer
+                    </button>
+                </div>
             </div>
         </div>
     );

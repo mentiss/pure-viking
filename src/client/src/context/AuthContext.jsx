@@ -22,6 +22,13 @@ export const AuthProvider = ({ children }) => {
         return `/api/${getSystemFromPath()}/auth`;
     }
 
+    function isGMPath() {
+        // /:slug/gm → true, tout le reste → false
+        const parts = window.location.pathname.split('/').filter(Boolean);
+        console.log(parts, parts[1] === 'gm');
+        return parts[1] === 'gm';
+    }
+
     // ─── Login ───────────────────────────────────────────────────────────────
 
     const login = async (code, characterUrl) => {
@@ -41,7 +48,7 @@ export const AuthProvider = ({ children }) => {
             const data = await response.json();
             setAccessToken(data.accessToken);
             setUser({ character: data.character, isGM: data.character.id === -1 });
-            localStorage.setItem('currentCharacterId', data.character.id);
+            localStorage.setItem(`currentCharacterId_${getSystemFromPath()}`, data.character.id);
 
             return data.character;
         } catch (error) {
@@ -58,7 +65,9 @@ export const AuthProvider = ({ children }) => {
         try {
             const response = await fetch(`${authBase()}/refresh`, {
                 method: 'POST',
-                credentials: 'include'
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isGM: isGMPath() })
             });
 
             if (response.ok) {
@@ -107,7 +116,7 @@ export const AuthProvider = ({ children }) => {
         }
         setUser(null);
         setAccessToken(null);
-        localStorage.removeItem('currentCharacterId');
+        localStorage.removeItem(`currentCharacterId_${getSystemFromPath()}`);
     };
 
     return (

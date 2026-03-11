@@ -11,18 +11,16 @@ const {
     generateJWT,
     generateRefreshToken,
     checkRefreshToken,
-    deleteRefreshToken
+    deleteRefreshToken,
 } = require('../utils/jwt');
+const {
+    getController,
+    cookieName,
+    resolveRefreshToken,
+    cookieOptions,
+} = require("../utils/auth");
 
-// ─── Helper : loadFullCharacter dynamique selon le système ──────────────────
-// On charge le controller du système pour avoir le bon loadFullCharacter.
-function getController(req) {
-    const { loadFullCharacter } = require(`../systems/${req.system.slug}/CharacterController`);
-    return { loadFullCharacter };
-}
-
-// ─── POST /api/:system/auth/login ────────────────────────────────────────────
-
+// ─── POST /api/:system/auth/login ─────────────────────────────────────────────
 router.post('/login', loginRateLimiter, (req, res) => {
     try {
         const db = req.db;
@@ -41,15 +39,11 @@ router.post('/login', loginRateLimiter, (req, res) => {
         db.prepare('UPDATE characters SET login_attempts = 0 WHERE id = ?').run(char.id);
 
         const isGM = char.id === -1;
-        const accessToken = generateJWT({ characterId: char.id, isGM });
+        const accessToken  = generateJWT({ characterId: char.id, isGM });
         const refreshToken = generateRefreshToken(char.id, db);
 
-        res.cookie('refreshToken', refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            maxAge: 30 * 24 * 60 * 60 * 1000
-        });
+        // Cookie scopé par slug + rôle — pas de collision entre onglets
+        res.cookie(cookieName(req.system.slug, isGM), refreshToken, cookieOptions());
 
         const { loadFullCharacter } = getController(req);
         const fullCharacter = loadFullCharacter(db, char.id);
@@ -61,14 +55,16 @@ router.post('/login', loginRateLimiter, (req, res) => {
     }
 });
 
-// ─── POST /api/:system/auth/refresh ──────────────────────────────────────────
+// ─── POST /api/:system/auth/refresh ───────────────────────────────────────────
 
 router.post('/refresh', (req, res) => {
     try {
-        const refreshToken = req.cookies?.refreshToken;
-        if (!refreshToken) return res.status(401).json({ error: 'No refresh token provided' });
+        const resolved = resolveRefreshToken(req);
+        if (!resolved) return res.status(401).json({ error: 'No refresh token provided' });
 
+        const { token: refreshToken, isGM } = resolved;
         const db = req.db;
+
         const tokenData = checkRefreshToken(refreshToken, db);
         if (!tokenData) return res.status(401).json({ error: 'Invalid or expired refresh token' });
 
@@ -78,7 +74,6 @@ router.post('/refresh', (req, res) => {
             return res.status(401).json({ error: 'Character not found' });
         }
 
-        const isGM = char.id === -1;
         const accessToken = generateJWT({ characterId: char.id, isGM });
 
         res.json({ accessToken });
@@ -88,13 +83,15 @@ router.post('/refresh', (req, res) => {
     }
 });
 
-// ─── POST /api/:system/auth/logout ───────────────────────────────────────────
+// ─── POST /api/:system/auth/logout ────────────────────────────────────────────
 
 router.post('/logout', (req, res) => {
     try {
-        const refreshToken = req.cookies?.refreshToken;
-        if (refreshToken) deleteRefreshToken(refreshToken, req.db);
-        res.clearCookie('refreshToken');
+        const resolved = resolveRefreshToken(req);
+        if (resolved) {
+            deleteRefreshToken(resolved.token, req.db);
+            res.clearCookie(cookieName(req.system.slug, resolved.isGM));
+        }
         res.json({ success: true });
     } catch (error) {
         console.error('Logout error:', error);
@@ -102,7 +99,7 @@ router.post('/logout', (req, res) => {
     }
 });
 
-// ─── GET /api/:system/auth/me ────────────────────────────────────────────────
+// ─── GET /api/:system/auth/me ─────────────────────────────────────────────────
 
 router.get('/me', authenticate, (req, res) => {
     try {

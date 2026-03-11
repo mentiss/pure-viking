@@ -10,6 +10,7 @@ import { useFetch }         from '../hooks/useFetch.js';
 import { usePlayerSession } from '../hooks/usePlayerSession.js';
 import CharacterListModal   from '../components/modals/CharacterListModal.jsx';
 import CodeModal            from '../components/modals/CodeModal.jsx';
+import DiceAnimationOverlay from "../components/shared/DiceAnimationOverlay.jsx";
 
 const SHEETS    = import.meta.glob('../systems/*/Sheet.jsx');
 const CREATIONS = import.meta.glob('../systems/*/Creation.jsx');
@@ -47,6 +48,7 @@ const PlayerPage = () => {
 
         const resolve = async () => {
             // 1. Token valide — utilisateur déjà connecté
+            console.log(user, user.character);
             if (user?.character) {
                 if (!accessUrl || user.character.accessUrl === accessUrl) {
                     if (!cancelled) {
@@ -242,6 +244,7 @@ const PlayerPage = () => {
                     darkMode={darkMode}
                     onToggleDarkMode={onToggleDarkMode}
                 />
+                <DiceAnimationOverlay />
             </Suspense>
 
             {/* CodeModal disponible en mode playing aussi (changer de perso depuis Sheet) */}

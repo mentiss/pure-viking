@@ -2,262 +2,257 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Orchestrateur générique du moteur de dés.
 // Agnostique à tout système de jeu — la logique métier est dans les hooks
-// déclarés par chaque système dans src/client/src/systems/:slug/config.js
+// déclarés par chaque système dans src/client/src/systems/:slug/config.jsx
 //
-// Flux d'un roll standard :
-//   1. hooks.beforeRoll(ctx)                    → validation + enrichissement contexte
-//   2. hooks.buildRollParams(ctx)               → { pool, explosionThresholds, threshold, diceType }
-//   3. _executeRoll(params)                     → DiceRoll lib (vagues + résultats bruts)
-//   4. hooks.afterRoll(raw, ctx)                → interprétation résultat (succès, total, flags)
-//   5. hooks.buildAnimationSequence(raw, ctx)   → structure pour DiceAnimationOverlay
+// Flux d'un roll :
+//   1. hooks.beforeRoll(ctx)                          → validation + enrichissement
+//   2. _executeGroups(notation)                       → raw (groupes + allDice + flags)
+//   3. hooks.afterRoll(raw, ctx)                      → result (interprétation slug)
+//   4. hooks.buildAnimationSequence(raw, ctx, result) → AnimationSequence | null
+//   5. diceAnimBridge.play(seq)                       → [await] animation
+//   6. POST apiBase/dice/roll                         → persist (si persistHistory !== false)
+//   7. return result
 //
+// Principes :
+//   - Pas de defaults métier (pas de d10, threshold 7, explosion 10).
+//   - buildNotation N'EST PAS un hook moteur — c'est une fonction du slug,
+//     appelée par le composant AVANT de passer la notation à roll().
+//   - rollWithInsurance et rollSagaBonus sont supprimés — remplacés par
+//     la notation tableau (N groupes).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { DiceRoll } from '@dice-roller/rpg-dice-roller';
-import { countSuccesses } from './utils.js';
+import { diceAnimBridge } from './diceAnimBridge.js';
+import { readDiceConfig } from '../components/modals/DiceConfigModal.jsx';
 
 // ─── Erreur métier ────────────────────────────────────────────────────────────
 
 export class RollError extends Error {
     constructor(code, message) {
         super(message);
-        this.name = 'RollError';
-        this.code = code;
+        this.name  = 'RollError';
+        this.code  = code;
     }
 }
 
 // ─── Hooks par défaut (no-op) ─────────────────────────────────────────────────
 
 const DEFAULT_HOOKS = {
+    /** Passe ctx tel quel — validation optionnelle par le slug */
     beforeRoll: (ctx) => ctx,
 
-    buildRollParams: (ctx) => {
-        const sd = ctx.systemData || {};
-        return {
-            pool:                sd.pool ?? 3,
-            explosionThresholds: sd.explosionThresholds ?? [10],
-            threshold:           sd.threshold ?? 7,
-            diceType:            sd.diceType ?? 'd10',
-        };
-    },
-
+    /**
+     * Retourne raw sans interprétation.
+     * Un slug à succès devra surcharger pour compter ses succès.
+     * Un slug D&D utilisera raw.groups[0].total.
+     */
     afterRoll: (raw, _ctx) => ({
-        allDice:   raw.allDice,
-        successes: raw.successes,
-        total:     raw.total,
-        outcome:   null,
-        flags:     raw.flags,
-        detail:    null,
-        meta: {
-            autoSuccesses:  0,
-            resourceSpent:  0,
-            resourceGained: 0,
-            secondRoll:     null,
-            keptRoll:       null,
-        },
+        allDice: raw.allDice,
+        groups:  raw.groups,
+        flags:   raw.flags,
     }),
 
-    buildAnimationSequence: (raw, ctx) => ({
+    /**
+     * Séquence d'animation par défaut : un groupe par entrée dans raw.groups.
+     * diceType inféré depuis la notation du groupe.
+     */
+    buildAnimationSequence: (raw, ctx, _result) => ({
         mode: 'single',
-        groups: [{
-            id:       'main',
-            diceType: raw.diceType,
+        groups: raw.groups.map((g, i) => ({
+            id:       `group-${i}`,
+            diceType: _inferDiceType(g.notation),
             color:    'default',
-            label:    ctx.label || 'Jet',
-            waves:    raw.waves,
-        }],
-        insuranceData: null,
+            label:    ctx.label || g.notation,
+            waves:    [{ dice: g.values }],
+        })),
     }),
+
+    /** null → rendu générique dans HistoryPanel */
+    renderHistoryEntry: (_entry) => null,
 };
 
 // ─── API publique ─────────────────────────────────────────────────────────────
 
-export function roll(ctx, hooks) {
+/**
+ * Lance un ou plusieurs groupes de dés, anime et persiste.
+ *
+ * @param {string | string[]} notation  - Notation(s) rpg-dice-roller.
+ *                                        string = 1 groupe, string[] = N groupes.
+ * @param {object}            ctx       - Contexte complet du jet (voir spec).
+ * @param {object}            [hooks]   - Hooks slug (beforeRoll, afterRoll, ...).
+ * @returns {Promise<object>}             result produit par afterRoll.
+ */
+export async function roll(notation, ctx, hooks = {}) {
     const h = { ...DEFAULT_HOOKS, ...hooks };
+
+    // 1. Validation + enrichissement
     const enrichedCtx = h.beforeRoll(ctx);
-    const params      = h.buildRollParams(enrichedCtx);
-    const raw         = _executeRoll(params);
-    const result      = h.afterRoll(raw, enrichedCtx);
-    const animationSequence = h.buildAnimationSequence(raw, enrichedCtx);
-    const notation    = _buildNotationString(params);
-    return { result, animationSequence, notation };
+
+    // 2. Exécution des dés (synchrone)
+    const raw = _executeGroups(notation);
+
+    // 3. Interprétation slug
+    const result = h.afterRoll(raw, enrichedCtx);
+
+    // 4. Animation
+    const animSeq = h.buildAnimationSequence(raw, enrichedCtx, result);
+    const { animationEnabled } = readDiceConfig();
+
+    if (animSeq && animationEnabled !== false) {
+        await diceAnimBridge.play(animSeq);
+    }
+
+    // 5. Persist historique (défaut : true)
+    if (enrichedCtx.persistHistory !== false) {
+        await _persistRoll(notation, enrichedCtx, result);
+    }
+
+    return result;
 }
 
-export function rollWithInsurance(ctx, hooks) {
-    const h = { ...DEFAULT_HOOKS, ...hooks };
-    const enrichedCtx = h.beforeRoll(ctx);
-    const params      = h.buildRollParams(enrichedCtx);
-
-    const raw1 = _executeRoll(params);
-    const raw2 = _executeRoll(params);
-
-    const result1 = h.afterRoll(raw1, enrichedCtx);
-    const result2 = h.afterRoll(raw2, enrichedCtx);
-
-    const score1   = result1.successes ?? result1.total ?? 0;
-    const score2   = result2.successes ?? result2.total ?? 0;
-    const keptRoll = score1 >= score2 ? 1 : 2;
-    const kept     = keptRoll === 1 ? result1 : result2;
-    const discarded = keptRoll === 1 ? result2 : result1;
-
-    const result = {
-        ...kept,
-        meta: { ...kept.meta, secondRoll: discarded, keptRoll },
-    };
-
-    const animationSequence = {
-        mode: 'insurance',
-        groups: null,
-        insuranceData: {
-            groups1: h.buildAnimationSequence(raw1, enrichedCtx).groups,
-            groups2: h.buildAnimationSequence(raw2, enrichedCtx).groups,
-            keptRoll,
-        },
-    };
-
-    return { result, animationSequence, notation: _buildNotationString(params) };
-}
-
-export function rollSagaBonus(baseResult, ctx, hooks, finalTarget) {
-    const h = { ...DEFAULT_HOOKS, ...hooks };
-
-    const bonusParams = { pool: 3, explosionThresholds: [10], threshold: 7, diceType: 'd10' };
-    const raw         = _executeRoll(bonusParams);
-    const bonusResult = h.afterRoll(raw, { ...ctx, _isSagaBonus: true });
-
-    const bonusSuccesses = bonusResult.successes ?? 0;
-    const totalSuccesses = (baseResult.successes ?? 0) + bonusSuccesses;
-    const meetsTarget        = totalSuccesses >= finalTarget;
-    const hasMinBonusSuccess = bonusSuccesses >= 1;
-    const sagaSuccess        = meetsTarget && hasMinBonusSuccess;
-
-    const result = {
-        ...baseResult,
-        successes: totalSuccesses,
-        meta: {
-            ...baseResult.meta,
-            bonusRoll:      { ...bonusResult, allDice: raw.allDice, waves: raw.waves },
-            bonusSuccesses,
-            sagaSuccess,
-            resourceSpent:  1,
-            resourceGained: sagaSuccess ? 1 : 0,
-            failReason: !hasMinBonusSuccess
-                ? 'Aucun succès sur le jet SAGA'
-                : !meetsTarget
-                    ? `Total insuffisant (${totalSuccesses}/${finalTarget})`
-                    : null,
-        },
-    };
-
-    const animationSequence = {
-        mode: 'single',
-        groups: [{
-            id:       'saga_bonus',
-            diceType: 'd10',
-            color:    'saga',
-            label:    `Jet ${ctx.systemData?.declaredMode === 'epic' ? 'Épique' : 'Héroïque'} — SAGA`,
-            waves:    raw.waves,
-        }],
-        insuranceData: null,
-    };
-
-    return { result, animationSequence, notation: '3d10!>=10>=7' };
-}
-
-// ─── Engine : DiceRoll ───────────────────────────────────────────────────────
-// On utilise DiceRoll (pas DiceRoller) — on veut juste roller, pas sauvegarder
-// l'historique. DiceRoll.rolls[0] = premier groupe de dés, dont .rolls contient
-// les RollResult individuels avec .value et .modifiers.
-
-function _executeRoll({ pool, explosionThresholds, threshold, diceType = 'd10' }) {
-    const notation = _buildNotationString({ pool, explosionThresholds, threshold, diceType });
-    const diceRoll = new DiceRoll(notation);
-
-    // diceRoll.rolls[0] = premier groupe (le "3d10" de la notation)
-    // diceRoll.rolls[0].rolls = tableau des RollResult individuels
-    const rollGroup = diceRoll.rolls[0];
-    const results   = rollGroup?.rolls ?? [];
-
-    // Tableau plat de toutes les valeurs (explosions incluses)
-    const allDice = results.map(r => r.value);
-
-    // Reconstruction des vagues pour l'animation
-    const waves = _buildWaves(results, pool, explosionThresholds);
-
-    // Succès = dés >= threshold (déjà calculé par la lib via le compare point de la notation,
-    // mais on le recalcule nous-mêmes pour être indépendants du format de retour)
-    const successes = countSuccesses(allDice, threshold);
-
-    const exploded = results
-        .filter(r => r.modifiers?.has('explode') || r.modifiers?.includes?.('explode'))
-        .map(r => r.value);
-
-    return {
-        allDice,
-        waves,
-        diceType,
-        successes,
-        total: null,
-        flags: {
-            exploded,
-            botched:  results.some(r => r.modifiers?.has?.('failure') || r.modifiers?.includes?.('failure')),
-            critical: false,
-        },
-    };
-}
+// ─── Exécution interne ────────────────────────────────────────────────────────
 
 /**
- * Reconstruit les vagues à partir des RollResult rpg-dice-roller.
- *
- * rpg-dice-roller liste les résultats à plat dans l'ordre :
- *   [dé1, dé2, dé3, explosion_de_dé2, explosion_de_explosion_de_dé2, ...]
- *
- * On reconstitue les vagues en suivant qui a explosé à chaque vague :
- *   - Vague 0 : les `pool` premiers dés
- *   - Vague N : les dés générés par les explosions de la vague N-1
- *
- * @param {RollResult[]} results           - diceRoll.rolls[0].rolls
- * @param {number}       pool              - nombre de dés initiaux
- * @param {number[]}     explosionThresholds - valeurs qui explosent
+ * Exécute la (les) notation(s) et retourne le raw.
+ * @param {string | string[]} notation
+ * @returns {object} raw
  */
-function _buildWaves(results, pool, explosionThresholds) {
-    if (!results.length) return [{ wave: 0, dice: [] }];
+function _executeGroups(notation) {
+    const notations = Array.isArray(notation) ? notation : [notation];
 
-    const waves = [];
-    let idx = 0;
+    const groups = notations.map((n) => {
+        const diceRoll  = new DiceRoll(n);
+        const rollGroup = diceRoll.rolls[0];
+        const rollItems = rollGroup?.rolls ?? [];
 
-    // Vague 0 : les `pool` premiers résultats
-    const wave0 = results.slice(0, pool);
-    waves.push({ wave: 0, dice: wave0.map(r => r.value) });
-    idx = pool;
+        // Extraire uniquement les faces de dés (pas les modificateurs arithmétiques)
+        const diceItems = rollItems.filter(_isDiceResult);
+        const values    = diceItems.map(r => r.value);
+        const total     = diceRoll.total;            // total lib (dés + modificateurs arith.)
+        //const waves     = _buildWaves(diceItems);
 
-    // Vagues suivantes : autant de dés que d'explosions dans la vague précédente
-    let prevWave = wave0;
-    let waveIndex = 1;
+        return { notation: n, values, total, rollItems: diceItems };
+    });
 
-    while (idx < results.length) {
-        // Nombre d'explosions dans la vague précédente = nombre de dés de la vague suivante
-        const explosionCount = prevWave.filter(r =>
-            explosionThresholds.includes(r.value)
-        ).length;
+    // allDice = concat de toutes les faces de dés de tous les groupes
+    const allDice = groups.flatMap(g => g.values);
 
-        if (explosionCount === 0) break; // Sécurité
+    // Reconstruction correcte des explodés : on cherche dans les items rpg-dice-roller
+    const allRollItems = groups.flatMap(g => {
+        const dr = new DiceRoll(g.notation);
+        return dr.rolls[0]?.rolls ?? [];
+    });
 
-        const waveResults = results.slice(idx, idx + explosionCount);
-        waves.push({ wave: waveIndex, dice: waveResults.map(r => r.value) });
+    // Flags globaux
+    const flags = {
+        exploded: allRollItems
+            .filter(r => _isDiceResult(r) && _isExploded(r))
+            .map(r => r.value),
+    };
 
-        prevWave = waveResults;
-        idx += explosionCount;
-        waveIndex++;
+    flags.exploded = allRollItems
+        .filter(r => _isDiceResult(r) && _isExploded(r))
+        .map(r => r.value);
+
+    return { groups, allDice, flags };
+}
+
+// ─── Persist ──────────────────────────────────────────────────────────────────
+
+async function _persistRoll(notation, ctx, result) {
+    if (!ctx.apiBase || !ctx.fetchFn) return;
+
+    const notationStr = Array.isArray(notation)
+        ? JSON.stringify(notation)
+        : notation;
+
+    try {
+        await ctx.fetchFn(`${ctx.apiBase}/dice/roll`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                session_id:     ctx.sessionId   ?? null,
+                character_id:   ctx.characterId ?? null,
+                character_name: ctx.characterName ?? null,
+                roll_type:      ctx.rollType    ?? 'generic',
+                notation:       notationStr,
+                roll_result:    JSON.stringify(result),
+                successes:      result.successes ?? null,
+                pool:           result.detail?.pool          ?? ctx.systemData?.pool ?? null,
+            }),
+        });
+    } catch (err) {
+        // Persist non-bloquant — on log mais on ne fait pas planter le flow
+        console.warn('[diceEngine] persist failed:', err);
     }
+}
+
+// ─── Helpers privés ───────────────────────────────────────────────────────────
+
+/**
+ * Construit les vagues à partir des RollResult rpg-dice-roller.
+ * Vague 0 = dés initiaux (sans modificateur 'explode').
+ * Vague N = explosions successives.
+ *
+ * rpg-dice-roller regroupe les explosions dans la même liste avec un modificateur.
+ * On reconstitue les vagues en groupant par séquences continues d'explosions.
+ */
+function _buildWaves(diceItems) {
+    if (!diceItems.length) return [];
+
+    const waves   = [];
+    let   current = [];
+
+    for (const item of diceItems) {
+        if (_isExploded(item) && current.length > 0) {
+            // Ce dé est une explosion d'un dé précédent → nouvelle vague
+            waves.push({ dice: current.map(r => r.value) });
+            current = [item];
+        } else {
+            current.push(item);
+        }
+    }
+
+    if (current.length) waves.push({ dice: current.map(r => r.value) });
 
     return waves;
 }
 
-function _buildNotationString({ pool, explosionThresholds, threshold, diceType = 'd10' }) {
-    const explodeMin = explosionThresholds.length > 0 ? Math.min(...explosionThresholds) : null;
-    const parts = [`${pool}${diceType}`];
-    if (explodeMin !== null) parts.push(`!>=${explodeMin}`);
-    if (threshold  !== null) parts.push(`>=${threshold}`);
-    return parts.join('');
+/**
+ * Un RollResult est un "dé réel" si ce n'est pas un modificateur arithmétique.
+ * rpg-dice-roller représente les modificateurs arithmétiques comme des objets
+ * sans propriété `value` définie comme face de dé.
+ * On filtre en vérifiant que value est un entier et qu'il n'est pas issu d'un
+ * terme arithmétique pur (NumberGenerator).
+ */
+function _isDiceResult(item) {
+    if (!item) return false;
+    // Les modificateurs arithmétiques n'ont pas de tableau modifiers
+    // et leur constructor.name est souvent 'NumberGenerator' ou similaire.
+    // La façon la plus fiable : un vrai dé a toujours une propriété modifiers (Set ou Array).
+    return item.modifiers !== undefined && typeof item.value === 'number';
+}
+
+/**
+ * Détermine si un RollResult est une explosion (dé généré par explosion).
+ */
+function _isExploded(item) {
+    if (!item?.modifiers) return false;
+    if (item.modifiers instanceof Set) return item.modifiers.has('explode');
+    if (Array.isArray(item.modifiers)) return item.modifiers.includes('explode');
+    return false;
+}
+
+/**
+ * Infère le type de dé depuis une notation rpg-dice-roller.
+ * Cherche le premier dN ou dF dans la chaîne.
+ *
+ * "3d10!>=9>=7"  → "d10"
+ * "2d20"         → "d20"
+ * "1d20+5"       → "d20"
+ * "4dF"          → "dF"
+ */
+function _inferDiceType(notation) {
+    const match = notation?.match(/d(\d+|F)/i);
+    return match ? `d${match[1]}` : 'd6';
 }

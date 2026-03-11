@@ -455,7 +455,6 @@ const JournalTab = ({ characterId }) => {
                                             type="text"
                                             value={selectedEntry.title || ''}
                                             onChange={e => handleFieldChange('title', e.target.value)}
-                                            onBlur={flushPendingSave}
                                             placeholder="Titre de la note..."
                                             className="w-full text-xl font-bold px-0 py-1 bg-transparent border-0 border-b-2 border-transparent outline-none transition-colors"
                                             style={{

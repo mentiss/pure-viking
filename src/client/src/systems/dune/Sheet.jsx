@@ -31,8 +31,8 @@ import { useSocket }  from '../../context/SocketContext.jsx';
 import { useSystem }  from '../../hooks/useSystem.js';
 import { useFetch }   from '../../hooks/useFetch.js';
 import { usePlayerSession } from '../../hooks/usePlayerSession.js';
-import DiceHistoryPage from "../../components/gm/layout/DiceHistoryPage.jsx";
-import DuneHistoryEntry from "../../components/DuneHistoryEntry.jsx";
+import DiceHistoryPage from "../../components/layout/DiceHistoryPage.jsx";
+import DuneHistoryEntry from "./components/DuneHistoryEntry.jsx";
 
 // ── Onglets ───────────────────────────────────────────────────────────────────
 

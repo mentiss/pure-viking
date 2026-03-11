@@ -30,99 +30,107 @@ const vikingsConfig = {
     label: 'Pure Vikings',
 
     // ─── Hooks dés ────────────────────────────────────────────────────────────
-    // Injectés dans diceEngine.roll() / rollWithInsurance() / rollSagaBonus()
     dice: {
-
-        // ── 1. buildNotation ─────────────────────────────────────────────────
-        // Construit la notation rpg-dice-roller depuis le contexte.
-        // Vikings : toujours 3d10, explosion selon niveau carac, seuil selon compétence.
+        // ── 1. buildNotation ─────────────────────────────────────────────────────
+        // Appelé par DiceModal AVANT roll() pour construire la notation.
+        // Retourne une string (1 groupe) ou un tableau (N groupes).
+        //
+        // Vikings :
+        //   Normal    → "3d10!>=9>=7"           (1 groupe)
+        //   SAGA H/E  → ["3d10!>=9>=7", "3d10!>=10>=7"]  (2 groupes, tout en 1 appel)
+        //   Assurance → ["3d10!>=9>=7", "3d10!>=9>=7"]    (2 jets identiques)
         buildNotation: (ctx) => {
-            const { pool, caracLevel, threshold } = ctx.systemData;
-            const explodeMin = getExplosionThreshold(caracLevel)[0]; // ex: niveau 3 → 9
-            // Ex: "3d10!>=9>=7" → 3 dés, explosion sur 9+, succès sur 7+
-            return `${pool}d10!>=${explodeMin}>=${threshold}`;
+            const { pool, caracLevel, threshold, declaredMode } = ctx.systemData;
+            const explodeMin = getExplosionThreshold(caracLevel)[0]; // niveau 3 → 9, etc.
+            const mainGroup  = `${pool}d10!>=${explodeMin}>=${threshold}`;
+
+            if (declaredMode === 'heroic' || declaredMode === 'epic') {
+                // Groupe SAGA : 3d10, explosion fixe sur 10, seuil fixe 7
+                return [mainGroup, '3d10!>=10>=7'];
+            }
+            if (declaredMode === 'insurance') {
+                // Deux jets identiques — afterRoll garde le meilleur
+                return [mainGroup, mainGroup];
+            }
+            return mainGroup;
         },
 
-        // ── 2. beforeRoll ────────────────────────────────────────────────────
-        // Validation et enrichissement du contexte AVANT le roll.
-        // - Bloque si KO
-        // - Bloque si Saga insuffisante pour le mode déclaré
-        // - Applique le malus de blessure sur le pool
-        // - Calcule les paramètres de dés depuis les données personnage
+        // ── 2. beforeRoll ────────────────────────────────────────────────────────
+        // Validation + enrichissement du ctx systemData.
+        // Ne retourne RIEN de lié aux dés — ne calcule que les paramètres réutilisés
+        // par buildNotation (déjà appelé avant) et afterRoll.
         beforeRoll: (ctx) => {
             const {
-                caracLevel,
-                skillLevel,
                 tokensBlessure,
-                tokensFatigue,
-                isBerserk,
                 sagaActuelle,
                 declaredMode,
                 rollType,
                 selectedCarac,
                 selectedSkill,
+                isBerserk,
                 autoSuccesses,
                 activeConditionalBonuses,
                 traitAutoBonus,
+                tokensFatigue,
             } = ctx.systemData;
 
             // Garde : KO/Mourant
             if (tokensBlessure === 5)
                 throw new RollError('KO_DYING', 'Impossible : KO / Mourant !');
 
-            // Garde : Saga insuffisante pour les modes qui la consomment avant
+            // Garde : Saga insuffisante
             if ((declaredMode === 'insurance' || declaredMode === 'heroic' || declaredMode === 'epic')
                 && sagaActuelle < 1)
                 throw new RollError('NO_SAGA', 'Pas assez de points de Saga');
 
-            // Calcul seuil de succès
-            const threshold = rollType === 'skill' && selectedSkill
+            // Calcul des paramètres
+            const threshold      = rollType === 'skill' && selectedSkill
                 ? getSuccessThreshold(selectedSkill.level)
-                : 7; // seuil de base carac = 7
+                : 7;
 
-            // Calcul niveau d'explosion (depuis carac utilisée)
             const caracUsedLevel = rollType === 'carac'
                 ? (ctx.character?.[selectedCarac] || 2)
                 : (selectedSkill ? getBestCharacteristic(ctx.character, selectedSkill).level : 2);
 
-            // Malus blessure (ignoré en mode berserk)
-            const blessureMalus = isBerserk ? 0 : getBlessureMalus(tokensBlessure);
-            const pool = Math.max(1, 3 - blessureMalus); // pool Viking toujours basé sur 3
-
-            // Bonus traits auto + conditionnels
-            const caracUsedName = rollType === 'carac' ? selectedCarac
+            const caracUsedName  = rollType === 'carac' ? selectedCarac
                 : (selectedSkill ? getBestCharacteristic(ctx.character, selectedSkill).name : null);
-            const rollTarget = rollType === 'skill' ? selectedSkill?.name : null;
-            const traitBonuses = getTraitBonuses(ctx.character, caracUsedName, rollTarget);
+
+            const blessureMalus  = isBerserk ? 0 : getBlessureMalus(tokensBlessure);
+            const pool           = Math.max(1, 3 - blessureMalus);
+
+            const rollTargetName = rollType === 'skill' ? selectedSkill?.name : null;
+            const traitBonuses   = getTraitBonuses(ctx.character, caracUsedName, rollTargetName);
             const activeCondBonus = (activeConditionalBonuses || []).reduce((sum, b) => sum + b.bonus, 0);
             const totalTraitBonus = isBerserk
-                ? (traitAutoBonus ?? traitBonuses.auto) + activeCondBonus + 2  // Berserk ajoute +2
+                ? (traitAutoBonus ?? traitBonuses.auto) + activeCondBonus + 2
                 : (traitAutoBonus ?? traitBonuses.auto) + activeCondBonus;
+
+            const fatigueMalus   = ctx.character?.traits?.some(t => t.name === 'Infatigable')
+                ? 0
+                : getFatigueMalus(tokensFatigue ?? 0);
 
             return {
                 ...ctx,
                 systemData: {
                     ...ctx.systemData,
-                    // Paramètres calculés, utilisés par afterRoll et buildAnimationSequence
                     pool,
                     threshold,
-                    caracLevel:     caracUsedLevel,
+                    caracLevel: caracUsedLevel,
                     blessureMalus,
                     totalTraitBonus,
-                    // Seuils d'explosion sous forme de tableau pour l'afterRoll
-                    explosionThresholds: getExplosionThreshold(caracUsedLevel),
-                    // Infatigable = pas de malus fatigue
-                    fatigueMalus: ctx.character?.traits?.some(t => t.name === 'Infatigable')
-                        ? 0
-                        : getFatigueMalus(tokensFatigue),
+                    fatigueMalus,
                     autoSuccesses: autoSuccesses || 0,
+                    // explosionThresholds gardé pour afterRoll
+                    explosionThresholds: getExplosionThreshold(caracUsedLevel),
                 },
             };
         },
 
-        // ── 3. afterRoll ─────────────────────────────────────────────────────
-        // Interprète le résultat brut de rpg-dice-roller.
-        // Ajoute succès auto, soustrait malus fatigue, marque les explosions.
+        // ── 3. afterRoll ─────────────────────────────────────────────────────────
+        // Interprète le raw (nouveau format : raw.groups[i].values).
+        //
+        // raw.groups[0] = jet principal
+        // raw.groups[1] = jet SAGA bonus OU assurance (si notation tableau)
         afterRoll: (raw, ctx) => {
             const {
                 pool,
@@ -138,91 +146,229 @@ const vikingsConfig = {
                 selectedCarac,
             } = ctx.systemData;
 
-            const baseSuccesses  = raw.successes ?? 0;
+            // Valeurs du jet principal (faces de dés uniquement, explosions incluses)
+            const mainValues    = raw.groups[0].values;
+            const exploded      = mainValues.filter(v => (explosionThresholds || [10]).some(t => v >= t));
+
+            // Succès bruts du jet principal
+            const rawMainSuccesses = mainValues.filter(v => v >= threshold).length;
+
+            // ── Mode assurance ────────────────────────────────────────────────────
+            if (declaredMode === 'insurance') {
+                const values2    = raw.groups[1].values;
+                const successes2 = values2.filter(v => v >= threshold).length;
+                const keptGroup  = rawMainSuccesses >= successes2 ? 0 : 1;
+                const keptValues = keptGroup === 0 ? mainValues : values2;
+                const keptRaw    = keptGroup === 0 ? rawMainSuccesses : successes2;
+
+                const totalSuccesses = Math.max(
+                    0,
+                    keptRaw + (autoSuccesses || 0) + (totalTraitBonus || 0) - (fatigueMalus || 0)
+                );
+
+                const rollTarget = _buildRollTarget(rollType, selectedSkill, selectedCarac);
+
+                return {
+                    allDice:   raw.allDice,
+                    successes: totalSuccesses,
+                    total:     null,
+                    flags:     { exploded, botched: false, critical: false },
+                    detail: {
+                        baseSuccesses:    keptRaw,
+                        autoSuccesses:    autoSuccesses || 0,
+                        traitBonus:       totalTraitBonus || 0,
+                        fatigueMalus:     fatigueMalus || 0,
+                        blessureMalus,
+                        pool, threshold,
+                        explosionThresholds: explosionThresholds || [10],
+                        rollTarget, rollType,
+                        caracUsed: rollType === 'carac' ? selectedCarac : null,
+                        skillUsed: rollType === 'skill' ? selectedSkill : null,
+                    },
+                    meta: {
+                        autoSuccesses:  autoSuccesses || 0,
+                        resourceSpent:  1,
+                        resourceGained: 0,
+                        keptGroup,
+                        secondaryValues: keptGroup === 0 ? values2 : mainValues,
+                        // SAGA fields
+                        sagaFailed: false, sagaSuccess: null, bonusSuccesses: null,
+                    },
+                };
+            }
+
+            // ── Mode SAGA Héroïque / Épique ───────────────────────────────────────
+            if (declaredMode === 'heroic' || declaredMode === 'epic') {
+                const finalTarget   = declaredMode === 'heroic' ? 4 : 5;
+                const sagaValues    = raw.groups[1].values;
+                const sagaRaw       = sagaValues.filter(v => v >= 7).length;
+
+                // Condition d'activation SAGA : 3+ succès sur le jet principal
+                const sagaFailed    = rawMainSuccesses < 3;
+
+                const bonusSuccesses = sagaFailed ? 0 : sagaRaw;
+                const totalSuccesses = Math.max(
+                    0,
+                    rawMainSuccesses + bonusSuccesses
+                    + (autoSuccesses || 0) + (totalTraitBonus || 0) - (fatigueMalus || 0)
+                );
+
+                const sagaSuccess   = !sagaFailed && sagaRaw >= 1 && totalSuccesses >= finalTarget;
+                const rollTarget    = _buildRollTarget(rollType, selectedSkill, selectedCarac);
+
+                return {
+                    allDice:   raw.allDice,
+                    successes: totalSuccesses,
+                    total:     null,
+                    flags:     { exploded, botched: false, critical: false },
+                    detail: {
+                        baseSuccesses:    rawMainSuccesses,
+                        autoSuccesses:    autoSuccesses || 0,
+                        traitBonus:       totalTraitBonus || 0,
+                        fatigueMalus:     fatigueMalus || 0,
+                        blessureMalus,
+                        pool, threshold,
+                        explosionThresholds: explosionThresholds || [10],
+                        rollTarget, rollType,
+                        caracUsed: rollType === 'carac' ? selectedCarac : null,
+                        skillUsed: rollType === 'skill' ? selectedSkill : null,
+                    },
+                    meta: {
+                        autoSuccesses:  autoSuccesses || 0,
+                        resourceSpent:  1,
+                        resourceGained: sagaSuccess ? 1 : 0,
+                        sagaFailed,
+                        sagaSuccess,
+                        bonusSuccesses,
+                        sagaValues,
+                        finalTarget,
+                        failReason: sagaFailed
+                            ? `Condition non remplie (${rawMainSuccesses}/3 succès)`
+                            : !sagaRaw
+                                ? 'Aucun succès sur le jet SAGA'
+                                : totalSuccesses < finalTarget
+                                    ? `Total insuffisant (${totalSuccesses}/${finalTarget})`
+                                    : null,
+                        // unused for insurance
+                        keptGroup: null, secondaryValues: null,
+                    },
+                };
+            }
+
+            // ── Jet normal ────────────────────────────────────────────────────────
             const totalSuccesses = Math.max(
                 0,
-                baseSuccesses + (autoSuccesses || 0) + (totalTraitBonus || 0) - (fatigueMalus || 0)
+                rawMainSuccesses + (autoSuccesses || 0) + (totalTraitBonus || 0) - (fatigueMalus || 0)
             );
-
-            // Libellé de la cible (pour historique)
-            const rollTarget = rollType === 'skill'
-                ? (selectedSkill?.specialization
-                    ? `${selectedSkill.name} (${selectedSkill.specialization})`
-                    : selectedSkill?.name)
-                : CARACNAMES[selectedCarac] || selectedCarac;
-
-            // Flags d'explosion (valeurs dans le seuil d'explosion)
-            const exploded = raw.allDice.filter(v => (explosionThresholds || [10]).includes(v));
+            const rollTarget = _buildRollTarget(rollType, selectedSkill, selectedCarac);
 
             return {
-                // Données brutes
-                notation:  ctx._notation || '',
                 allDice:   raw.allDice,
-
-                // Résultat interprété
                 successes: totalSuccesses,
-                total:     null, // système à succès, pas à somme
-
-                // État ternaire — pas utilisé en Vikings mais structurellement présent
-                outcome: null,
-
-                // Flags
-                flags: {
-                    exploded,
-                    botched:  false,
-                    critical: false,
-                },
-
-                // Détail pour l'affichage UI
+                total:     null,
+                flags:     { exploded, botched: false, critical: false },
                 detail: {
-                    baseSuccesses,
-                    autoSuccesses:   autoSuccesses || 0,
-                    traitBonus:      totalTraitBonus || 0,
-                    fatigueMalus:    fatigueMalus || 0,
+                    baseSuccesses:    rawMainSuccesses,
+                    autoSuccesses:    autoSuccesses || 0,
+                    traitBonus:       totalTraitBonus || 0,
+                    fatigueMalus:     fatigueMalus || 0,
                     blessureMalus,
-                    pool,
-                    threshold,
+                    pool, threshold,
                     explosionThresholds: explosionThresholds || [10],
-                    rollTarget,
-                    rollType,
-                    caracUsed:   rollType === 'carac' ? selectedCarac : null,
-                    skillUsed:   rollType === 'skill' ? selectedSkill : null,
+                    rollTarget, rollType,
+                    caracUsed: rollType === 'carac' ? selectedCarac : null,
+                    skillUsed: rollType === 'skill' ? selectedSkill : null,
                 },
-
-                // Méta ressource (Saga)
                 meta: {
                     autoSuccesses:  autoSuccesses || 0,
-                    resourceSpent:  declaredMode === 'insurance' ? 1 : 0,
+                    resourceSpent:  0,
                     resourceGained: 0,
-                    secondRoll:     null, // rempli par rollWithInsurance
-                    keptRoll:       null,
-                    // Champs bonus Saga (remplis par rollSagaBonus)
-                    bonusRoll:      null,
-                    bonusSuccesses: null,
-                    sagaSuccess:    null,
-                    failReason:     null,
+                    sagaFailed: false, sagaSuccess: null, bonusSuccesses: null,
+                    keptGroup: null, secondaryValues: null,
                 },
             };
         },
 
-        // ── 4. buildAnimationSequence ─────────────────────────────────────────
+        // ── 4. buildAnimationSequence ─────────────────────────────────────────────
         // Construit la structure AnimationSequence pour DiceAnimationOverlay.
-        // Les vagues sont déjà calculées par diceEngine._buildWaves().
-        buildAnimationSequence: (raw, ctx) => {
-            const label = _buildLabel(ctx);
-            return {
-                mode: 'single',
-                groups: [{
-                    id:       'main',
-                    diceType: 'd10',
-                    color:    'default',
-                    label,
-                    waves:    raw.waves,
-                }],
-                insuranceData: null,
+        // Reçoit (raw, ctx, result) — 3e paramètre utilisé pour conditionner la SAGA.
+        buildAnimationSequence: (raw, ctx, result) => {
+            const { declaredMode, pool, explosionThresholds } = ctx.systemData;
+
+            // Découpe les values à plat en vagues successives.
+            // Vague 0 = les `pool` premiers dés.
+            // Vague N = les explosions générées par la vague N-1.
+            const buildWaves = (values, wavePool, thresholds) => {
+                if (!values.length) return [{ dice: [] }];
+                const waves = [];
+                let idx = 0;
+
+                let waveDice = values.slice(0, wavePool);
+                waves.push({ dice: waveDice });
+                idx = wavePool;
+
+                while (idx < values.length) {
+                    const explosionCount = waveDice.filter(v => thresholds.includes(v)).length;
+                    if (!explosionCount) break;
+                    waveDice = values.slice(idx, idx + explosionCount);
+                    waves.push({ dice: waveDice });
+                    idx += explosionCount;
+                }
+
+                return waves;
             };
+
+            if (declaredMode === 'insurance') {
+                const keptGroup = result.meta?.keptGroup ?? 0;
+                return {
+                    mode: 'single',
+                    groups: [
+                        {
+                            id:       'jet-1',
+                            diceType: 'd10',
+                            color:    'default',
+                            label:    'Jet 1',
+                            waves:    buildWaves(raw.groups[0].values, pool, explosionThresholds),
+                        },
+                        {
+                            id:       'jet-2',
+                            diceType: 'd10',
+                            color:    'default',
+                            label:    'Jet 2',
+                            waves:    buildWaves(raw.groups[1].values, pool, explosionThresholds),
+                        },
+                    ],
+                };
+            }
+
+            const groups = [{
+                id:       'main',
+                diceType: 'd10',
+                color:    'default',
+                label:    ctx.label || 'Jet',
+                waves:    buildWaves(raw.groups[0].values, pool, explosionThresholds),
+            }];
+
+            if ((declaredMode === 'heroic' || declaredMode === 'epic') && !result.meta?.sagaFailed) {
+                // Jet SAGA : toujours 3 dés, explosion fixe sur 10
+                groups.push({
+                    id:       'saga',
+                    diceType: 'd10',
+                    color:    'saga',
+                    label:    `Jet ${declaredMode === 'epic' ? 'Épique' : 'Héroïque'} — SAGA`,
+                    waves:    buildWaves(raw.groups[1].values, 3, [10]),
+                });
+            }
+
+            return { mode: 'single', groups };
         },
+
+        // ── 5. renderHistoryEntry ─────────────────────────────────────────────────
+        // null → rendu générique dans HistoryPanel / DiceHistoryPage
+        // À implémenter pour un affichage riche spécifique Vikings.
+        renderHistoryEntry: (_entry) => null,
     },
+
 
     // ─── BLOC COMBAT ─────────────────────────────────────────────────────────────
     combat: {
@@ -344,27 +490,40 @@ const vikingsConfig = {
 
             defenseOpportunity: null,
 
-            getNPCRollContext: (npc, attack) => {
-                // Pool de base = 3 dés, réduit par les blessures du NPC
-                const malus     = getBlessureMalus(npc.healthData?.tokensBlessure ?? 0);
-                const basePool  = 3;
-                const pool      = Math.max(1, basePool + malus); // malus est négatif
+            getNPCRollContext: (npc, attack, { apiBase, fetchFn, sessionId }) => {
+                const malus    = getBlessureMalus(npc.healthData?.tokensBlessure ?? 0);
+                const pool     = Math.max(1, 3 + malus); // malus est négatif (getBlessureMalus retourne 0 ou positif)
+                const explodeMin = attack.explosion ?? 10;
+                const threshold  = attack.succes    ?? 7;
 
                 return {
-                    characterId:   npc.id,
+                    apiBase,
+                    fetchFn,
+                    characterId:   null,          // NPC — pas de characterId BDD
                     characterName: npc.name,
-                    sessionId:     null,
-                    systemSlug:    'vikings',
-                    label:         attack.name ?? 'Attaque NPC',
+                    sessionId,
+                    rollType:      'vikings_npc_attack',
+                    label:         `${npc.name} — ${attack.name ?? 'Attaque'}`,
+                    // persistHistory: true par défaut — jets NPC historisés
                     systemData: {
-                        // Pas de compétence ni de carac — valeurs directes depuis l'attaque
                         pool,
-                        caracLevel:  null,
-                        threshold:   attack.succes    ?? 6,
-                        explosionThresholds: [attack.explosion ?? 10],
-                        autoSuccesses: 0,
+                        threshold,
+                        caracLevel:          null,   // NPC : seuils fixes, pas de caracLevel
+                        explosionThresholds: [explodeMin],
+                        declaredMode:        null,
+                        rollType:            'npc',
+                        selectedCarac:       null,
+                        selectedSkill:       null,
+                        autoSuccesses:       0,
                         activeConditionalBonuses: [],
-                        traitAutoBonus: 0,
+                        traitAutoBonus:      0,
+                        tokensBlessure:      npc.healthData?.tokensBlessure ?? 0,
+                        tokensFatigue:       0,
+                        isBerserk:           false,
+                        sagaActuelle:        0,
+                        fatigueMalus:        0,
+                        totalTraitBonus:     0,
+                        blessureMalus:       Math.abs(malus),
                     },
                 };
             },
@@ -593,6 +752,15 @@ function _buildLabel(ctx) {
         return CARACNAMES[selectedCarac] || selectedCarac;
     }
     return 'Jet';
+}
+
+function _buildRollTarget(rollType, selectedSkill, selectedCarac) {
+    if (rollType === 'skill') {
+        return selectedSkill?.specialization
+            ? `${selectedSkill.name} (${selectedSkill.specialization})`
+            : (selectedSkill?.name ?? '');
+    }
+    return CARACNAMES[selectedCarac] || selectedCarac || '';
 }
 
 export default vikingsConfig;

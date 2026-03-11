@@ -17,7 +17,7 @@ const { loadFullCharacter, saveFullCharacter } = require('../CharacterController
 router.get('/', (req, res) => {
     try {
         const rows = req.db.prepare(`
-            SELECT id, access_code, access_url, player_name, nom, statut_social,
+            SELECT id, access_code, access_url, player_name, prenom, nom, statut_social,
                    determination, determination_max, updated_at
             FROM characters
             WHERE id != -1
@@ -25,15 +25,16 @@ router.get('/', (req, res) => {
         `).all();
 
         res.json(rows.map(c => ({
-            id:           c.id,
-            accessCode:   c.access_code,
-            accessUrl:    c.access_url,
-            playerName:   c.player_name,
-            nom:          c.nom,
-            statutSocial: c.statut_social,
-            determination:    c.determination,
-            determinationMax: c.determination_max,
-            updatedAt:    c.updated_at,
+            id:                 c.id,
+            accessCode:         c.access_code,
+            accessUrl:          c.access_url,
+            playerName:         c.player_name,
+            nom:                c.nom,
+            prenom:             c.prenom,
+            statutSocial:       c.statut_social,
+            determination:      c.determination,
+            determinationMax:   c.determination_max,
+            updatedAt:          c.updated_at,
         })));
     } catch (err) {
         console.error('[dune] GET /characters:', err);

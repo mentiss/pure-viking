@@ -72,6 +72,8 @@ const CharacterListModal = ({ isOpen, currentCharId, onClose, onSelect }) => {
                         <div className="grid grid-cols-1 gap-3">
                             {characters.filter(c => c.id > 0).map(char => {
                                 const isCurrent = char.id === currentCharId;
+                                const charname = (char.prenom ? (char.nom ? char.prenom+' '+char.nom : char.prenom) : (char.nom ? char.nom : 'Nom inconnu'));
+                                console.log(charname, char);
                                 return (
                                     <button
                                         key={char.id}
@@ -84,7 +86,7 @@ const CharacterListModal = ({ isOpen, currentCharId, onClose, onSelect }) => {
                                     >
                                         <div className="flex justify-between items-start">
                                             <div className="flex-1">
-                                                <div className="font-bold text-lg">{char.name}</div>
+                                                <div className="font-bold text-lg">{charname}</div>
                                                 <div className="text-sm opacity-75 mt-1">
                                                     {char.playerName}
                                                     {char.sexe && ` | ${char.sexe === 'homme' ? 'H' : 'F'}`}

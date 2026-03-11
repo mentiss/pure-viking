@@ -40,7 +40,7 @@ const AppRouter = () => {
         // Routes système
         {
             path: '/:system',
-            element: <SystemLayout darkMode={darkMode} onToggleDarkMode={toggleDarkMode} />,
+            element: <SystemLayout />,
             children: [
                 { index: true,        element: <PlayerPage /> },
                 { path: 'gm',         element: <GMPage /> },

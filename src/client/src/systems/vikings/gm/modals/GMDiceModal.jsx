@@ -1,149 +1,94 @@
 // src/client/src/systems/vikings/gm/modals/GMDiceModal.jsx
 // ─────────────────────────────────────────────────────────────────────────────
-// Lanceur de dés MJ — délègue le calcul à diceEngine + vikingsConfig.dice.
-// L'UX est simplifiée : pas de mode saga, pas de compétences.
-// Le MJ choisit manuellement le pool, le seuil et le seuil d'explosion.
+// Modale de jet de dés MJ Vikings — VERSION v2 (diceEngine async).
+//
+// Suppressions par rapport à v1 :
+//   - Plus de DiceAnimationOverlay local (singleton dans GMPage)
+//   - Plus de pendingResultRef / animationData
+//   - Plus de hooks GM_DICE_HOOKS locaux (inline dans le roll())
+//   - roll() est async (animation + persist inclus)
+//
+// Broadcast : le MJ peut choisir de rendre le jet visible dans l'historique
+// (ctx.persistHistory = broadcast → true par défaut, false = jet secret)
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState, useRef, useCallback } from 'react';
-import { roll }                from '../../../../tools/diceEngine.js';
-import DiceAnimationOverlay    from '../../../../components/shared/DiceAnimationOverlay.jsx';
-import { readDiceConfig }      from '../../../../components/modals/DiceConfigModal.jsx';
-import { useFetch }            from '../../../../hooks/useFetch.js';
+import React, { useState, useCallback } from 'react';
+import { roll, RollError } from '../../../../tools/diceEngine.js';
+import { useFetch }        from '../../../../hooks/useFetch.js';
+import { useSystem }       from '../../../../hooks/useSystem.js';
 
-// Hooks MJ : minimalistes, le MJ configure directement notation
+// Hooks MJ inline — minimalistes, pas de logique Vikings
 const GM_DICE_HOOKS = {
     buildNotation: (ctx) => {
-        const { pool, threshold, explosionMin } = ctx.systemData;
+        const { pool, explosionMin, threshold } = ctx.systemData;
         return `${pool}d10!>=${explosionMin}>=${threshold}`;
     },
-    beforeRoll: (ctx) => ctx,
     afterRoll: (raw, ctx) => ({
-        notation:  ctx._notation || '',
         allDice:   raw.allDice,
-        successes: raw.successes ?? 0,
+        successes: raw.groups[0].values.filter(v => v >= ctx.systemData.threshold).length,
         total:     null,
-        outcome:   null,
         flags:     raw.flags,
         detail: {
-            pool:               ctx.systemData.pool,
-            threshold:          ctx.systemData.threshold,
-            explosionThresholds: [ctx.systemData.explosionMin, ...(ctx.systemData.explosionMin < 10 ? [10] : [])],
-            baseSuccesses:      raw.successes ?? 0,
-            rollTarget:         'Jet MJ',
+            pool:      ctx.systemData.pool,
+            threshold: ctx.systemData.threshold,
+            explosionMin: ctx.systemData.explosionMin,
         },
-        meta: { autoSuccesses: 0, resourceSpent: 0, resourceGained: 0, secondRoll: null, keptRoll: null },
+        meta: {},
     }),
-    buildAnimationSequence: (raw, _ctx) => ({
+    buildAnimationSequence: (raw, ctx) => ({
         mode: 'single',
-        groups: [{ id: 'main', diceType: 'd10', color: 'default', label: 'Jet MJ', waves: raw.waves }],
-        insuranceData: null,
+        groups: [{ id: 'main', diceType: 'd10', color: 'default', label: 'Jet MJ', waves: raw.groups[0].waves }],
     }),
 };
 
 const GMDiceModal = ({ onClose, darkMode, sessionId = null }) => {
-
     const [pool,      setPool]      = useState(3);
     const [threshold, setThreshold] = useState(7);
-    const [explosion, setExplosion] = useState(10); // valeur minimale d'explosion
+    const [explosion, setExplosion] = useState(10);
     const [rolling,   setRolling]   = useState(false);
     const [result,    setResult]    = useState(null);
     const [broadcast, setBroadcast] = useState(false);
-    const [animationData, setAnimationData] = useState(null);
 
-    const fetchWithAuth    = useFetch();
-    const pendingResultRef = useRef(null);
-    const broadcastRef     = useRef(broadcast);
-    broadcastRef.current   = broadcast;
+    const fetchWithAuth = useFetch();
+    const { apiBase }   = useSystem();
 
-    const reset = () => {
-        setResult(null);
-        setAnimationData(null);
-        pendingResultRef.current = null;
-    };
+    const reset = () => setResult(null);
 
-    // ── Fin d'animation ───────────────────────────────────────────────────────
-    const handleAnimationComplete = useCallback(() => {
-        const pending = pendingResultRef.current;
-        if (!pending) return;
-
-        setResult(pending.engineResult.result);
-
-        if (broadcastRef.current) {
-            fetchWithAuth('/api/dice/roll', {
-                method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    character_id:   -1,
-                    character_name: 'MJ',
-                    session_id:     sessionId,
-                    notation:       pending.engineResult.notation,
-                    roll_result:    pending.engineResult.result,
-                    // Legacy
-                    roll_type:      'carac',
-                    roll_target:    'Jet MJ',
-                    pool:           pending.engineResult.result.detail?.pool,
-                    threshold:      pending.engineResult.result.detail?.threshold,
-                    results:        pending.engineResult.result.allDice,
-                    successes:      pending.engineResult.result.successes,
-                    saga_spent:     0,
-                    saga_recovered: 0,
-                })
-            }).catch(err => console.error('[GMDiceModal] broadcast error:', err));
-        }
-
-        pendingResultRef.current = null;
-        setAnimationData(null);
-        setRolling(false);
-    }, [fetchWithAuth, sessionId]);
-
-    // ── Lancer ────────────────────────────────────────────────────────────────
-    const handleRoll = () => {
+    const handleRoll = useCallback(async () => {
+        if (rolling) return;
         setRolling(true);
         setResult(null);
 
-        const ctx = {
-            characterId:   -1,
-            characterName: 'MJ',
-            sessionId,
-            systemSlug:    'vikings',
-            label:         'Jet MJ',
-            rollType:      'carac',
-            declaredMode:  null,
-            systemData: { pool, threshold, explosionMin: explosion },
-        };
-
         try {
-            const engineResult = roll(ctx, GM_DICE_HOOKS);
-            const { animationEnabled } = readDiceConfig();
+            const ctx = {
+                apiBase,
+                fetchFn:        fetchWithAuth,
+                characterId:    null,
+                characterName:  'MJ',
+                sessionId,
+                rollType:       'vikings_gm',
+                label:          'Jet MJ',
+                // broadcast = false → jet secret, true → historisé
+                persistHistory: broadcast,
+                systemData: {
+                    pool,
+                    threshold,
+                    explosionMin: explosion,
+                },
+            };
 
-            if (animationEnabled !== false) {
-                pendingResultRef.current = { engineResult };
-                setAnimationData({ animationSequence: engineResult.animationSequence });
-            } else {
-                setResult(engineResult.result);
-                if (broadcastRef.current) {
-                    fetchWithAuth('/api/dice/roll', {
-                        method:  'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            character_id: -1, character_name: 'MJ', session_id: sessionId,
-                            notation: engineResult.notation, roll_result: engineResult.result,
-                            roll_type: 'carac', roll_target: 'Jet MJ',
-                            pool, threshold, results: engineResult.result.allDice,
-                            successes: engineResult.result.successes, saga_spent: 0, saga_recovered: 0,
-                        })
-                    }).catch(err => console.error('[GMDiceModal] broadcast error:', err));
-                }
-                setRolling(false);
-            }
+            // buildNotation est dans GM_DICE_HOOKS ici
+            const notation = GM_DICE_HOOKS.buildNotation(ctx);
+            const res      = await roll(notation, ctx, GM_DICE_HOOKS);
+            setResult(res);
+
         } catch (err) {
             console.error('[GMDiceModal] handleRoll error:', err);
+        } finally {
             setRolling(false);
         }
-    };
+    }, [rolling, pool, threshold, explosion, broadcast, sessionId, apiBase, fetchWithAuth]);
 
-    // ─── Render ───────────────────────────────────────────────────────────────
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
             <div
@@ -152,93 +97,89 @@ const GMDiceModal = ({ onClose, darkMode, sessionId = null }) => {
             >
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-xl font-bold text-viking-brown dark:text-viking-parchment">🎲 Jet MJ</h3>
-                    <button onClick={onClose} className="text-2xl text-viking-leather dark:text-viking-bronze hover:text-viking-danger">✕</button>
+                    <button onClick={onClose} className="text-2xl text-viking-leather dark:text-viking-bronze">✕</button>
                 </div>
 
                 <div className="space-y-4 mb-4">
+                    {/* Pool */}
                     <div className="flex items-center gap-4">
                         <label className="text-sm font-semibold text-viking-brown dark:text-viking-parchment w-24">Pool d10</label>
                         <div className="flex items-center gap-2">
-                            <button onClick={() => setPool(Math.max(1, pool - 1))} className="w-8 h-8 rounded bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment font-bold">-</button>
+                            <button onClick={() => setPool(p => Math.max(1, p - 1))} className="w-8 h-8 rounded bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment font-bold">-</button>
                             <span className="text-lg font-bold text-viking-bronze w-8 text-center">{pool}</span>
-                            <button onClick={() => setPool(Math.min(10, pool + 1))} className="w-8 h-8 rounded bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment font-bold">+</button>
+                            <button onClick={() => setPool(p => Math.min(10, p + 1))} className="w-8 h-8 rounded bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment font-bold">+</button>
                         </div>
                     </div>
+
+                    {/* Seuil succès */}
                     <div className="flex items-center gap-4">
                         <label className="text-sm font-semibold text-viking-brown dark:text-viking-parchment w-24">Seuil succès</label>
                         <div className="flex items-center gap-2">
-                            <button onClick={() => setThreshold(Math.max(1, threshold - 1))} className="w-8 h-8 rounded bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment font-bold">-</button>
-                            <span className="text-lg font-bold text-viking-bronze w-8 text-center">{threshold}</span>
-                            <button onClick={() => setThreshold(Math.min(10, threshold + 1))} className="w-8 h-8 rounded bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment font-bold">+</button>
+                            <button onClick={() => setThreshold(t => Math.max(1, t - 1))} className="w-8 h-8 rounded bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment font-bold">-</button>
+                            <span className="text-lg font-bold text-viking-bronze w-8 text-center">{threshold}+</span>
+                            <button onClick={() => setThreshold(t => Math.min(10, t + 1))} className="w-8 h-8 rounded bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment font-bold">+</button>
                         </div>
                     </div>
+
+                    {/* Seuil explosion */}
                     <div className="flex items-center gap-4">
-                        <label className="text-sm font-semibold text-viking-brown dark:text-viking-parchment w-24">Explosion sur</label>
+                        <label className="text-sm font-semibold text-viking-brown dark:text-viking-parchment w-24">Explosion</label>
                         <div className="flex items-center gap-2">
-                            <button onClick={() => setExplosion(Math.max(threshold + 1, explosion - 1))} className="w-8 h-8 rounded bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment font-bold">-</button>
+                            <button onClick={() => setExplosion(e => Math.max(threshold + 1, e - 1))} className="w-8 h-8 rounded bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment font-bold">-</button>
                             <span className="text-lg font-bold text-viking-bronze w-8 text-center">{explosion}+</span>
-                            <button onClick={() => setExplosion(Math.min(10, explosion + 1))} className="w-8 h-8 rounded bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment font-bold">+</button>
+                            <button onClick={() => setExplosion(e => Math.min(10, e + 1))} className="w-8 h-8 rounded bg-viking-parchment dark:bg-gray-800 text-viking-text dark:text-viking-parchment font-bold">+</button>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <input type="checkbox" id="broadcast" checked={broadcast} onChange={(e) => setBroadcast(e.target.checked)} className="w-4 h-4" />
-                        <label htmlFor="broadcast" className="text-sm text-viking-brown dark:text-viking-parchment cursor-pointer">
-                            📢 Partager le jet (historique visible par tous)
-                        </label>
-                    </div>
 
-                    {/* Bouton */}
-                    <button
-                        onClick={handleRoll}
-                        disabled={rolling}
-                        className={`w-full py-3 rounded-lg font-bold text-lg ${rolling ? 'bg-gray-400 cursor-not-allowed' : 'bg-viking-bronze hover:bg-viking-leather text-viking-brown'}`}
-                    >
-                        {rolling ? '🎲 Lancer...' : '🎲 Lancer !'}
-                    </button>
+                    {/* Broadcast */}
+                    <label className="flex items-center gap-2 text-sm text-viking-leather dark:text-viking-bronze cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={broadcast}
+                            onChange={e => setBroadcast(e.target.checked)}
+                            className="accent-viking-bronze"
+                        />
+                        Visible dans l'historique
+                    </label>
                 </div>
 
-                <div className="p-4 space-y-4">
-                    {/* Résultat */}
-                    {result && (
-                        <div className="p-4 bg-viking-parchment dark:bg-gray-800 rounded-lg border-2 border-viking-bronze text-center">
-                            <div className="text-2xl font-bold text-viking-brown dark:text-viking-parchment mb-2">
-                                {result.successes} succès
-                            </div>
-                            <div className="flex flex-wrap gap-2 justify-center mb-2">
-                                {(result.allDice || []).map((die, idx) => {
-                                    const isSuccess   = die >= threshold;
-                                    const isExplosion = die >= explosion;
-                                    return (
-                                        <div
-                                            key={idx}
-                                            className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold border-2 ${
-                                                isExplosion
-                                                    ? 'bg-viking-bronze border-viking-bronze text-viking-brown'
-                                                    : isSuccess
-                                                        ? 'bg-viking-success border-viking-success text-white'
-                                                        : 'bg-gray-300 dark:bg-gray-700 border-gray-400 dark:border-gray-600 text-viking-text dark:text-viking-parchment'
-                                            }`}
-                                        >
-                                            {die}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                            <div className="text-xs text-viking-leather dark:text-viking-bronze">
-                                {pool}d10 — Seuil {threshold}+ — Explosion {explosion}+
-                            </div>
-                            <button onClick={reset} className="mt-3 text-xs text-viking-leather dark:text-viking-bronze underline">Réinitialiser</button>
+                {/* Résultat */}
+                {result && (
+                    <div className="p-4 bg-viking-parchment dark:bg-gray-800 rounded-lg border-2 border-viking-bronze text-center mb-4">
+                        <div className="text-2xl font-bold text-viking-brown dark:text-viking-parchment mb-2">
+                            {result.successes} succès
                         </div>
-                    )}
-                </div>
-
-                {animationData && (
-                    <DiceAnimationOverlay
-                        animationSequence={animationData.animationSequence}
-                        onComplete={handleAnimationComplete}
-                        onSkip={handleAnimationComplete}
-                    />
+                        <div className="flex flex-wrap gap-2 justify-center mb-2">
+                            {(result.allDice || []).map((die, idx) => {
+                                const isSuccess   = die >= threshold;
+                                const isExplosion = die >= explosion;
+                                return (
+                                    <div key={idx} className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold border-2 ${
+                                        isExplosion
+                                            ? 'bg-viking-bronze border-viking-leather text-viking-brown'
+                                            : isSuccess
+                                                ? 'bg-green-600 border-green-800 text-white'
+                                                : 'bg-gray-300 dark:bg-gray-700 border-gray-400 dark:border-gray-600 text-viking-text dark:text-viking-parchment'
+                                    }`}>
+                                        {die}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div className="text-xs text-viking-leather dark:text-viking-bronze">
+                            {pool}d10 — Seuil {threshold}+ — Explosion {explosion}+
+                        </div>
+                        <button onClick={reset} className="mt-3 text-xs text-viking-leather dark:text-viking-bronze underline">Réinitialiser</button>
+                    </div>
                 )}
+
+                <button
+                    onClick={handleRoll}
+                    disabled={rolling}
+                    className={`w-full py-3 rounded-lg font-bold ${rolling ? 'bg-gray-400 cursor-not-allowed text-white' : 'bg-viking-bronze hover:bg-viking-leather text-viking-brown'}`}
+                >
+                    {rolling ? '⏳ Jet en cours…' : '🎲 Lancer !'}
+                </button>
             </div>
         </div>
     );

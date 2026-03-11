@@ -1,64 +1,81 @@
 // src/client/src/components/shared/DiceAnimationOverlay.jsx
 // ─────────────────────────────────────────────────────────────────────────────
 // Overlay animation 3D des dés via dice-box-threejs.
-// Accepte le format AnimationSequence produit par diceEngine.
 //
-// Prop principale : animationSequence (AnimationSequence)
-//   - mode: 'single' | 'insurance'
-//   - groups: [{ id, diceType, color, label, waves }]
-//   - insuranceData: { groups1, groups2, keptRoll } | null
+// ARCHITECTURE SINGLETON :
+// Ce composant est monté UNE SEULE FOIS dans PlayerPage.jsx et GMPage.jsx.
+// Il s'abonne au diceAnimBridge à son mount — diceEngine.roll() appelle
+// diceAnimBridge.play(seq) et attend la promesse que ce composant résout.
 //
-// Rétrocompatibilité : accepte aussi l'ancien prop `sequences` (format legacy)
-// pour ne pas casser les composants non encore migrés.
+// ⚠️ FIX SPINNER GM :
+// Le composant ne retourne JAMAIS null. Quand inactif, il reste dans le DOM
+// mais est invisible (z-index -1, transparent, sans pointer-events).
+// Raison : si on retourne null, containerRef.current vaut null au moment
+// où l'useEffect d'init DiceBox s'exécute → DiceBox ne s'initialise pas →
+// isReady reste false → le spinner tourne indéfiniment dès qu'une animation
+// est déclenchée.
+//
+// Format AnimationSequence attendu :
+// {
+//   mode: 'single',
+//   groups: [{ id, diceType, color, label, waves }],
+// }
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import DiceBox from '@3d-dice/dice-box-threejs';
+import { diceAnimBridge } from '../../tools/diceAnimBridge.js';
 import { buildDiceBoxConfig, readDiceConfig } from '../modals/DiceConfigModal.jsx';
 
 const WAVE_SETTLE_DELAY = 800;
 const EXPLOSION_FLASH   = 350;
 const END_DISPLAY_DELAY = 1200;
 
-// Couleurs de groupes de dés
-const GROUP_COLORS = {
-    default:    null,   // utilise la config utilisateur
-    wild:       0xffd700,  // or
-    fortune:    0x9b59b6,  // violet
-    saga:       0xff6b35,  // orange vif
-    danger:     0xe74c3c,  // rouge
-};
-
-/**
- * @param {object}   animationSequence - Format AnimationSequence du diceEngine
- * @param {object}   [sequences]       - Format legacy (rétrocompatibilité)
- * @param {string}   [diceType='d10']  - Type de dé legacy
- * @param {function} onComplete
- * @param {function} onSkip
- */
-const DiceAnimationOverlay = ({ animationSequence, sequences, diceType = 'd10', onComplete, onSkip }) => {
-
-    // Normalisation : accepte l'ancien format `sequences` ou le nouveau `animationSequence`
-    const normalizedSequence = animationSequence ?? _legacyToAnimationSequence(sequences, diceType);
+const DiceAnimationOverlay = () => {
+    // currentSequence : AnimationSequence | null
+    // null = overlay masqué (mais composant toujours monté)
+    const [currentSequence, setCurrentSequence] = useState(null);
 
     const containerRef  = useRef(null);
     const diceBoxRef    = useRef(null);
     const abortedRef    = useRef(false);
-    const onCompleteRef = useRef(onComplete);
-    useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
 
     const [isReady,     setIsReady]     = useState(false);
     const [label,       setLabel]       = useState('');
     const [isExploding, setIsExploding] = useState(false);
     const [isFinished,  setIsFinished]  = useState(false);
 
-    // ── Init DiceBox ──────────────────────────────────────────────────────────
+    // ── Enregistrement sur le bridge au mount ─────────────────────────────────
+    useEffect(() => {
+        diceAnimBridge.onPlay((seq) => {
+            // Réinitialiser l'état avant chaque animation
+            setIsFinished(false);
+            setLabel('');
+            setIsExploding(false);
+            setCurrentSequence(seq);
+        });
+    }, []);
+
+    // ── Handlers bridge ───────────────────────────────────────────────────────
+    const handleComplete = useCallback(() => {
+        setCurrentSequence(null);
+        diceAnimBridge.complete();
+    }, []);
+
+    const handleSkip = useCallback(() => {
+        abortedRef.current = true;
+        setCurrentSequence(null);
+        diceAnimBridge.skip();
+    }, []);
+
+    // ── Init DiceBox (une seule fois, monté en permanence) ────────────────────
+    // containerRef est toujours dans le DOM (composant ne retourne jamais null)
+    // donc cet effet peut s'exécuter correctement dès le mount.
     useEffect(() => {
         if (!containerRef.current) return;
-        abortedRef.current = false;
 
         const el          = containerRef.current;
-        const containerId = `dice-overlay-${Date.now()}`;
+        const containerId = `dice-overlay-singleton`;
         el.id             = containerId;
         el.style.width    = `${window.innerWidth}px`;
         el.style.height   = `${window.innerHeight}px`;
@@ -72,7 +89,6 @@ const DiceAnimationOverlay = ({ animationSequence, sequences, diceType = 'd10', 
 
         box.initialize()
             .then(() => {
-                if (abortedRef.current) return;
                 const canvas = el.querySelector('canvas');
                 if (canvas) {
                     Object.assign(canvas.style, {
@@ -87,40 +103,64 @@ const DiceAnimationOverlay = ({ animationSequence, sequences, diceType = 'd10', 
             })
             .catch(err => {
                 console.error('[DiceAnimationOverlay] Init error:', err);
-                onCompleteRef.current?.();
             });
 
         return () => {
-            abortedRef.current = true;
             try { diceBoxRef.current?.clearDice?.(); } catch (_) {}
             diceBoxRef.current = null;
         };
     }, []);
 
+    // ── Lancer l'animation dès qu'une séquence arrive ET que le box est prêt ──
     useEffect(() => {
-        if (isReady) runAnimation();
-    }, [isReady]);
+        if (currentSequence && isReady) {
+            abortedRef.current = false;
+            runAnimation(currentSequence);
+        }
+    }, [currentSequence, isReady]);
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── Orchestrateur ─────────────────────────────────────────────────────────
+    const runAnimation = async (seq) => {
+        const box = diceBoxRef.current;
+        if (!box || !seq) return;
 
-    /** Construit la notation dice-box-threejs depuis un groupe et ses valeurs de dés */
-    const buildBoxNotation = (diceValues, groupDiceType) =>
-        `${diceValues.length}${groupDiceType}@${diceValues.join(',')}`;
+        try {
+            await playSingle(box, seq.groups || []);
+        } catch (err) {
+            if (!abortedRef.current) console.error('[DiceAnimationOverlay]', err);
+        }
 
-    const rollAndWait = (box, notation) =>
-        new Promise(resolve => box.roll(notation).then(resolve));
+        if (abortedRef.current) return;
 
-    // ── Joue une séquence de vagues pour UN groupe ────────────────────────────
-    const playGroup = async (box, group, overrideLabel = '') => {
-        const { diceType: groupDiceType, waves, label: groupLabel } = group;
-        const displayLabel = overrideLabel || groupLabel || '';
+        setIsFinished(true);
+        setLabel('');
+        await delay(END_DISPLAY_DELAY);
+
+        if (!abortedRef.current) handleComplete();
+    };
+
+    // ── Joue tous les groupes en séquence ─────────────────────────────────────
+    const playSingle = async (box, groups) => {
+        for (let gi = 0; gi < groups.length; gi++) {
+            if (abortedRef.current) return;
+            await playGroup(box, groups[gi]);
+            if (gi < groups.length - 1) {
+                await delay(WAVE_SETTLE_DELAY);
+                box.clearDice();
+                await delay(300);
+            }
+        }
+    };
+
+    // ── Joue un groupe (toutes ses vagues) ────────────────────────────────────
+    const playGroup = async (box, group) => {
+        const { diceType, waves, label: groupLabel } = group;
 
         for (let i = 0; i < waves.length; i++) {
             if (abortedRef.current) return;
             const wave = waves[i];
 
             if (i > 0) {
-                // Vague d'explosion
                 setIsExploding(true);
                 await delay(EXPLOSION_FLASH);
                 if (abortedRef.current) return;
@@ -129,150 +169,84 @@ const DiceAnimationOverlay = ({ animationSequence, sequences, diceType = 'd10', 
                 box.clearDice();
                 await delay(200);
             } else {
-                setLabel(displayLabel);
+                setLabel(groupLabel || '');
             }
 
             if (abortedRef.current) return;
-            await rollAndWait(box, buildBoxNotation(wave.dice, groupDiceType));
+            await rollAndWait(box, buildBoxNotation(wave.dice, diceType));
             if (i < waves.length - 1) await delay(WAVE_SETTLE_DELAY);
         }
     };
 
-    // ── Mode single : joue tous les groupes en séquence ──────────────────────
-    const playSingle = async (box, groups) => {
-        for (const group of groups) {
-            if (abortedRef.current) return;
-            await playGroup(box, group);
-            if (groups.length > 1) {
-                await delay(WAVE_SETTLE_DELAY);
-                box.clearDice();
-                await delay(300);
-            }
-        }
-    };
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    const buildBoxNotation = (diceValues, diceType) =>
+        `${diceValues.length}${diceType}@${diceValues.join(',')}`;
 
-    // ── Mode assurance : joue les 2 pools, affiche juste un label pour le gardé ─
-    const playInsurance = async (box, { groups1, groups2, keptRoll }) => {
-        // Pool 1
-        await playSingle(box, groups1.map(g => ({ ...g, label: `🎲 Jet 1` })));
-        if (abortedRef.current) return;
-        await delay(WAVE_SETTLE_DELAY);
-        box.clearDice();
-        await delay(300);
+    const rollAndWait = (box, notation) =>
+        new Promise(resolve => box.roll(notation).then(resolve));
 
-        // Pool 2
-        await playSingle(box, groups2.map(g => ({ ...g, label: `🎲 Jet 2` })));
-        if (abortedRef.current) return;
-        await delay(WAVE_SETTLE_DELAY);
+    // ── Rendu ─────────────────────────────────────────────────────────────────
+    // On ne retourne JAMAIS null — le conteneur DiceBox doit toujours être dans
+    // le DOM pour que l'initialisation fonctionne (PlayerPage ET GMPage).
+    // Quand inactif : z-index négatif + transparent + sans interaction.
+    const isActive = !!currentSequence;
 
-        // Juste un label — pas de rejeu
-        setLabel(keptRoll === 1 ? '✅ Jet 1 gardé !' : '✅ Jet 2 gardé !');
-        await delay(800);
-    };
-
-    // ── Orchestrateur ─────────────────────────────────────────────────────────
-    const runAnimation = async () => {
-        const box = diceBoxRef.current;
-        if (!box || !normalizedSequence) return;
-
-        try {
-            if (normalizedSequence.mode === 'insurance' && normalizedSequence.insuranceData) {
-                await playInsurance(box, normalizedSequence.insuranceData);
-            } else {
-                await playSingle(box, normalizedSequence.groups || []);
-            }
-        } catch (err) {
-            if (!abortedRef.current) console.error('[DiceAnimationOverlay]', err);
-        }
-
-        if (abortedRef.current) return;
-        setIsFinished(true);
-        setLabel('');
-        await delay(END_DISPLAY_DELAY);
-        if (!abortedRef.current) onCompleteRef.current?.();
-    };
-
-    const handleSkip = useCallback(() => {
-        abortedRef.current = true;
-        onSkip?.();
-    }, [onSkip]);
-
-    // ─── Render ───────────────────────────────────────────────────────────────
     return (
         <div
-            className="fixed inset-0 z-[200]"
-            style={{ background: 'rgba(8, 5, 2, 0.93)' }}
-            onClick={e => e.stopPropagation()}
+            className="fixed inset-0"
+            style={{
+                zIndex:        isActive ? 200 : -1,
+                background:    isActive ? 'rgba(8, 5, 2, 0.93)' : 'transparent',
+                pointerEvents: isActive ? 'auto' : 'none',
+            }}
+            onClick={e => isActive && e.stopPropagation()}
         >
+            {/* Container DiceBox — toujours présent pour l'init */}
             <div ref={containerRef} style={{ position: 'absolute', top: 0, left: 0 }} />
 
-            {label && (
-                <div className="absolute top-8 left-1/2 -translate-x-1/2 pointer-events-none" style={{ zIndex: 10 }}>
-                    <div className={`px-6 py-2 rounded-full text-sm font-bold tracking-widest uppercase transition-all duration-300 ${
-                        isExploding
-                            ? 'bg-orange-500 text-white scale-110 shadow-lg shadow-orange-500/50'
-                            : 'bg-viking-bronze/80 text-viking-brown backdrop-blur-sm'
-                    }`}>
-                        {label}
-                    </div>
-                </div>
-            )}
+            {/* Contenu visible seulement quand une animation est en cours */}
+            {isActive && (
+                <>
+                    {label && (
+                        <div className="absolute top-8 left-1/2 -translate-x-1/2 pointer-events-none" style={{ zIndex: 10 }}>
+                            <div className={`px-6 py-2 rounded-full text-sm font-bold tracking-widest uppercase transition-all duration-300 ${
+                                isExploding
+                                    ? 'bg-orange-500 text-white scale-110 shadow-lg shadow-orange-500/50'
+                                    : 'bg-white/10 text-white/80 backdrop-blur-sm'
+                            }`}>
+                                {label}
+                            </div>
+                        </div>
+                    )}
 
-            {isExploding && (
-                <div className="absolute inset-0 pointer-events-none" style={{
-                    zIndex: 9,
-                    background: 'radial-gradient(circle at center, rgba(251,146,60,0.3) 0%, transparent 70%)',
-                }} />
-            )}
+                    {isExploding && (
+                        <div className="absolute inset-0 pointer-events-none" style={{
+                            zIndex: 9,
+                            background: 'radial-gradient(circle at center, rgba(251,146,60,0.3) 0%, transparent 70%)',
+                        }} />
+                    )}
 
-            {!isReady && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3" style={{ zIndex: 10 }}>
-                    <div className="w-8 h-8 border-2 border-viking-bronze border-t-transparent rounded-full animate-spin" />
-                    <span className="text-viking-parchment/60 text-sm tracking-wide">Invocation des dés...</span>
-                </div>
-            )}
+                    {!isReady && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3" style={{ zIndex: 10 }}>
+                            <div className="w-8 h-8 border-2 border-white/40 border-t-transparent rounded-full animate-spin" />
+                            <span className="text-white/60 text-sm tracking-wide">Invocation des dés…</span>
+                        </div>
+                    )}
 
-            {isReady && !isFinished && (
-                <button
-                    onClick={handleSkip}
-                    className="absolute bottom-6 right-6 px-4 py-2 rounded-lg text-xs text-viking-parchment/40 hover:text-viking-parchment/80 border border-white/10 hover:border-white/30 transition-all duration-200 backdrop-blur-sm"
-                    style={{ zIndex: 10 }}
-                >
-                    Passer →
-                </button>
+                    {isReady && !isFinished && (
+                        <button
+                            onClick={handleSkip}
+                            className="absolute bottom-6 right-6 px-4 py-2 rounded-lg text-xs text-white/40 hover:text-white/80 border border-white/10 hover:border-white/30 transition-all duration-200 backdrop-blur-sm"
+                            style={{ zIndex: 10 }}
+                        >
+                            Passer →
+                        </button>
+                    )}
+                </>
             )}
         </div>
     );
 };
-
-// ─── Rétrocompatibilité : convertit l'ancien format vers AnimationSequence ───
-// Permet aux composants non migrés de continuer à fonctionner.
-
-function _legacyToAnimationSequence(sequences, diceType) {
-    if (!sequences) return null;
-
-    // Ancien format insurance : { type: 'insurance', seq1, seq2, keptRoll }
-    if (sequences.type === 'insurance') {
-        return {
-            mode: 'insurance',
-            groups: null,
-            insuranceData: {
-                groups1: [{ id: 'main', diceType, color: 'default', label: 'Jet 1', waves: sequences.seq1 }],
-                groups2: [{ id: 'main', diceType, color: 'default', label: 'Jet 2', waves: sequences.seq2 }],
-                keptRoll: sequences.keptRoll,
-            },
-        };
-    }
-
-    // Ancien format simple : tableau de vagues [{ wave, dice }]
-    // ou objet { sequences: [...] }
-    const waves = Array.isArray(sequences) ? sequences : (sequences.waves || []);
-    return {
-        mode: 'single',
-        groups: [{ id: 'main', diceType, color: 'default', label: '', waves }],
-        insuranceData: null,
-    };
-}
 
 const delay = ms => new Promise(r => setTimeout(r, ms));
 
