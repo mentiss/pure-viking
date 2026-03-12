@@ -115,9 +115,9 @@ const GMDiceModal = ({ onClose, sessionId = null }) => {
             // Mise à jour ressources session
             if (socket && sessionId && menaceDepensee > 0) {
                 socket.emit('update-session-resources', {
-                    sessionId,
-                    menaceSpent:   menaceDepensee,
-                    complications: res.complications,
+                    sessionId:        activeGMSession,
+                    field: 'impulsions',
+                    delta: res.complications,
                 });
             }
 
@@ -159,7 +159,7 @@ const GMDiceModal = ({ onClose, sessionId = null }) => {
                             <div>
                                 <div className="dune-label mb-2">Difficulté</div>
                                 <div className="flex items-center gap-2">
-                                    <button onClick={() => setDifficulte(d => Math.max(1, d - 1))} className="dune-btn-secondary px-3">-</button>
+                                    <button onClick={() => setDifficulte(d => Math.max(0, d - 1))} className="dune-btn-secondary px-3">-</button>
                                     <span className="text-lg font-bold w-8 text-center" style={{ color: 'var(--dune-gold)' }}>{difficulte}</span>
                                     <button onClick={() => setDifficulte(d => Math.min(5, d + 1))} className="dune-btn-secondary px-3">+</button>
                                 </div>

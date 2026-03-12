@@ -151,6 +151,11 @@ const DuneCharacterCard = ({ character, isOnline, onSendNote, onSendItem, onEdit
                             <div className="font-bold text-sm" style={{ color: 'var(--dune-spice)' }}>
                                 {p.rang}
                             </div>
+                            {p.maxime?.trim() && (
+                            <div className="text-[10px] italic w-full" style={{ color: 'var(--dune-text-muted)' }}>
+                                « {p.maxime} »
+                            </div>
+                            )}
                         </div>
                     ))}
                 </div>

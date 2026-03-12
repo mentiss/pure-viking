@@ -48,9 +48,9 @@ const PlayerPage = () => {
 
         const resolve = async () => {
             // 1. Token valide — utilisateur déjà connecté
-            console.log(user, user.character);
+            //console.log(user, user.character);
             if (user?.character) {
-                if (!accessUrl || user.character.accessUrl === accessUrl) {
+                if (!accessUrl || user?.character?.accessUrl === accessUrl) {
                     if (!cancelled) {
                         setCharacter(user.character);
                         setAppState('playing');

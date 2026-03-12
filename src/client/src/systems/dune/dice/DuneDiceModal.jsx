@@ -170,12 +170,12 @@ const DuneDiceModal = ({
 
             // Mise à jour ressources session post-jet
             if (socket && activeGMSession) {
-                socket.emit('update-session-resources', {
-                    sessionId:       activeGMSession,
-                    impulsionsSpent: impulsionsDepensees > 0 ? IMPULSION_COST[impulsionsDepensees] : 0,
-                    menaceGenerated: menaceGeneree,
-                    complications:   result.complications,
-                });
+                if (impulsionsDepensees > 0)
+                    socket.emit('update-session-resources', { sessionId: activeGMSession, field: 'impulsions', delta: -impulsionsDepensees });
+                if (menaceGeneree > 0)
+                    socket.emit('update-session-resources', { sessionId: activeGMSession, field: 'menace', delta: menaceGeneree });
+                if (result.complications > 0)
+                    socket.emit('update-session-resources', { sessionId: activeGMSession, field: 'complications', delta: result.complications });
             }
 
         } catch (err) {
@@ -196,7 +196,8 @@ const DuneDiceModal = ({
         if (socket && activeGMSession) {
             socket.emit('update-session-resources', {
                 sessionId:        activeGMSession,
-                impulsionsEarned: rollResults.excedent,
+                field: 'impulsions',
+                delta: rollResults.excedent,
             });
         }
         setImpulsionsAjoutees(true);
@@ -295,7 +296,7 @@ const DuneDiceModal = ({
                             <div>
                                 <div className="dune-label mb-2">Difficulté</div>
                                 <div className="flex items-center gap-2">
-                                    <button onClick={() => setDifficulte(d => Math.max(1, d - 1))}
+                                    <button onClick={() => setDifficulte(d => Math.max(0, d - 1))}
                                             className="dune-btn-secondary px-3">−</button>
                                     <span className="text-lg font-bold w-8 text-center" style={{ color: 'var(--dune-gold)' }}>{difficulte}</span>
                                     <button onClick={() => setDifficulte(d => Math.min(5, d + 1))}
