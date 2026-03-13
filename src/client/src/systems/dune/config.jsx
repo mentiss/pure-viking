@@ -93,7 +93,7 @@ const duneConfig = {
             const {
                 rang, hasSpec, competenceRang,
                 difficulte, useDetermination,
-                impulsionsDepensees = 0, menaceGeneree = 0,
+                impulsionsDepensees = 0, menaceGeneree = 0, selectedSpecialization = false
             } = ctx.systemData;
 
             const results = raw.groups[0].values;  // ← nouveau format v2
@@ -102,7 +102,7 @@ const duneConfig = {
             for (const value of results) {
                 if (value === 20) { complications++; continue; }
                 if (value <= rang) {
-                    succesTotal += (hasSpec && value <= competenceRang) ? 2 : 1;
+                    succesTotal += ((hasSpec && value <= competenceRang && selectedSpecialization) || value === 1) ? 2 : 1;
                 }
             }
 
@@ -111,11 +111,12 @@ const duneConfig = {
 
             const reussite = succesTotal >= difficulte;
             const excedent = Math.max(0, succesTotal - difficulte);
-
+            console.log(ctx);
             return {
                 results,
                 rang,
                 hasSpec:             !!hasSpec,
+                selectedSpecialization,
                 succes:              succesTotal,
                 complications,
                 difficulte,
@@ -124,6 +125,7 @@ const duneConfig = {
                 useDetermination:    !!useDetermination,
                 impulsionsDepensees,
                 menaceGeneree,
+                label: ctx.label,
                 // successes pour le moteur générique (persist)
                 successes:           succesTotal,
             };

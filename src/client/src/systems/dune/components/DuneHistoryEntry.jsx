@@ -19,16 +19,18 @@ const DuneHistoryEntry = ({ roll }) => {
     const excedent     = Math.max(0, succes - difficulte);
 
     // Libellé du jet
-    const competenceLabel = d.competenceLabel ?? null;
-    const principeLabel   = d.principeLabel   ?? null;
-    const jetLabel = [competenceLabel, principeLabel].filter(Boolean).join(' + ')
+    const jetLabel = r.label + ' (' + roll.notation + ')'
         || roll.notation
         || `${results.length}d20`;
 
     const getDieStyle = (value) => {
-        if (value === 20) return { bg: 'var(--dune-red)',     color: 'white',               border: 'var(--dune-red)' };
-        if (value <= rang) return { bg: 'var(--dune-success)', color: 'var(--dune-dark)',   border: 'var(--dune-success)' };
-        return              { bg: 'var(--dune-surface-alt)', color: 'var(--dune-text-muted)', border: 'var(--dune-border)' };
+        if (value === 20)
+            return { bg: 'var(--dune-red)',     color: 'white',               border: 'var(--dune-red)' };
+        if ((value <= rang && r.hasSpec && r.selectedSpecialization) || value === 1)
+            return { bg: 'var(--dune-gold)', color: 'var(--dune-text-muted)', border: 'var(--dune-border)' };
+        if (value <= rang)
+            return { bg: 'var(--dune-success)', color: 'var(--dune-dark)',   border: 'var(--dune-success)' };
+        return { bg: 'var(--dune-surface-alt)', color: 'var(--dune-text-muted)', border: 'var(--dune-border)' };
     };
 
     return (
@@ -36,7 +38,7 @@ const DuneHistoryEntry = ({ roll }) => {
             {/* Libellé + résultat */}
             <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-semibold truncate" style={{ color: 'var(--dune-text)' }}>
-                    {jetLabel}
+                    {r.label} <span className="text-muted font-regular" style={{ color: 'var(--dune-text-muted)' }}>({roll.notation})</span>
                 </span>
                 <span className="text-xs font-bold px-2 py-0.5 rounded flex-shrink-0"
                       style={{
@@ -70,7 +72,7 @@ const DuneHistoryEntry = ({ roll }) => {
                 {complications > 0 && (
                     <span style={{ color: 'var(--dune-red)' }}>⚡ {complications} complication{complications > 1 ? 's' : ''}</span>
                 )}
-                {r.impulsionsCout > 0 && <span>💧 {r.impulsionsCout} imp.</span>}
+                {r.impulsionsDepensees > 0 && <span>💧 {r.impulsionsDepensees} imp.</span>}
                 {r.menaceGeneree  > 0 && <span>☠ +{r.menaceGeneree} menace</span>}
                 {r.useDetermination && <span style={{ color: 'var(--dune-gold)' }}>★ Détermination</span>}
             </div>

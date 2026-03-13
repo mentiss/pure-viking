@@ -7,6 +7,7 @@ const router = express.Router();
 const { authenticate, requireOwnerOrGM, requireGM } = require('../../../middlewares/auth');
 const { ensureUniqueCode } = require('../../../utils/characters');
 const { loadFullCharacter, saveFullCharacter } = require('../CharacterController');
+const {generateAccessUrl} = require("../config");
 
 // GET / - Liste tous les personnages
 router.get('/', (req, res) => {
@@ -113,7 +114,7 @@ router.post('/', (req, res) => {
             code = accessCode.toUpperCase().substring(0, 6);
             finalUrl = generateAccessUrl();
         } else {
-            ({ code, url: finalUrl } = ensureUniqueCode('character', req.db));
+            ({ code, url: finalUrl } = ensureUniqueCode('character', req));
         }
 
         let attempts = 0;

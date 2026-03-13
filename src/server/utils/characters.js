@@ -5,6 +5,8 @@
 // (vocabulaire viking) et sert de fallback dans ensureUniqueCode.
 // Chaque slug peut surcharger cette logique via config.js → generateAccessUrl.
 
+const {getConfigForSystem} = require("../systems/Loader");
+
 function generateAccessCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';
@@ -18,18 +20,17 @@ function generateAccessCode() {
  * Génère un code et une URL uniques pour un personnage ou une session.
  *
  * @param {'character'|'session'} type
- * @param {import('better-sqlite3').Database} db  - Connexion better-sqlite3
- * @param {() => string} [generateUrlFn]           - Fonction slug-spécifique (optionnelle).
+ * @param req
  *                                                   Fallback : generateAccessUrl() viking ci-dessus.
  * @returns {{ code: string, url: string }}
  */
-function ensureUniqueCode(type = 'character', db, generateUrlFn = generateAccessUrl) {
+function ensureUniqueCode(type = 'character', req) {
     const table = type === 'session' ? 'game_sessions' : 'characters';
     let code, url, attempts = 0;
-
+    const db = req.db;
     do {
         code = generateAccessCode();
-        url  = generateUrlFn();
+        url  = req.system?.generateAccessUrl();
         const existing = db.prepare(
             `SELECT id FROM ${table} WHERE access_code = ? OR access_url = ?`
         ).get(code, url);
@@ -53,7 +54,7 @@ function getCharNameExpr(db) {
     if (cols.includes('nom')) {
         // Dune : champ `nom` direct
         expr = cols.includes('prenom')
-            ? "c.prenom || c.nom"
+            ? "c.prenom || COALESCE(' ' || c.nom, '')"
             : "c.nom";
     } else if (cols.includes('prenom')) {
         // Vikings : prénom + surnom optionnel

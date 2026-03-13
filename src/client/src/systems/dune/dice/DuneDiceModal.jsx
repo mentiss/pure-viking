@@ -44,11 +44,11 @@ const PRINCIPE_LABELS = {
 
 // ── Sous-composant : affichage d'un dé ───────────────────────────────────────
 
-const DieResult = ({ value, rang, hasSpec, competenceRang }) => {
+const DieResult = ({ value, rang, hasSpec, competenceRang, selectedSpec = false }) => {
     let bg, label;
     if (value === 20) {
         bg = 'var(--dune-red)'; label = '⚡';
-    } else if (value <= rang && hasSpec && value <= competenceRang) {
+    } else if (value <= rang && ((hasSpec && selectedSpec && value <= competenceRang) || value === 1)) {
         bg = 'var(--dune-gold)'; label = '★★';
     } else if (value <= rang) {
         bg = 'var(--dune-success)'; label = '★';
@@ -67,7 +67,6 @@ const DieResult = ({ value, rang, hasSpec, competenceRang }) => {
 };
 
 // ── Composant principal ───────────────────────────────────────────────────────
-
 const DuneDiceModal = ({
                            character,
                            preselect       = null,
@@ -92,6 +91,7 @@ const DuneDiceModal = ({
             ? character.principes.find(p => p.key === preselect.key) ?? null : null
     );
     const [difficulte, setDifficulte] = useState(1);
+    const [selectedSpecialization, setSelectedSpecialization] = useState(false);
 
     // Étape 2
     const [impulsionsDepensees, setImpulsionsDepensees] = useState(0);
@@ -158,6 +158,7 @@ const DuneDiceModal = ({
                     menaceGeneree,
                     useDetermination: useDetMin && !!detMode,
                     detMode:          detMode ?? null,
+                    selectedSpecialization: selectedSpecialization ?? false,
                 },
             };
 
@@ -306,7 +307,7 @@ const DuneDiceModal = ({
 
                             <button
                                 onClick={() => setStep(2)}
-                                disabled={!selectedCompetence && !selectedPrincipe}
+                                disabled={!selectedCompetence || !selectedPrincipe}
                                 className="dune-btn-primary w-full disabled:opacity-40"
                             >
                                 Suivant →
@@ -330,10 +331,13 @@ const DuneDiceModal = ({
                                     {' '}({selectedPrincipe.rang}) = Rang{' '}
                                     <span className="font-bold" style={{ color: 'var(--dune-gold)' }}>{rang}</span>
                                     {hasSpec && (
-                                        <span className="ml-1 text-xs px-1 rounded"
-                                              style={{ background: 'var(--dune-gold)', color: 'var(--dune-dark)' }}>
-                                                SPEC
-                                            </span>
+                                        <button
+                                            onClick={() => setSelectedSpecialization(!selectedSpecialization)}
+                                            className="ml-1 text-xs px-1 rounded"
+                                            style={{ background: (selectedSpecialization === true ? ('var(--dune-spice)') : ('var(--dune-gold)')), color: 'var(--dune-dark)' }}
+                                        >
+                                            SPEC {selectedSpecialization === true ? (<>✅</>) : (<>❌</>)}
+                                        </button>
                                     )}
                                 </div>
 
@@ -471,7 +475,7 @@ const DuneDiceModal = ({
 
                             <div className="flex gap-2 flex-wrap justify-center">
                                 {(rollResults.results ?? []).map((v, i) => (
-                                    <DieResult key={i} value={v} rang={rang} hasSpec={hasSpec} competenceRang={compRang} />
+                                    <DieResult key={i} value={v} rang={rang} hasSpec={hasSpec} competenceRang={compRang} selectedSpec={selectedSpecialization} />
                                 ))}
                             </div>
 

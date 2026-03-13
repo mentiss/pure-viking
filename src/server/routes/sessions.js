@@ -112,7 +112,7 @@ router.post('/', authenticate, requireGM, (req, res) => {
         const { name, date, notes } = req.body;
         if (!name?.trim()) return res.status(400).json({ error: 'Session name is required' });
 
-        const { code, url } = ensureUniqueCode('session', req.db);
+        const { code, url } = ensureUniqueCode('session', req);
         const result = req.db.prepare(`
             INSERT INTO game_sessions (name, access_code, access_url, date, notes)
             VALUES (?, ?, ?, ?, ?)

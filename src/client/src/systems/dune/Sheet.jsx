@@ -765,7 +765,7 @@ const Sheet = ({
                                     {activeTab === 'historique' && (
                                         <DiceHistoryPage
                                             character={character}
-                                            renderEntry={(roll) => <DuneHistoryEntry roll={roll} />}
+                                            renderHistoryEntry={(roll) => <DuneHistoryEntry roll={roll} />}
                                             sessionId={activeGMSession ?? null}
                                         />
                                     )}

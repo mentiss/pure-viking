@@ -11,6 +11,7 @@ const router  = express.Router();
 const { authenticate, requireOwnerOrGM, requireGM } = require('../../../middlewares/auth');
 const { ensureUniqueCode } = require('../../../utils/characters');
 const { loadFullCharacter, saveFullCharacter } = require('../CharacterController');
+const {generateAccessUrl} = require("../config");
 
 // ── GET / — Liste résumée (GM uniquement) ────────────────────────────────────
 
@@ -144,7 +145,7 @@ router.post('/', (req, res) => {
             // Code personnalisé fourni par le joueur
             code = customCode.trim().toUpperCase().substring(0, 6);
             // URL toujours générée automatiquement (unicité garantie)
-            ({ url } = ensureUniqueCode('character', req.db, generateUrlFn));
+            ({ url } = ensureUniqueCode('character', req));
             // On vérifie l'unicité du code custom
             const existing = req.db.prepare(
                 'SELECT id FROM characters WHERE access_code = ?'
@@ -152,10 +153,10 @@ router.post('/', (req, res) => {
             if (existing) {
                 // Pas bloquant — le code peut être partagé (usage GroupeViking-style)
                 // On génère juste un code auto à la place
-                ({ code, url } = ensureUniqueCode('character', req.db, generateUrlFn));
+                ({ code, url } = ensureUniqueCode('character', req));
             }
         } else {
-            ({ code, url } = ensureUniqueCode('character', req.db, generateUrlFn));
+            ({ code, url } = ensureUniqueCode('character', req));
         }
 
         const result = req.db.prepare(`
