@@ -213,8 +213,8 @@ const Sheet = ({
                     <div className="relative">
                         <button
                             onClick={() => setShowMenu(v => !v)}
-                            className="w-8 h-8 flex items-center justify-center rounded font-bold text-base"
-                            style={{ background: 'var(--dune-surface-alt)', color: 'var(--dune-gold)' }}
+                            className="w-8 h-8 flex items-center justify-center rounded font-bold text-base bg-surface-alt"
+                            style={{ color: 'var(--dune-gold)' }}
                             title="Menu"
                         >
                             ☰
@@ -342,6 +342,7 @@ const Sheet = ({
                             character={character}
                             sessionId={activeGMSession}
                             sessionName={activeSessionName}
+                            headerHeight={75}
                         />
 
                         {/* Zone centrale avec jauges encadrantes */}

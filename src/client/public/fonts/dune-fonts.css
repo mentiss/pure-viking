@@ -1,8 +1,0 @@
-@font-face {
-    font-family: 'DuneRise';
-    src: url('Dune_Rise.otf')  format('opentype'),
-         url('Dune_Rise.ttf')  format('truetype');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}

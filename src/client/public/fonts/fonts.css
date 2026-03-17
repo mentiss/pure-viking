@@ -1,0 +1,40 @@
+@font-face {
+    font-family: 'DuneRise';
+    src: url('Dune_Rise.otf')  format('opentype'),
+         url('Dune_Rise.ttf')  format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'BleedingCowboys';
+    src: url('Bleeding_Cowboys.ttf')  format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'CowboyMovie';
+    src: url('Cowboy_Movie.ttf')  format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'DayRoman';
+    src: url('Day_Roman.ttf')  format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'PunkTypewriter';
+    src: url('Punk_Typewriter.otf')  format('opentype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}

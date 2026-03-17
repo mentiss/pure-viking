@@ -596,8 +596,6 @@ const JournalTab = ({ characterId }) => {
                     danger={true}
                 />
             )}
-
-            // ── 4. Lightbox — ajouter juste avant la fermeture du return ─────────────────
             {lightboxSrc && (
                 <ImageLightbox src={lightboxSrc} onClose={closeLightbox} />
             )}

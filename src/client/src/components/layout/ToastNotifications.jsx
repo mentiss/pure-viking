@@ -1,261 +1,248 @@
-// ToastNotifications.jsx - Toast notifications (jets de dés + messages GM)
-import React, { useState, useEffect } from "react";
-import { useSocket } from "../../context/SocketContext.jsx";
-import { useAuth } from "../../context/AuthContext.jsx";
+// src/client/src/components/layout/ToastNotifications.jsx
+// Toasts génériques : jets de dés, messages GM, objets GM.
+//
+// Props :
+//   sessionId        — filtre les jets sur la session active
+//   onViewHistory    — callback "Voir l'historique" (optionnel)
+//   renderDiceToast  — (toast) => JSX | null
+//                      Rendu slug-spécifique du toast de jet.
+//                      Si absent ou retourne null → rendu générique.
+//
+// ⚠️ Aucune classe CSS viking-* ici.
+//    Les couleurs utilisent exclusivement les variables CSS génériques :
+//    --color-surface, --color-border, --color-text, --color-text-muted,
+//    --color-accent, --color-success, --color-danger, --color-bg.
+//    Chaque slug définit ces variables dans son theme.css.
 
-const ToastNotifications = ({ onViewHistory, sessionId = null }) => {
+import React, { useState, useEffect } from 'react';
+import { useSocket } from '../../context/SocketContext.jsx';
+import { useAuth }   from '../../context/AuthContext.jsx';
+
+const TOAST_DICE_TTL    = 5000;
+const TOAST_MESSAGE_TTL = 8000;
+
+const ToastNotifications = ({
+                                sessionId       = null,
+                                onViewHistory   = null,
+                                renderDiceToast = null,
+                            }) => {
     const [toasts, setToasts] = useState([]);
-    const socket = useSocket();
-    const { user } = useAuth();
+    const socket              = useSocket();
+    const { user }            = useAuth();
+    const myCharacterId       = user?.character?.id;
 
-    const myCharacterId = user?.character?.id;
+    const add = (toast, ttl) => {
+        setToasts(prev => [toast, ...prev].slice(0, 3));
+        setTimeout(() => setToasts(prev => prev.filter(t => t.id !== toast.id)), ttl);
+    };
 
     useEffect(() => {
         if (!socket) return;
 
-        // --- Jets de dés (existant) ---
-        const handleDiceRoll = (rollData) => {
-            if (!sessionId || rollData.session_id === sessionId) {
-                const toast = {
-                    id: Date.now(),
-                    type: 'dice',
-                    animation: 'default',
-                    ...rollData,
-                    timestamp: Date.now()
-                };
-
-                setToasts(prev => [toast, ...prev].slice(0, 3));
-                setTimeout(() => {
-                    setToasts(prev => prev.filter(t => t.id !== toast.id));
-                }, 5000);
-            }
+        const onDice = (rollData) => {
+            // Filtre session si précisée
+            if (sessionId && rollData.session_id !== sessionId) return;
+            add({
+                id:   Date.now(),
+                type: 'dice',
+                animation: 'default',
+                ...rollData,
+            }, TOAST_DICE_TTL);
         };
 
-        // --- Messages GM ---
-        const handleGMMessage = (data) => {
-            console.log('Received socket message', data);
-            // Ne montrer le toast que si ce message est pour MOI
-            if (myCharacterId && data.characterId === myCharacterId) {
-                const toast = {
-                    id: Date.now(),
-                    type: 'gm_message',
-                    animation: data.toastAnimation || 'default',
-                    title: data.entry?.title || 'Message du MJ',
-                    body: data.entry?.body || '',
-                    imageUrl: data.entry?.metadata?.imageUrl || null,
-                    timestamp: Date.now()
-                };
-
-                setToasts(prev => [toast, ...prev].slice(0, 3));
-                setTimeout(() => {
-                    setToasts(prev => prev.filter(t => t.id !== toast.id));
-                }, 8000); // Plus long pour les messages GM
-            }
-        };
-        const handleGMItem = (data) => {
-            if (myCharacterId && data.characterId === myCharacterId) {
-                const toast = {
-                    id: Date.now(),
-                    type: 'gm_item',
-                    animation: data.toastAnimation || 'default',
-                    itemName: data.item?.name || 'Objet',
-                    itemCategory: data.item?.category || 'item',
-                    timestamp: Date.now()
-                };
-                setToasts(prev => [toast, ...prev].slice(0, 3));
-                setTimeout(() => {
-                    setToasts(prev => prev.filter(t => t.id !== toast.id));
-                }, 8000);
-            }
+        const onGMMessage = (data) => {
+            if (myCharacterId && data.characterId !== myCharacterId) return;
+            add({
+                id:        Date.now(),
+                type:      'gm_message',
+                animation: data.toastAnimation ?? 'default',
+                title:     data.entry?.title   ?? 'Message du MJ',
+                body:      data.entry?.body    ?? '',
+                imageUrl:  data.entry?.metadata?.imageUrl ?? null,
+            }, TOAST_MESSAGE_TTL);
         };
 
-        socket.on('dice-roll', handleDiceRoll);
-        socket.on('gm-message-received', handleGMMessage);
-        socket.on('gm-item-received', handleGMItem);
+        const onGMItem = (data) => {
+            if (myCharacterId && data.characterId !== myCharacterId) return;
+            add({
+                id:           Date.now(),
+                type:         'gm_item',
+                animation:    data.toastAnimation ?? 'default',
+                itemName:     data.item?.name     ?? 'Objet',
+                itemCategory: data.item?.category ?? 'misc',
+            }, TOAST_MESSAGE_TTL);
+        };
+
+        socket.on('dice-roll',          onDice);
+        socket.on('gm-message-received', onGMMessage);
+        socket.on('gm-item-received',    onGMItem);
 
         return () => {
-            socket.off('dice-roll', handleDiceRoll);
-            socket.off('gm-message-received', handleGMMessage);
-            socket.off('gm-item-received', handleGMItem);
+            socket.off('dice-roll',           onDice);
+            socket.off('gm-message-received', onGMMessage);
+            socket.off('gm-item-received',    onGMItem);
         };
     }, [socket, sessionId, myCharacterId]);
 
-    const removeToast = (id) => {
-        setToasts(prev => prev.filter(t => t.id !== id));
-    };
+    const remove = (id) => setToasts(prev => prev.filter(t => t.id !== id));
 
-    const getRollTypeLabel = (type) => {
-        const labels = {
-            'carac': 'Caractéristique',
-            'skill': 'Compétence',
-            'saga_heroic': 'SAGA Héroïque',
-            'saga_epic': 'SAGA Épique',
-            'saga_insurance': 'SAGA Assurance'
-        };
-        return labels[type] || type;
-    };
+    const animClass = (a) => ({
+        default:  'animate-slide-in-right',
+        shake:    'animate-toast-shake',
+        flash:    'animate-toast-flash',
+        glitter:  'animate-toast-glitter',
+    }[a] ?? 'animate-slide-in-right');
 
-    // Mapper animation → classe CSS
-    const getAnimationClass = (animation) => {
-        const map = {
-            'default': 'animate-slide-in-right',
-            'shake': 'animate-toast-shake',
-            'flash': 'animate-toast-flash',
-            'glitter': 'animate-toast-glitter',
-        };
-        return map[animation] || map['default'];
-    };
+    if (!toasts.length) return null;
 
     return (
-        <div className="fixed bottom-16 right-4 z-50 space-y-2">
+        <div className="fixed bottom-16 right-4 z-50 flex flex-col gap-2">
             {toasts.map(toast => (
-                <div key={toast.id}>
-                    {toast.type === 'gm_message' ? (
-                        // --- Toast Message GM ---
-                        <div
-                            className={`bg-viking-parchment dark:bg-viking-brown border-2 rounded-lg shadow-xl p-3 min-w-64 max-w-sm ${getAnimationClass(toast.animation)} ${
-                                toast.animation === 'glitter'
-                                    ? 'border-yellow-500'
-                                    : 'border-viking-bronze'
-                            }`}
+                <div key={toast.id} className={animClass(toast.animation)}>
+
+                    {/* ── Message GM ──────────────────────────────────────── */}
+                    {toast.type === 'gm_message' && (
+                        <ToastShell
+                            onClose={() => remove(toast.id)}
+                            accent={toast.animation === 'glitter'}
                         >
-                            <div className="flex justify-between items-start mb-2">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xl">📨</span>
-                                    <div>
-                                        <div className="font-bold text-sm text-viking-brown dark:text-viking-parchment">
-                                            Message du MJ
-                                        </div>
-                                        {toast.title && (
-                                            <div className="text-xs font-semibold text-viking-bronze">
-                                                {toast.title}
-                                            </div>
-                                        )}
-                                    </div>
+                            <div className="flex items-start gap-2">
+                                <span style={{ fontSize: '1.2rem' }}>📩</span>
+                                <div className="min-w-0">
+                                    <p style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--color-text)' }}>
+                                        {toast.title}
+                                    </p>
+                                    {toast.body && (
+                                        <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
+                                            {toast.body}
+                                        </p>
+                                    )}
+                                    {toast.imageUrl && (
+                                        <img
+                                            src={toast.imageUrl}
+                                            alt=""
+                                            className="mt-2 rounded max-h-24 object-cover"
+                                        />
+                                    )}
                                 </div>
+                            </div>
+                        </ToastShell>
+                    )}
+
+                    {/* ── Objet GM ────────────────────────────────────────── */}
+                    {toast.type === 'gm_item' && (
+                        <ToastShell onClose={() => remove(toast.id)}>
+                            <div className="flex items-center gap-2">
+                                <span style={{ fontSize: '1.2rem' }}>🎁</span>
+                                <div>
+                                    <p style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--color-text)' }}>
+                                        Objet reçu !
+                                    </p>
+                                    <p style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-accent)' }}>
+                                        {toast.itemName}
+                                    </p>
+                                    <p style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
+                                        Consultez votre inventaire
+                                    </p>
+                                </div>
+                            </div>
+                        </ToastShell>
+                    )}
+
+                    {/* ── Jet de dés ──────────────────────────────────────── */}
+                    {toast.type === 'dice' && (
+                        <ToastShell onClose={() => remove(toast.id)}>
+                            {/* Header commun */}
+                            <div className="flex items-center gap-2 mb-2">
+                                <span style={{ fontSize: '1.1rem' }}>🎲</span>
+                                <div className="min-w-0">
+                                    <p style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {toast.character_name}
+                                    </p>
+                                    <p style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
+                                        {toast.label ?? toast.roll_target ?? toast.roll_type ?? 'Jet'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Rendu slug-spécifique ou fallback générique */}
+                            {(() => {
+                                // Tenter rendu slug-spécifique
+                                if (renderDiceToast) {
+                                    // Désérialiser roll_result si nécessaire
+                                    let result = toast.roll_result;
+                                    if (typeof result === 'string') {
+                                        try { result = JSON.parse(result); } catch { result = null; }
+                                    }
+                                    const custom = renderDiceToast({ ...toast, roll_result: result });
+                                    if (custom) return custom;
+                                }
+
+                                // Fallback générique — succès si disponible, sinon total
+                                return (
+                                    <div>
+                                        {toast.successes != null ? (
+                                            <p style={{
+                                                fontWeight: 700, fontSize: '1.1rem',
+                                                color: toast.successes >= 3 ? 'var(--color-success)'
+                                                    : toast.successes > 0  ? 'var(--color-accent)'
+                                                        : 'var(--color-danger)',
+                                            }}>
+                                                {toast.successes} succès
+                                            </p>
+                                        ) : toast.roll_result?.total != null ? (
+                                            <p style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--color-text)' }}>
+                                                = {typeof toast.roll_result === 'string'
+                                                ? JSON.parse(toast.roll_result)?.total
+                                                : toast.roll_result?.total}
+                                            </p>
+                                        ) : null}
+                                    </div>
+                                );
+                            })()}
+
+                            {onViewHistory && (
                                 <button
-                                    onClick={() => removeToast(toast.id)}
-                                    className="text-viking-leather dark:text-viking-bronze hover:text-viking-danger text-lg leading-none"
+                                    onClick={onViewHistory}
+                                    className="w-full mt-2 py-1 rounded text-xs font-semibold"
+                                    style={{
+                                        background: 'var(--color-surface-alt)',
+                                        color:      'var(--color-text-muted)',
+                                        border:     '1px solid var(--color-border)',
+                                    }}
                                 >
-                                    ✕
+                                    Voir l'historique
                                 </button>
-                            </div>
-
-                            {toast.body && (
-                                <div className="text-sm text-viking-text dark:text-viking-parchment mb-2 line-clamp-3">
-                                    {toast.body}
-                                </div>
                             )}
-
-                            {toast.imageUrl && (
-                                <img
-                                    src={toast.imageUrl}
-                                    alt=""
-                                    className="max-h-24 rounded border border-viking-bronze mb-2"
-                                />
-                            )}
-
-                            <div className="text-[10px] text-viking-leather dark:text-viking-bronze">
-                                Consultez votre journal pour plus de détails
-                            </div>
-                        </div>
-                    ) : toast.type === 'gm_item' ? (
-                        // --- Toast Item reçu ---
-                        <div className={`bg-viking-parchment dark:bg-viking-brown border-2 rounded-lg shadow-xl p-3 min-w-64 max-w-sm ${getAnimationClass(toast.animation)} ${
-                            toast.animation === 'glitter' ? 'border-yellow-500' : 'border-viking-bronze'
-                        }`}>
-                            <div className="flex justify-between items-start mb-2">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xl">🎁</span>
-                                    <div>
-                                        <div className="font-bold text-sm text-viking-brown dark:text-viking-parchment">
-                                            Objet reçu !
-                                        </div>
-                                        <div className="text-xs font-semibold text-viking-bronze">
-                                            {toast.itemName}
-                                        </div>
-                                    </div>
-                                </div>
-                                <button onClick={() => removeToast(toast.id)}
-                                        className="text-viking-leather dark:text-viking-bronze hover:text-viking-danger text-lg leading-none">✕</button>
-                            </div>
-                            <div className="text-[10px] text-viking-leather dark:text-viking-bronze">
-                                Consultez votre inventaire
-                            </div>
-                        </div>
-                    ) : (
-                        // --- Toast Jet de dés (existant) ---
-                        <div
-                            className={`bg-white dark:bg-viking-brown border-2 border-viking-bronze rounded-lg shadow-xl p-3 min-w-64 max-w-sm ${getAnimationClass(toast.animation)}`}
-                        >
-                            <div className="flex justify-between items-start mb-2">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xl">🎲</span>
-                                    <div>
-                                        <div className="font-bold text-sm text-viking-brown dark:text-viking-parchment">
-                                            {toast.character_name}
-                                        </div>
-                                        <div className="text-xs text-viking-leather dark:text-viking-bronze">
-                                            {toast.roll_target || getRollTypeLabel(toast.roll_type)}
-                                        </div>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => removeToast(toast.id)}
-                                    className="text-viking-leather dark:text-viking-bronze hover:text-viking-danger text-lg leading-none"
-                                >
-                                    ✕
-                                </button>
-                            </div>
-
-                            <div className="mb-2">
-                                <div className={`text-xl font-bold ${
-                                    toast.successes >= 3
-                                        ? 'text-viking-success'
-                                        : toast.successes > 0
-                                            ? 'text-viking-bronze'
-                                            : 'text-viking-danger'
-                                }`}>
-                                    {toast.successes} succès
-                                </div>
-
-                                {toast.results && toast.results.length > 0 && (
-                                    <div className="flex gap-1 mt-1 flex-wrap">
-                                        {toast.results.map((die, idx) => (
-                                            <span
-                                                key={idx}
-                                                className={`text-xs font-mono px-1.5 py-0.5 rounded ${
-                                                    die >= toast.threshold
-                                                        ? 'bg-viking-success/20 text-viking-success border border-viking-success'
-                                                        : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                                                }`}
-                                            >
-                                                [{die}]
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {toast.saga_spent > 0 && (
-                                    <div className="text-xs text-viking-bronze mt-1">
-                                        SAGA : {toast.saga_spent}
-                                        {toast.saga_recovered > 0 && ' (récupérée !)'}
-                                    </div>
-                                )}
-                            </div>
-
-                            <button
-                                onClick={onViewHistory}
-                                className="w-full px-2 py-1.5 bg-viking-bronze text-viking-brown rounded font-semibold hover:bg-viking-leather text-xs"
-                            >
-                                Voir l'historique
-                            </button>
-                        </div>
+                        </ToastShell>
                     )}
                 </div>
             ))}
         </div>
     );
 };
+
+// ── Shell de toast — fond + bordure + bouton fermer ───────────────────────────
+
+const ToastShell = ({ children, onClose, accent }) => (
+    <div
+        className="rounded-lg shadow-xl p-3 min-w-64 max-w-sm relative"
+        style={{
+            background:   'var(--color-surface)',
+            border:       `2px solid ${accent ? 'var(--color-accent)' : 'var(--color-border)'}`,
+        }}
+    >
+        <button
+            onClick={onClose}
+            style={{
+                position: 'absolute', top: 6, right: 8,
+                color: 'var(--color-text-muted)', fontSize: '1rem', lineHeight: 1,
+            }}
+        >
+            ✕
+        </button>
+        {children}
+    </div>
+);
 
 export default ToastNotifications;

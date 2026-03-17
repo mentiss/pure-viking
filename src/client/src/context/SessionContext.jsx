@@ -2,14 +2,17 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useSocket } from './SocketContext';
 import { getSystemFromPath } from '../hooks/useSystem.js';
+import {useFetch} from "../hooks/useFetch.js";
 
 const SessionContext = createContext();
 
 export const SessionProvider = ({ children }) => {
     const [activeGMSession, setActiveGMSession] = useState(null);
+    const [activeSessionName, setActiveSessionName] = useState(null);
     const [characterSessions, setCharacterSessions] = useState([]); // Sessions du perso
     const [pendingSessionId, setPendingSessionId] = useState(null);
     const socket = useSocket();
+    const fetchWithAuth = useFetch();
 
     useEffect(() => {
         if (!socket) return;
@@ -60,6 +63,15 @@ export const SessionProvider = ({ children }) => {
         };
     }, [socket, activeGMSession]);
 
+    useEffect(() => {
+        if (!activeGMSession) { setActiveSessionName(null); return; }
+        const system = getSystemFromPath();
+        fetchWithAuth(`/api/${system}/sessions/${activeGMSession}`)
+            .then(r => r.ok ? r.json() : null)
+            .then(s => { if (s) setActiveSessionName(s.name); })
+            .catch(() => {});
+    }, [activeGMSession]);
+
     // Méthode pour enregistrer les sessions du personnage
     const updateCharacterSessions = (sessions) => {
         console.log('[SessionContext] Character sessions updated:', sessions);
@@ -69,6 +81,7 @@ export const SessionProvider = ({ children }) => {
     return (
         <SessionContext.Provider value={{
             activeGMSession,
+            activeSessionName,
             updateCharacterSessions
         }}>
             {children}

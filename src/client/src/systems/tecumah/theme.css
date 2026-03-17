@@ -1,0 +1,54 @@
+/* src/client/src/systems/tecumah/theme.css */
+
+
+@source inline("bg-health-{0,1,2,3,4,5} text-health-{0,1,2,3,4,5} border-health-{0,1,2,3,4,5}");
+:root {
+    --color-primary:     #BC4A2C;   /* Red Canyon     */
+    --color-secondary:   #438E94;   /* Turquoise       */
+    --color-accent:      #E9A73B;   /* Harvest Gold    */
+    --color-text:        #3C2F2F;   /* Mesquite Wood   */
+    --color-text-muted:  #7D6B5D;   /* Dusty Trail     */
+    --color-danger:      #8B261A;   /* Iron Rust       */
+    --color-success:     #6B8E23;   /* Saguaro Green   */
+    --color-bg:          #F7E7CE;   /* Desert Sand     */
+    --color-surface:     #EED9B5;   /* Sandstone       */
+    --color-surface-alt: #E2C499;   /* Deep Dune       */
+    --color-border:      #C4A484;   /* Rawhide         */
+
+    /* Niveaux de blessure (0=Sain … 5=Mortal) */
+    --color-health-0: #6B8E23;   /* Sain            — Saguaro Green */
+    --color-health-1: #B8860B;   /* Stunned         — Dark Goldenrod */
+    --color-health-2: #C87000;   /* Wounded         — Burnt Orange   */
+    --color-health-3: #BC4A2C;   /* Severely Wounded— Red Canyon     */
+    --color-health-4: #8B261A;   /* Incapacitated   — Iron Rust      */
+    --color-health-5: #4A0E0E;   /* Mortal          — Deep Crimson   */
+}
+
+[data-theme="dark"] {
+    --color-primary:     #BC4A2C;
+    --color-secondary:   #59B5BD;
+    --color-accent:      #E9A73B;
+    --color-text:        #F7E7CE;   /* Sand Glow       */
+    --color-text-muted:  #A68B7C;   /* Ash & Dust      */
+    --color-danger:      #8B261A;
+    --color-success:     #7AAA3A;
+    --color-bg:          #2B1B17;   /* Midnight Canyon */
+    --color-surface:     #3D2B24;   /* Dark Clay       */
+    --color-surface-alt: #4E382F;   /* Roasted Coffee  */
+    --color-border:      #5E4238;   /* Weathered Wood  */
+
+    --color-health-0: #7AAA3A;
+    --color-health-1: #D4A800;
+    --color-health-2: #E07800;
+    --color-health-3: #C84A2C;
+    --color-health-4: #8B261A;
+    --color-health-5: #5A1010;
+}
+
+.tecumah-font {
+    font-family: 'BleedingCowboys', Georgia, serif;
+}
+
+.tecumah-title-font {
+    font-family: 'DayRoman', Georgia, serif;
+}

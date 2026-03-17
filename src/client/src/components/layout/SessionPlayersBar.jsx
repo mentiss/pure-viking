@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { useSocket }         from '../../context/SocketContext.jsx';
 import { toSystemUrl, useFetch } from '../../hooks/useFetch.js';
 
-const SessionPlayersBar = ({ character, sessionId, sessionName }) => {
+const SessionPlayersBar = ({ character, sessionId, sessionName, headerHeight = null }) => {
     const [sessionCharacters, setSessionCharacters] = useState([]);
     const [onlineCharacters,  setOnlineCharacters]  = useState([]);
     const [isCollapsed,       setIsCollapsed]        = useState(false);
@@ -53,6 +53,8 @@ const SessionPlayersBar = ({ character, sessionId, sessionName }) => {
         isOnline: onlineCharacters.some(oc => oc.characterId === char.id),
         isMe:     char.id === character?.id,
     }));
+
+    //console.log(sessionCharacters, charactersWithStatus);
 
     if (!sessionId || sessionCharacters.length === 0) return null;
 
@@ -206,11 +208,12 @@ const SessionPlayersBar = ({ character, sessionId, sessionName }) => {
             {isCollapsed && (
                 <button
                     onClick={() => setIsCollapsed(false)}
-                    className={`fixed left-2 z-40 w-8 h-8 rounded-full shadow-lg flex items-center justify-center ${isButtonScrolled ? 'top-0' : ''}`}
+                    className={`fixed left-2 z-40 w-8 h-8 rounded-full shadow-lg flex items-center justify-center ${!headerHeight && isButtonScrolled ? 'top-0' : ''}`}
                     style={{
-                        background:  'var(--color-primary)',
-                        color:       'var(--color-primary-dark, #fff)',
-                        border:      '2px solid var(--color-border)',
+                        top:        headerHeight !== null ? `${headerHeight + 8}px` : undefined,
+                        background: 'var(--color-primary)',
+                        color:      'var(--color-primary-dark, #fff)',
+                        border:     '2px solid var(--color-border)',
                     }}
                     title="Afficher la table"
                 >

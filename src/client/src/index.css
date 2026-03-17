@@ -73,9 +73,102 @@ select:disabled {
   animation: toast-glitter 1s ease-out forwards;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   @theme — Tailwind v4 génère les classes utilitaires depuis ces tokens.
+   Chaque slug override les var(--color-*) dans son theme.css.
+   Tailwind lit les tokens → les classes s'adaptent automatiquement au slug.
+───────────────────────────────────────────────────────────────────────────── */
+
+@theme {
+  /* Couleurs principales */
+  --color-primary-theme:     var(--color-primary);
+  --color-secondary-theme:   var(--color-secondary);
+  --color-accent-theme:      var(--color-accent);
+  --color-danger-theme:      var(--color-danger);
+  --color-success-theme:     var(--color-success);
+
+  /* Surfaces */
+  --color-base-theme:        var(--color-bg);
+  --color-surface-theme:     var(--color-surface);
+  --color-surface-alt-theme: var(--color-surface-alt);
+
+  /* Texte */
+  --color-text-theme:        var(--color-text);
+  --color-muted-theme:       var(--color-text-muted);
+
+  /* Bordure par défaut — s'applique à tout border-* Tailwind */
+  --default-border-color:    var(--color-border);
+}
+
+
+/* ── Backgrounds ─────────────────────────────────────────────────────────── */
 .bg-primary     { background-color: var(--color-primary); }
+.bg-secondary   { background-color: var(--color-secondary); }
+.bg-accent      { background-color: var(--color-accent); }
+.bg-danger      { background-color: var(--color-danger); }
+.bg-success     { background-color: var(--color-success); }
+.bg-base          { background-color: var(--color-bg); }
 .bg-surface     { background-color: var(--color-surface); }
 .bg-surface-alt { background-color: var(--color-surface-alt); }
+
+/* ── Textes ───────────────────────────────────────────────────────────────── */
 .text-primary   { color: var(--color-primary); }
+.text-secondary { color: var(--color-secondary); }
+.text-accent    { color: var(--color-accent); }
+.text-danger    { color: var(--color-danger); }
+.text-success   { color: var(--color-success); }
+.text-base      { color: var(--color-text); }
 .text-muted     { color: var(--color-text-muted); }
-.border-theme   { border-color: var(--color-border); }
+
+/* ── Bordures ─────────────────────────────────────────────────────────────── */
+.border-primary   { border-color: var(--color-primary); }
+.border-secondary { border-color: var(--color-secondary); }
+.border-accent    { border-color: var(--color-accent); }
+.border-danger    { border-color: var(--color-danger); }
+.border-success   { border-color: var(--color-success); }
+.border-base    { border-color: var(--color-border); }
+.border-surface   { border-color: var(--color-surface); }
+.border-surface-alt   { border-color: var(--color-surface-alt); }
+
+/* ── Hover : backgrounds ─────────────────────────────────────────────────── */
+.hover\:bg-primary:hover     { background-color: var(--color-primary); }
+.hover\:bg-secondary:hover   { background-color: var(--color-secondary); }
+.hover\:bg-accent:hover      { background-color: var(--color-accent); }
+.hover\:bg-surface:hover     { background-color: var(--color-surface); }
+.hover\:bg-base:hover     { background-color: var(--color-bg); }
+.hover\:bg-surface-alt:hover { background-color: var(--color-surface-alt); }
+
+/* ── Hover : textes ──────────────────────────────────────────────────────── */
+.hover\:text-primary:hover   { color: var(--color-primary); }
+.hover\:text-secondary:hover   { color: var(--color-secondary); }
+.hover\:text-accent:hover    { color: var(--color-accent); }
+.hover\:text-muted:hover     { color: var(--color-text-muted); }
+.hover\:text-base:hover      { color: var(--color-text); }
+
+/* ── Hover : bordures ────────────────────────────────────────────────────── */
+.hover\:border-primary:hover { border-color: var(--color-primary); }
+.hover\:border-secondary:hover { border-color: var(--color-secondary); }
+.hover\:border-accent:hover  { border-color: var(--color-accent); }
+.hover\:border-base:hover  { border-color: var(--color-border); }
+
+/* ── Health (niveaux de blessure 0–5) ────────────────────────────────────── */
+.bg-health-0 { background-color: var(--color-health-0); }
+.bg-health-1 { background-color: var(--color-health-1); }
+.bg-health-2 { background-color: var(--color-health-2); }
+.bg-health-3 { background-color: var(--color-health-3); }
+.bg-health-4 { background-color: var(--color-health-4); }
+.bg-health-5 { background-color: var(--color-health-5); }
+
+.text-health-0 { color: var(--color-health-0); }
+.text-health-1 { color: var(--color-health-1); }
+.text-health-2 { color: var(--color-health-2); }
+.text-health-3 { color: var(--color-health-3); }
+.text-health-4 { color: var(--color-health-4); }
+.text-health-5 { color: var(--color-health-5); }
+
+.border-health-0 { border-color: var(--color-health-0); }
+.border-health-1 { border-color: var(--color-health-1); }
+.border-health-2 { border-color: var(--color-health-2); }
+.border-health-3 { border-color: var(--color-health-3); }
+.border-health-4 { border-color: var(--color-health-4); }
+.border-health-5 { border-color: var(--color-health-5); }
