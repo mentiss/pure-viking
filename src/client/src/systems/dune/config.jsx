@@ -8,6 +8,9 @@
 // ── Barème Impulsions → dés supplémentaires ───────────────────────────────
 // Index = nb de dés achetés (0, 1, 2, 3)
 import DuneHistoryEntry from "./components/DuneHistoryEntry.jsx";
+import DuneNPCForm from "./gm/npc/DuneNPCForm.jsx";
+import DuneNPCSummary from "./gm/npc/DuneNPCSummary.jsx";
+import DuneNPCDetail from "./gm/npc/DuneNPCDetail.jsx";
 
 const IMPULSION_COST = [0, 1, 3, 6];
 
@@ -45,23 +48,6 @@ const duneConfig = {
     label: 'Dune: Adventures in the Imperium',
 
     // ─── Hooks dés 2D20 ───────────────────────────────────────────────────
-    // ─────────────────────────────────────────────────────────────────────────────
-// MODIFICATIONS À APPORTER DANS : src/client/src/systems/dune/config.jsx
-//
-// Remplacer le bloc `dice: { ... }` existant par celui ci-dessous.
-// Le reste du fichier (IMPULSION_COST, countSuccesses, combat, exports) est inchangé.
-//
-// Changements clés :
-//   - buildNotation(ctx) : nouvelle fonction déléguée au composant
-//   - afterRoll(raw, ctx) : utilise raw.groups[0].values (nouveau format)
-//   - buildAnimationSequence(raw, ctx, result) : 3e param ajouté
-//   - renderHistoryEntry(entry) : délègue à DuneHistoryEntry
-// ─────────────────────────────────────────────────────────────────────────────
-
-// AJOUTER cet import en haut du fichier (si pas déjà présent) :
-// import DuneHistoryEntry from './components/DuneHistoryEntry.jsx';
-// ou ajuster le chemin selon l'emplacement actuel.
-
     dice: {
 
         // ── buildNotation ─────────────────────────────────────────────────────────
@@ -148,7 +134,54 @@ const duneConfig = {
         // Délègue au composant Dune-spécifique.
         renderHistoryEntry: (entry) => <DuneHistoryEntry roll={entry} />,
     },
+    npc : {
+        renderNPCForm: (slugForm, onChange) =>
+            <DuneNPCForm slugForm={slugForm} onChange={onChange} />,
 
+        renderNPCSummary: (npc) =>
+            <DuneNPCSummary npc={npc} />,
+
+        renderNPCDetail: (npc, openDiceModal) =>
+            <DuneNPCDetail npc={npc} openDiceModal={openDiceModal} />,
+
+        buildNPCData: (slugForm) => ({
+            combat_stats: {},
+            system_data: {
+                competences: slugForm.competences,
+                principes:   slugForm.principes,
+            },
+        }),
+
+        parseNPCData: (npc) => ({
+            competences: npc.system_data?.competences,
+            principes:   npc.system_data?.principes,
+        }),
+
+        getQuickRolls: (npc) => {
+            const competences = npc.system_data?.competences ?? [];
+            const principes   = npc.system_data?.principes   ?? [];
+
+            const meilleurPrincipe = principes.reduce(
+                (best, p) => p.rang > best ? p.rang : best, 0
+            );
+
+            const LABELS = {
+                analyse: 'Analyse', combat: 'Combat', discipline: 'Discipline',
+                mobilite: 'Mobilité', rhetorique: 'Rhétorique',
+            };
+
+            return competences.map(comp => ({
+                label: LABELS[comp.key] ?? comp.key,
+                onRoll: (npcArg, openDiceModal) => {
+                    if (!openDiceModal) return;
+                    openDiceModal({
+                        rang:  (comp.rang ?? 4) + meilleurPrincipe,
+                        label: `${npcArg.name} — ${LABELS[comp.key] ?? comp.key}`,
+                    });
+                },
+            }));
+        },
+    },
     // ─── Constantes utiles côté client ────────────────────────────────────
     IMPULSION_COST,
     countSuccesses,

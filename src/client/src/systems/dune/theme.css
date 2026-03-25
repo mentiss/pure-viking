@@ -6,8 +6,10 @@
     /* ── Couleurs principales ────────────────────────────────────────────── */
     --dune-sand:        #C8A96E;   /* sable doré */
     --dune-gold:        #D4A017;   /* or impérial */
+    --color-accent:     #D4A017;   /* or impérial */
     --dune-ochre:       #B5651D;   /* ocre brique */
     --dune-spice:       #E07B39;   /* orange épice */
+    --color-secondary:  #E07B39;   /* orange épice */
     --dune-dust:        #8B6F47;   /* poussière */
     --dune-dark:        #2C1A0E;   /* brun très sombre */
     --dune-parchment:   #F5E6C8;   /* parchemin clair */
@@ -15,17 +17,27 @@
 
     /* ── Fond & surface (mode jour) ─────────────────────────────────────── */
     --dune-bg:          #FDF3DC;
+    --color-bg:          #FDF3DC;
     --dune-surface:     #F5E6C8;
+    --color-surface:     #F5E6C8;
     --dune-surface-alt: #EDD9A3;
+    --color-surface-alt: #EDD9A3;
     --dune-border:      #C8A96E;
+    --color-border:      #C8A96E;
     --dune-text:        #2C1A0E;
+    --color-text:        #2C1A0E;
     --dune-text-muted:  #6B4F2A;
+    --color-text-muted:  #6B4F2A;
 
     /* ── États ───────────────────────────────────────────────────────────── */
     --dune-success:     #4A7C59;
+    --color-success:     #4A7C59;
     --dune-danger:      #8B1A1A;
+    --color-danger:      #8B1A1A;
     --dune-warning:     #D4A017;
+    --color-warning:     #D4A017;
     --dune-info:        #3A6186;
+    --color-info:        #3A6186;
 
     --font-dune: 'DuneRise', Georgia, serif;  /* fallback propre */
 }
@@ -37,11 +49,24 @@
 /* ── Mode sombre ─────────────────────────────────────────────────────────── */
 .dark {
     --dune-bg:          #1A0F06;
+    --color-bg:          #1A0F06;
     --dune-surface:     #2C1A0E;
+    --color-surface:     #2C1A0E;
     --dune-surface-alt: #3D2410;
+    --color-surface-alt: #3D2410;
     --dune-border:      #8B6F47;
+    --color-border:      #8B6F47;
     --dune-text:        #F5E6C8;
+    --color-text:        #F5E6C8;
     --dune-text-muted:  #C8A96E;
+    --color-text-muted:  #C8A96E;
+
+    --dune-dust:        #8B6F47;   /* poussière */
+    --color-secondary:  #8B6F47;   /* poussière */
+    --dune-dark:        #2C1A0E;   /* brun très sombre */
+    --dune-parchment:   #F5E6C8;   /* parchemin clair */
+    --color-accent:     #F5E6C8;   /* parchemin clair */
+    --dune-red:         #8B1A1A;   /* rouge Harkonnen */
 }
 
 /* ── Classes utilitaires ─────────────────────────────────────────────────── */

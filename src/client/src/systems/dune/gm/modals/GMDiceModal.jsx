@@ -68,18 +68,19 @@ const GM_DICE_HOOKS = {
     }),
 };
 
-const GMDiceModal = ({ onClose, sessionId = null }) => {
+const GMDiceModal = ({ onClose, sessionId = null, initialRang = 3, initialLabel = null  }) => {
     const fetchWithAuth = useFetch();
     const { apiBase }   = useSystem();
     const socket        = useSocket();
 
-    const [rang,       setRang]       = useState(3);
+    const [rang, setRang]             = useState(initialRang);
     const [difficulte, setDifficulte] = useState(1);
     const [nbDes,      setNbDes]      = useState(2);
     const [menaceDepensee, setMenaceDepensee] = useState(0);
     const [rolling,    setRolling]    = useState(false);
     const [result,     setResult]     = useState(null);
     const [broadcast,  setBroadcast]  = useState(false);
+
 
     const handleRoll = useCallback(async () => {
         if (rolling) return;
@@ -112,21 +113,21 @@ const GMDiceModal = ({ onClose, sessionId = null }) => {
             const res      = await roll(notation, ctx, GM_DICE_HOOKS);
             setResult(res);
 
-            // Mise à jour ressources session
-            if (socket && sessionId && menaceDepensee > 0) {
-                socket.emit('update-session-resources', {
-                    sessionId:        activeGMSession,
-                    field: 'impulsions',
-                    delta: res.complications,
-                });
-            }
+            // // Mise à jour ressources session
+            // if (socket && sessionId && menaceDepensee > 0) {
+            //     socket.emit('update-session-resources', {
+            //         sessionId:        activeGMSession,
+            //         field: 'impulsions',
+            //         delta: res.complications,
+            //     });
+            // }
 
         } catch (err) {
             console.error('[DuneGMDiceModal] handleRoll error:', err);
         } finally {
             setRolling(false);
         }
-    }, [rolling, rang, difficulte, nbDes, menaceDepensee, broadcast, sessionId, apiBase, fetchWithAuth, socket]);
+    }, [rolling, rang, difficulte, nbDes, menaceDepensee, broadcast, sessionId, apiBase, socket]);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
@@ -137,7 +138,7 @@ const GMDiceModal = ({ onClose, sessionId = null }) => {
                 <div className="flex items-center justify-between px-4 py-3"
                      style={{ background: 'var(--dune-dark)', borderBottom: '1px solid var(--dune-ochre)' }}>
                     <div className="text-sm font-bold" style={{ color: 'var(--dune-gold)' }}>
-                        Jet MJ — {nbDes}d20
+                        {initialLabel ?? `Jet MJ — ${nbDes}d20`}
                     </div>
                     <button onClick={onClose} style={{ color: 'var(--dune-sand)' }}>✕</button>
                 </div>

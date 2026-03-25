@@ -14,7 +14,7 @@ const { generateAccessUrl } = require('../config');
 
 // ── GET / — Liste résumée (GM uniquement) ─────────────────────────────────────
 
-router.get('/', authenticate, requireGM, (req, res) => {
+router.get('/', (req, res) => {
     try {
         const rows = req.db.prepare(`
             SELECT id, access_code, access_url, player_name, nom, prenom,

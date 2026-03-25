@@ -27,11 +27,12 @@ const SYSTEMS_DIR = path.join(__dirname);
 
 // Routes génériques partagées par tous les systèmes
 const SHARED_ROUTES = {
-    sessions: path.join(__dirname, '../routes/sessions.js'),
-    journal:  path.join(__dirname, '../routes/journal.js'),
-    dice:     path.join(__dirname, '../routes/dice.js'),
-    combat:   path.join(__dirname, '../routes/combat.js'),
-    npc:      path.join(__dirname, '../routes/npc.js'),
+    sessions:   path.join(__dirname, '../routes/sessions.js'),
+    journal:    path.join(__dirname, '../routes/journal.js'),
+    dice:       path.join(__dirname, '../routes/dice.js'),
+    combat:     path.join(__dirname, '../routes/combat.js'),
+    npc:        path.join(__dirname, '../routes/npc.js'),
+    'npc-sets': path.join(__dirname, '../routes/npc-sets.js'),
 };
 
 // Routes que chaque système DOIT fournir
@@ -106,7 +107,7 @@ function getSystemRoute(slug, routeName) {
 
 /**
  * Retourne le router Express d'une route générique partagée.
- * @param {'sessions'|'journal'|'dice'|'npc'|'combat'} routeName
+ * @param {'sessions'|'journal'|'dice'|'npc'|'combat'|'npc-sets'} routeName
  * @returns {import('express').Router}
  */
 function getSharedRoute(routeName) {

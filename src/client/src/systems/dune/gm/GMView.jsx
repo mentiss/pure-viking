@@ -11,16 +11,20 @@ import HistoryPanel         from '../../../components/layout/HistoryPanel.jsx';
 import ThemeToggle          from '../../../components/ui/ThemeToggle.jsx';
 import TableManagementModal from '../../../components/gm/modals/TableManagementModal.jsx';
 import DiceConfigModal      from '../../../components/modals/DiceConfigModal.jsx';
+import TabNPC               from '../../../components/gm/tabs/TabNPC.jsx';
 
 import TabSession   from './tabs/TabSession.jsx';
 import TabResources from './tabs/TabResources.jsx';
 import TabJournal   from '../../../components/gm/tabs/TabJournal.jsx';
 import GMDiceModal  from './modals/GMDiceModal.jsx';
 
+import duneConfig from '../config.jsx';
+
 const GM_TABS = [
-    { id: 'session',    label: '📜 Session' },
+    { id: 'session',    label: '📜 Session'   },
     { id: 'ressources', label: '🏺 Ressources' },
-    { id: 'journal',    label: '📓 Journal' },
+    { id: 'journal',    label: '📓 Journal'    },
+    { id: 'npc',        label: '🧟 PNJ'        },
 ];
 
 const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, onToggleDarkMode }) => {
@@ -32,20 +36,27 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
 
     // ── Tab actif ────────────────────────────────────────────────────────────
     const [activeTab, setActiveTab] = useState(() => {
-        const hash = window.location.hash.replace('#', '');
+        const hash = window.location.hash.replace('#', '').substring(0, window.location.hash.indexOf('-')-1);
         return GM_TABS.some(t => t.id === hash) ? hash : 'session';
     });
 
-    const changeTab = (id) => {
+    const [currentData, setCurrentData] = useState(() => {
+        return window.location.hash.substring(window.location.hash.indexOf('-')+1);
+    });
+
+    const changeTab = (id, data = null) => {
         setActiveTab(id);
-        window.location.hash = id;
+        if(data) {
+            setCurrentData(data);
+            window.location.hash = id + '-' + data;
+        } else {
+            window.location.hash = id;
+        }
     };
 
     // ── Ressources courantes ──────────────────────────────────────────────────
     const [resources, setResources] = useState({ impulsions: 0, menace: 0, complications: 0 });
 
-    // Chargement initial HTTP — évite d'avoir menace=0 si la page est rechargée
-    // après que le socket ait déjà émis ses derniers événements
     useEffect(() => {
         if (!activeSession?.id) return;
         fetchWithAuth(`${apiBase}/session-resources/${activeSession.id}`)
@@ -54,7 +65,6 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
             .catch(console.error);
     }, [activeSession?.id, apiBase]);
 
-    // Mise à jour socket temps réel
     useEffect(() => {
         if (!socket) return;
         const onUpdate = data => setResources(prev => ({ ...prev, ...data }));
@@ -80,13 +90,21 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
         window.location.href = `/${system}/`;
     };
 
+    const menuItems = [
+        { icon: '🗂', label: 'Gérer les tables', action: () => { setShowTableMgmt(true);  setShowMenu(false); } },
+        { icon: '🎲', label: 'Config dés',        action: () => { setShowDiceConfig(true); setShowMenu(false); } },
+        { icon: '🏠', label: 'Accueil',           action: () => { window.location.href = `/${system}/`; } },
+    ];
+
     return (
         <div className="min-h-screen" style={{ background: 'var(--dune-bg)', color: 'var(--dune-text)' }}>
             <ToastNotifications sessionId={activeSession?.id} />
 
             {/* ── HEADER ──────────────────────────────────────────────────── */}
-            <header className="sticky top-0 z-40 shadow-md"
-                    style={{ background: 'var(--dune-dark)', borderBottom: '2px solid var(--dune-gold)' }}>
+            <header
+                className="sticky top-0 z-40 shadow-md"
+                style={{ background: 'var(--dune-dark)', borderBottom: '2px solid var(--dune-gold)' }}
+            >
                 <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-4">
 
                     {/* Titre + table active */}
@@ -157,18 +175,14 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
                                 <>
                                     <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
                                     <div
-                                        className="absolute right-0 mt-2 w-52 rounded-xl shadow-2xl z-50 overflow-hidden"
+                                        className="absolute right-0 top-10 w-48 rounded-lg shadow-xl z-50 overflow-hidden"
                                         style={{ background: 'var(--dune-surface)', border: '1px solid var(--dune-border)' }}
                                     >
-                                        {[
-                                            { icon: '📋', label: 'Gérer les tables',    action: () => setShowTableMgmt(true) },
-                                            { icon: '📜', label: 'Historique des jets', action: () => setShowHistory(true) },
-                                            { icon: '🎲', label: 'Config dés',          action: () => setShowDiceConfig(true) },
-                                        ].map(item => (
+                                        {menuItems.map(item => (
                                             <button
                                                 key={item.label}
-                                                onClick={() => { setShowMenu(false); item.action(); }}
-                                                className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 transition-colors"
+                                                onClick={item.action}
+                                                className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-2"
                                                 style={{ color: 'var(--dune-text)' }}
                                                 onMouseEnter={e => e.currentTarget.style.background = 'var(--dune-surface-alt)'}
                                                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -204,6 +218,17 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
                 )}
                 {activeTab === 'journal' && (
                     <TabJournal />
+                )}
+                {activeTab === 'npc' && (
+                    <TabNPC
+                        npc={duneConfig.npc}
+                        sessionId={activeSession?.id}
+                        GMDiceModal={GMDiceModal}
+                        currentData={currentData}
+                        onChangeCurrentData={(ref) => {
+                            changeTab(activeTab, ref);
+                        }}
+                    />
                 )}
             </main>
 
