@@ -46,8 +46,8 @@ import cyberpunkConfig from "./config.jsx";
 
 const TABS = [
     { id: 'fiche',      label: '⬡ Fiche'      },
-    { id: 'journal',    label: '📓 Journal'    },
-    { id: 'historique', label: '📜 Historique' },
+    { id: 'journal',    label: '⧉ Journal'    },
+    { id: 'historique', label: '▤ Historique' },
 ];
 
 // ── Sheet ─────────────────────────────────────────────────────────────────────
@@ -401,15 +401,14 @@ const Sheet = ({
                     <button
                         key={tab.id}
                         onClick={() => changeTab(tab.id)}
-                        className="relative flex-1 py-3 text-sm font-semibold cp-font-ui uppercase tracking-wide transition-colors"
-                        style={{
-                            color:      activeTab === tab.id ? 'var(--color-primary)' : 'var(--color-text-muted)',
-                            background: 'none',
-                            border:     'none',
-                            cursor:     'pointer',
-                        }}
+                        className={`group relative flex-1 py-3 text-sm font-semibold cp-font-ui uppercase tracking-wide transition-colors
+                         ${activeTab === tab.id ? 'text-primary' : 'text-muted'}
+                         bg-none border-none cursor-pointer
+                         `}
                     >
-                        {tab.label}
+                        <span className={`transition-all duration-200 ${activeTab === tab.id ? '' : 'group-hover:text-default group-hover:cp-neon-glow'}`}>
+                            {tab.label}
+                        </span>
                         {tab.id === 'journal' && journalUnread > 0 && (
                             <span
                                 className="absolute top-2 right-2 text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold"

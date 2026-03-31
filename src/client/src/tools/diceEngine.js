@@ -23,7 +23,8 @@
 
 import { DiceRoll } from '@dice-roller/rpg-dice-roller';
 import { diceAnimBridge } from './diceAnimBridge.js';
-import { readDiceConfig } from '../components/modals/DiceConfigModal.jsx';
+import useDiceConfig, {DICE_FALLBACK_CONFIG, diceStorageKey} from "../hooks/useDiceConfig.js";
+import {getSystemFromPath} from "../hooks/useSystem.js";
 
 // ─── Erreur métier ────────────────────────────────────────────────────────────
 
@@ -84,6 +85,12 @@ const DEFAULT_HOOKS = {
  */
 export async function roll(notation, ctx, hooks = {}) {
     const h = { ...DEFAULT_HOOKS, ...hooks };
+    const slug = getSystemFromPath();
+    let animationEnabled = DICE_FALLBACK_CONFIG.animationEnabled;
+    try {
+        const raw_config = localStorage.getItem(diceStorageKey(slug));
+        if (raw_config) animationEnabled = JSON.parse(raw_config)?.animationEnabled ?? true;
+    } catch (_) {}
 
     // 1. Validation + enrichissement
     const enrichedCtx = h.beforeRoll(ctx);
@@ -96,7 +103,6 @@ export async function roll(notation, ctx, hooks = {}) {
 
     // 4. Animation
     const animSeq = h.buildAnimationSequence(raw, enrichedCtx, result);
-    const { animationEnabled } = readDiceConfig();
 
     if (animSeq && animationEnabled !== false) {
         await diceAnimBridge.play(animSeq);

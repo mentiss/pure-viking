@@ -6,19 +6,24 @@
 import React, { useState, useEffect } from 'react';
 import { useSocket }         from '../../context/SocketContext.jsx';
 import { toSystemUrl, useFetch } from '../../hooks/useFetch.js';
+import useSystem from "../../hooks/useSystem.js";
 
 const SessionPlayersBar = ({ character, sessionId, sessionName, headerHeight = null, noWidthWhenCollapsed = false }) => {
     const [sessionCharacters, setSessionCharacters] = useState([]);
     const [onlineCharacters,  setOnlineCharacters]  = useState([]);
-    const [isCollapsed,       setIsCollapsed]        = useState(false);
     const [isListFixed,       setIsListFixed]        = useState(false);
     const [isButtonScrolled,  setIsButtonScrolled]   = useState(false);
 
     const socket        = useSocket();
     const fetchWithAuth = useFetch();
+    const {slug} = useSystem();
+    const STORAGE_KEY = `${slug}_player_session_bar`;
+
+    const [isCollapsed,       setIsCollapsed]        = useState(localStorage.getItem(STORAGE_KEY));
 
     // Détecter le scroll pour fixer la liste
     useEffect(() => {
+        localStorage.setItem(STORAGE_KEY, isCollapsed ? '1' : '0');
         const handleScroll = () => {
             setIsListFixed(window.scrollY > 100 && !isCollapsed);
             setIsButtonScrolled(window.scrollY > 100 && isCollapsed);

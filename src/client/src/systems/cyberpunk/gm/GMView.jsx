@@ -8,7 +8,7 @@
 //   Journal   → journal GM (générique TabJournal)
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, {useState, useEffect, useCallback, useRef} from 'react';
 import { useAuth }    from '../../../context/AuthContext.jsx';
 import { useSocket }  from '../../../context/SocketContext.jsx';
 import { useFetch }   from '../../../hooks/useFetch.js';
@@ -26,15 +26,18 @@ import TabSession from "./tabs/TabSession.jsx";
 import TabClocks from "./tabs/TabClocks.jsx";
 import TabThreats from "./tabs/TabThreats.jsx";
 import TabMoves from "./tabs/TabMoves.jsx";
+import DiceEntryHistory from "../components/layout/DiceEntryHistory.jsx";
+import DiceHistoryPage from "../../../components/layout/DiceHistoryPage.jsx";
 
 // ── Onglets GM ────────────────────────────────────────────────────────────────
 
 const GM_TABS = [
-    { id: 'session',   label: '📜 Session'   },
+    { id: 'session',   label: '⛶ Session'   },
     { id: 'clocks',    label: '⏱ Clocks'     },
     { id: 'threats',   label: '⚠ Menaces'    },
     { id: 'moves',     label: '⬡ Manœuvres'  },
-    { id: 'journal',   label: '📓 Journal'   },
+    { id: 'history',   label: '▤ Historique'  },
+    { id: 'journal',   label: '⧉ Journal'   },
 ];
 
 
@@ -56,6 +59,7 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
     const [showTableMgmt,      setShowTableMgmt]      = useState(false);
     const [showDiceConfig,     setShowDiceConfig]     = useState(false);
     const [historyPanelOpen,   setHistoryPanelOpen]   = useState(false);
+    const pendingExpandThreatRef = useRef(null);
 
     const changeTab = (id) => {
         setActiveTab(id);
@@ -84,7 +88,12 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
             style={{ background: 'var(--color-bg)', color: 'var(--color-text)' }}
             data-theme={darkMode ? 'dark' : undefined}
         >
-            <ToastNotifications sessionId={activeSession?.id} />
+            <ToastNotifications
+                sessionId={activeSession?.id}
+                renderDiceToast={(entry) => {
+                    return (<DiceEntryHistory roll={entry}  />)
+                }}
+            />
 
             {/* ── Header ───────────────────────────────────────────────── */}
             <header
@@ -171,15 +180,14 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
                     <button
                         key={tab.id}
                         onClick={() => changeTab(tab.id)}
-                        className="relative shrink-0 px-4 py-3 text-sm font-semibold cp-font-ui uppercase tracking-wide transition-colors"
-                        style={{
-                            color:      activeTab === tab.id ? 'var(--color-primary)' : 'var(--color-text-muted)',
-                            background: 'none',
-                            border:     'none',
-                            cursor:     'pointer',
-                        }}
+                        className={`group relative flex-1 py-3 text-sm font-semibold cp-font-ui uppercase tracking-wide transition-colors
+                         ${activeTab === tab.id ? 'text-primary' : 'text-muted'}
+                         bg-none border-none cursor-pointer
+                         `}
                     >
-                        {tab.label}
+                        <span className={`transition-all duration-200 ${activeTab === tab.id ? '' : 'group-hover:text-default group-hover:cp-neon-glow'}`}>
+                            {tab.label}
+                        </span>
                         {/* Badge moves en attente */}
                         {tab.id === 'moves' && pendingMovesCount > 0 && (
                             <span
@@ -215,6 +223,11 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
                         activeSession={activeSession}
                         fetchWithAuth={fetchWithAuth}
                         apiBase={apiBase}
+                        onGoToThreat={(threatId) => {
+                            changeTab('threats');
+                            // Stocké dans un ref pour que TabThreats puisse lire à son mount
+                            pendingExpandThreatRef.current = threatId;
+                        }}
                     />
                 )}
 
@@ -223,6 +236,8 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
                         activeSession={activeSession}
                         fetchWithAuth={fetchWithAuth}
                         apiBase={apiBase}
+                        expandThreatId={pendingExpandThreatRef.current}
+                        onExpandConsumed={() => { pendingExpandThreatRef.current = null; }}
                     />
                 )}
 
@@ -238,6 +253,15 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
                         <TabJournal characterId={-1} />
                     </div>
                 )}
+
+                {activeTab === 'history' && (
+                    <div className="m-1">
+                        <DiceHistoryPage
+                            sessionId={activeSession?.id}
+                            renderHistoryEntry={cyberpunkConfig.dice.renderHistoryEntry}
+                        />
+                    </div>
+                )}
             </main>
 
             {/* ── Modales globales ──────────────────────────────────────── */}
@@ -250,6 +274,8 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
                 />
             )}
             {showDiceConfig && <DiceConfigModal onClose={() => setShowDiceConfig(false)} />}
+
+
             <HistoryPanel
                 isOpen={historyPanelOpen}
                 onClose={() => setHistoryPanelOpen(false)}

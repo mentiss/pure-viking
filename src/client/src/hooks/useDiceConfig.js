@@ -8,8 +8,8 @@
  */
 
 import { useState, useCallback } from 'react';
-
-const STORAGE_KEY = 'vtt_dice_config';
+import useSystem from "./useSystem.js";
+import useSlugConfig from "./useSlugConfig.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // COLORSETS — liste complète issue de colorsets.js (lib officielle)
@@ -110,31 +110,35 @@ export const MATERIAL_OPTIONS = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CONFIG PAR DÉFAUT
+// Config par défaut universelle (fallback tous slugs)
 // ─────────────────────────────────────────────────────────────────────────────
-export const DEFAULT_CONFIG = {
-    mode: 'preset',       // 'preset' | 'custom'
-    preset: 'bloodmoon',
+export const DICE_FALLBACK_CONFIG = {
+    mode:     'preset',
+    preset:   'bloodmoon',
     custom: {
         foreground: '#c9922a',
         background: '#1a1208',
-        outline: '#000000',
-        edge: '',           // optionnel, '' = non utilisé
-        texture: '',
-        material: 'metal',
+        outline:    '#000000',
+        edge:       '',
+        texture:    '',
+        material:   'metal',
     },
-    strength: 5,
-    gravity: 500,
-    sounds: false,
+    strength:          5,
+    gravity:           500,
+    sounds:            false,
+    lightColor:        '#ffd080',
+    animationEnabled:  true,
 };
+
+export const diceStorageKey = (slug) => `${slug}_vtt-dice_config`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // buildDiceBoxConfig : traduit notre format → format API de la lib
 // ─────────────────────────────────────────────────────────────────────────────
 export const buildDiceBoxConfig = (config) => {
     const base = {
-        strength: config.strength ?? DEFAULT_CONFIG.strength,
-        gravity_multiplier: config.gravity ?? DEFAULT_CONFIG.gravity,
+        strength: config.strength ?? DICE_FALLBACK_CONFIG.strength,
+        gravity_multiplier: config.gravity ?? DICE_FALLBACK_CONFIG.gravity,
         baseScale: 100,
         light_intensity: 1.0,
         color_spotlight: 0xffd080,
@@ -172,48 +176,73 @@ export const buildDiceBoxConfig = (config) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Lecture / écriture
+// ─────────────────────────────────────────────────────────────────────────────
+export const readDiceConfig = (slug, slugDefaults) => {
+    const base = {
+        ...DICE_FALLBACK_CONFIG,
+        ...slugDefaults,
+        custom: { ...DICE_FALLBACK_CONFIG.custom, ...(slugDefaults?.custom ?? {}) },
+    };
+    try {
+        const raw = localStorage.getItem(diceStorageKey(slug));
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            return {
+                ...base,
+                ...parsed,
+                custom: { ...base.custom, ...(parsed.custom ?? {}) },
+            };
+        }
+    } catch (_) {}
+    return base;
+};
+
+export const writeDiceConfig = (slug, config) => {
+    try {
+        localStorage.setItem(diceStorageKey(slug), JSON.stringify(config));
+        return true;
+    } catch (_) { return false; }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // HOOK
 // ─────────────────────────────────────────────────────────────────────────────
-const useDiceConfig = () => {
-    const loadFromStorage = () => {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (raw) {
-                const parsed = JSON.parse(raw);
-                // Fusion profonde pour préserver les clés par défaut non stockées
-                return {
-                    ...DEFAULT_CONFIG,
-                    ...parsed,
-                    custom: { ...DEFAULT_CONFIG.custom, ...(parsed.custom || {}) },
-                };
-            }
-        } catch (_) {}
-        return { ...DEFAULT_CONFIG, custom: { ...DEFAULT_CONFIG.custom } };
-    };
 
-    const [config, setConfig] = useState(loadFromStorage);
+const useDiceConfig = () => {
+    const { slug } = useSystem();
+    const slugConfig   = useSlugConfig();
+    const slugDefaults = slugConfig?.diceConfigDefault ?? {};
+
+    const [config, setConfig] = useState(() => readDiceConfig(slug, slugDefaults));
 
     const updateConfig = useCallback((updates) => {
         setConfig(prev => {
             const next = { ...prev, ...updates };
-            if (updates.custom) {
-                next.custom = { ...prev.custom, ...updates.custom };
-            }
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-            } catch (_) {}
+            if (updates.custom) next.custom = { ...prev.custom, ...updates.custom };
+            writeDiceConfig(slug, next);
             return next;
         });
-    }, []);
+    }, [slug]);
 
     const resetConfig = useCallback(() => {
-        try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
-        setConfig({ ...DEFAULT_CONFIG, custom: { ...DEFAULT_CONFIG.custom } });
-    }, []);
+        try { localStorage.removeItem(diceStorageKey(slug)); } catch (_) {}
+        setConfig({
+            ...DICE_FALLBACK_CONFIG,
+            ...slugDefaults,
+            custom: { ...DICE_FALLBACK_CONFIG.custom, ...(slugDefaults.custom ?? {}) },
+        });
+    }, [slug]);
+
+    const saveConfig = useCallback((newConfig) => {
+        setConfig(newConfig);
+        writeDiceConfig(slug, newConfig);
+    }, [slug]);
 
     return {
         config,
         updateConfig,
+        saveConfig,
         resetConfig,
         getDiceBoxConfig: () => buildDiceBoxConfig(config),
     };

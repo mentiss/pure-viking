@@ -107,7 +107,8 @@ select:disabled {
 .bg-accent      { background-color: var(--color-accent); }
 .bg-danger      { background-color: var(--color-danger); }
 .bg-success     { background-color: var(--color-success); }
-.bg-base          { background-color: var(--color-bg); }
+.bg-base        { background-color: var(--color-bg); }
+.bg-default     { background-color: var(--color-bg); }
 .bg-surface     { background-color: var(--color-surface); }
 .bg-surface-alt { background-color: var(--color-surface-alt); }
 
@@ -118,16 +119,18 @@ select:disabled {
 .text-danger    { color: var(--color-danger); }
 .text-success   { color: var(--color-success); }
 .text-base      { color: var(--color-text); }
+.text-default   { color: var(--color-text); }
 .text-muted     { color: var(--color-text-muted); }
 
 /* ── Bordures ─────────────────────────────────────────────────────────────── */
-.border-primary   { border-color: var(--color-primary); }
-.border-secondary { border-color: var(--color-secondary); }
-.border-accent    { border-color: var(--color-accent); }
-.border-danger    { border-color: var(--color-danger); }
-.border-success   { border-color: var(--color-success); }
-.border-base    { border-color: var(--color-border); }
-.border-surface   { border-color: var(--color-surface); }
+.border-primary       { border-color: var(--color-primary); }
+.border-secondary     { border-color: var(--color-secondary); }
+.border-accent        { border-color: var(--color-accent); }
+.border-danger        { border-color: var(--color-danger); }
+.border-success       { border-color: var(--color-success); }
+.border-base          { border-color: var(--color-border); }
+.border-default       { border-color: var(--color-border); }
+.border-surface       { border-color: var(--color-surface); }
 .border-surface-alt   { border-color: var(--color-surface-alt); }
 
 /* ── Hover : backgrounds ─────────────────────────────────────────────────── */
@@ -135,21 +138,64 @@ select:disabled {
 .hover\:bg-secondary:hover   { background-color: var(--color-secondary); }
 .hover\:bg-accent:hover      { background-color: var(--color-accent); }
 .hover\:bg-surface:hover     { background-color: var(--color-surface); }
-.hover\:bg-base:hover     { background-color: var(--color-bg); }
+.hover\:bg-base:hover        { background-color: var(--color-bg); }
+.hover\:bg-default:hover     { background-color: var(--color-bg); }
 .hover\:bg-surface-alt:hover { background-color: var(--color-surface-alt); }
+.hover\:bg-danger:hover      { background-color: var(--color-danger); }
+.hover\:bg-success:hover     { background-color: var(--color-success); }
 
 /* ── Hover : textes ──────────────────────────────────────────────────────── */
 .hover\:text-primary:hover   { color: var(--color-primary); }
-.hover\:text-secondary:hover   { color: var(--color-secondary); }
+.hover\:text-secondary:hover { color: var(--color-secondary); }
 .hover\:text-accent:hover    { color: var(--color-accent); }
 .hover\:text-muted:hover     { color: var(--color-text-muted); }
 .hover\:text-base:hover      { color: var(--color-text); }
+.hover\:text-default:hover   { color: var(--color-text); }
+.hover\:text-danger:hover    { color: var(--color-danger); }
+.hover\:text-success:hover   { color: var(--color-success); }
 
 /* ── Hover : bordures ────────────────────────────────────────────────────── */
-.hover\:border-primary:hover { border-color: var(--color-primary); }
-.hover\:border-secondary:hover { border-color: var(--color-secondary); }
-.hover\:border-accent:hover  { border-color: var(--color-accent); }
-.hover\:border-base:hover  { border-color: var(--color-border); }
+.hover\:border-primary:hover      { border-color: var(--color-primary); }
+.hover\:border-secondary:hover    { border-color: var(--color-secondary); }
+.hover\:border-accent:hover       { border-color: var(--color-accent); }
+.hover\:border-base:hover         { border-color: var(--color-border); }
+.hover\:border-default:hover      { border-color: var(--color-border); }
+.hover\:border-surface:hover      { border-color: var(--color-surface); }
+.hover\:border-surface-alt:hover  { border-color: var(--color-surface-alt); }
+.hover\:border-danger:hover       { border-color: var(--color-danger); }
+.hover\:border-success:hover      { border-color: var(--color-success); }
+
+/* ── Group Hover: Backgrounds ────────────────────────────────────────────── */
+.group:hover .group-hover\:bg-primary     { background-color: var(--color-primary); }
+.group:hover .group-hover\:bg-secondary   { background-color: var(--color-secondary); }
+.group:hover .group-hover\:bg-accent      { background-color: var(--color-accent); }
+.group:hover .group-hover\:bg-danger      { background-color: var(--color-danger); }
+.group:hover .group-hover\:bg-success     { background-color: var(--color-success); }
+.group:hover .group-hover\:bg-base        { background-color: var(--color-bg); }
+.group:hover .group-hover\:bg-default     { background-color: var(--color-bg); }
+.group:hover .group-hover\:bg-surface     { background-color: var(--color-surface); }
+.group:hover .group-hover\:bg-surface-alt { background-color: var(--color-surface-alt); }
+
+/* ── Group Hover: Textes ──────────────────────────────────────────────────── */
+.group:hover .group-hover\:text-primary   { color: var(--color-primary); }
+.group:hover .group-hover\:text-secondary { color: var(--color-secondary); }
+.group:hover .group-hover\:text-accent    { color: var(--color-accent); }
+.group:hover .group-hover\:text-danger    { color: var(--color-danger); }
+.group:hover .group-hover\:text-success   { color: var(--color-success); }
+.group:hover .group-hover\:text-base      { color: var(--color-text); }
+.group:hover .group-hover\:text-default   { color: var(--color-text); }
+.group:hover .group-hover\:text-muted     { color: var(--color-text-muted); }
+
+/* ── Group Hover: Bordures ────────────────────────────────────────────────── */
+.group:hover .group-hover\:border-primary     { border-color: var(--color-primary); }
+.group:hover .group-hover\:border-secondary   { border-color: var(--color-secondary); }
+.group:hover .group-hover\:border-accent      { border-color: var(--color-accent); }
+.group:hover .group-hover\:border-danger      { border-color: var(--color-danger); }
+.group:hover .group-hover\:border-success     { border-color: var(--color-success); }
+.group:hover .group-hover\:border-base        { border-color: var(--color-border); }
+.group:hover .group-hover\:border-default     { border-color: var(--color-border); }
+.group:hover .group-hover\:border-surface     { border-color: var(--color-surface); }
+.group:hover .group-hover\:border-surface-alt { border-color: var(--color-surface-alt); }
 
 /* ── Health (niveaux de blessure 0–5) ────────────────────────────────────── */
 .bg-health-0 { background-color: var(--color-health-0); }

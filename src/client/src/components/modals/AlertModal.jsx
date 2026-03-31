@@ -1,47 +1,37 @@
-// components/shared/AlertModal.jsx - Modale d'alerte générique (remplace alert() natif)
+// src/client/src/components/modals/AlertModal.jsx
 import React from 'react';
 
-const AlertModal = ({ message, onClose }) => {
-    return (
+const AlertModal = ({ message, onClose }) => (
+    <div
+        className="fixed inset-0 flex items-center justify-center z-9999 bg-black/60"
+        onClick={onClose}
+    >
         <div
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]"
-            onClick={onClose}
+            className="flex flex-col gap-4 p-6 rounded-xl max-w-sm w-full mx-4 bg-surface border border-base"
+            onClick={e => e.stopPropagation()}
         >
-            <div
-                className="bg-white dark:bg-viking-brown rounded-lg shadow-2xl max-w-md w-full border-4 border-viking-bronze p-6"
-                onClick={e => e.stopPropagation()}
-            >
-                {/* Header avec croix */}
-                <div className="flex items-start justify-between mb-4">
-                    <h3 className="text-xl font-bold text-viking-brown dark:text-viking-parchment">
-                        ⚠️ Attention
-                    </h3>
-                    <button
-                        onClick={onClose}
-                        className="text-viking-leather dark:text-viking-bronze hover:text-viking-danger text-xl leading-none ml-4 mt-0.5"
-                        aria-label="Fermer"
-                    >
-                        ✕
-                    </button>
-                </div>
+            <div className="flex items-start justify-between gap-3">
+                <h3 className="font-bold text-base text-accent">⚠ Attention</h3>
+                <button
+                    onClick={onClose}
+                    className="text-muted hover:text-base transition-colors cursor-pointer text-sm leading-none"
+                >
+                    ✕
+                </button>
+            </div>
 
-                {/* Message */}
-                <p className="text-viking-text dark:text-viking-parchment mb-6">
-                    {message}
-                </p>
+            <p className="text-base">{message}</p>
 
-                {/* Bouton unique centré */}
-                <div className="flex justify-center">
-                    <button
-                        onClick={onClose}
-                        className="px-8 py-2 bg-viking-bronze text-viking-brown rounded font-semibold hover:bg-viking-leather"
-                    >
-                        OK
-                    </button>
-                </div>
+            <div className="flex justify-end">
+                <button
+                    onClick={onClose}
+                    className="px-4 py-2 rounded-lg font-semibold bg-surface-alt text-base border border-base hover:border-accent transition-all cursor-pointer"
+                >
+                    OK
+                </button>
             </div>
         </div>
-    );
-};
+    </div>
+);
 
 export default AlertModal;

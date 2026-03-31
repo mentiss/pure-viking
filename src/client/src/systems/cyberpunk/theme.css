@@ -81,7 +81,7 @@
 
     /* Texte */
     --color-text:           #f0f0ff;   /* Blanc pur légèrement bleuté */
-    --color-text-muted:     #5050780;  /* Gris bleuté profond */
+    --color-text-muted:     #505078;  /* Gris bleuté profond */
 
     /* Bordure — quasi invisible sauf au hover */
     --color-border:         #1e1e38;
@@ -174,11 +174,20 @@
 }
 .hover\:cp-neon-glow-el:hover {
     box-shadow:     0 0 7px #fff,
-    0 0 10px var(--cp-neon-cyan),
-    0 0 21px var(--cp-neon-cyan),
-    0 0 42px rgba(0, 229, 255, 0.8),
-    0 0 82px rgba(247, 255, 0, 0.5),
-    0 0 100px rgba(0, 229, 255, 0.2);
+                    0 0 10px var(--cp-neon-cyan),
+                    0 0 21px var(--cp-neon-cyan),
+                    0 0 42px rgba(0, 229, 255, 0.8),
+                    0 0 82px rgba(247, 255, 0, 0.5),
+                    0 0 100px rgba(0, 229, 255, 0.2);
+}
+
+.group:hover .group-hover\:cp-neon-glow {
+    text-shadow:    0 0 7px #fff,
+                    0 0 10px var(--cp-neon-cyan),
+                    0 0 21px var(--cp-neon-cyan),
+                    0 0 42px rgba(0, 229, 255, 0.8),
+                    0 0 82px rgba(247, 255, 0, 0.5),
+                    0 0 100px rgba(0, 229, 255, 0.2);
 }
 
 .cp-text-glow-cyan {
@@ -299,3 +308,37 @@
 .cp-outcome-success { background: rgba(0, 229, 255, 0.15); color: var(--cp-neon-cyan);    border: 1px solid rgba(0, 229, 255, 0.4); }
 .cp-outcome-partial { background: rgba(255, 170, 0, 0.15); color: var(--cp-neon-amber);   border: 1px solid rgba(255, 170, 0, 0.4); }
 .cp-outcome-failure { background: rgba(255, 45, 120, 0.15); color: var(--cp-neon-magenta); border: 1px solid rgba(255, 45, 120, 0.4); }
+
+/* ── Statut menace ───────────────────────────────────────────────────────── */
+.cp-threat-active      { color: var(--cp-neon-magenta); border-color: rgba(255,45,120,0.4); }
+.cp-threat-dormante    { color: var(--cp-neon-amber);   border-color: rgba(255,170,0,0.4);  }
+.cp-threat-neutralisee { color: var(--color-text-muted);opacity: 0.55; }
+
+/* Alerte : toutes les clocks liées sont full */
+.cp-threat-alert {
+    border-color: var(--cp-neon-magenta) !important;
+    box-shadow: var(--cp-glow-magenta) !important;
+}
+
+/* Poignée drag-and-drop */
+.cp-drag-handle        { cursor: grab; color: var(--color-text-muted); user-select: none; }
+.cp-drag-handle:active { cursor: grabbing; }
+
+/* Clock — vue compacte (une ligne) */
+.cp-clock-compact {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 0.5rem;
+    background: var(--color-surface-alt);
+    border: 1px solid var(--color-border);
+    transition: border-color 0.15s;
+}
+.cp-clock-compact:hover { border-color: var(--color-accent); }
+
+/* Épingle active */
+.cp-pinned-indicator {
+    color: var(--cp-neon-amber);
+    filter: drop-shadow(0 0 4px rgba(255,170,0,0.6));
+}

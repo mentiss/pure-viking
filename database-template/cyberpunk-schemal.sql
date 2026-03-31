@@ -247,6 +247,8 @@ CREATE TABLE IF NOT EXISTS clocks (
                                       segments    INTEGER NOT NULL DEFAULT 6,
                                       current     INTEGER DEFAULT 0,
                                       consequence TEXT    DEFAULT '',   -- ce qui se passe quand le clock est plein
+                                      icon        TEXT    DEFAULT '⏱',
+                                      pinned      INTEGER DEFAULT 0,
                                       created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
                                       updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -263,6 +265,11 @@ CREATE TABLE IF NOT EXISTS threats (
                                        impulse    TEXT    DEFAULT '',      -- ce qu'elle veut fondamentalement
                                        moves_json TEXT    DEFAULT '[]',    -- JSON : tableau de strings
                                        notes      TEXT    DEFAULT '',
+                                       icon        TEXT    DEFAULT '⚠',
+                                       status      TEXT    DEFAULT 'active'
+                                           CHECK(status IN ('active', 'dormante', 'neutralisée')),
+                                       pinned      INTEGER DEFAULT 0,
+                                       sort_order  INTEGER DEFAULT 0,
                                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -273,6 +280,20 @@ CREATE TABLE IF NOT EXISTS clock_threats (
                                              threat_id INTEGER NOT NULL REFERENCES threats(id) ON DELETE CASCADE,
                                              PRIMARY KEY (clock_id, threat_id)
 );
+
+-- Clocks
+CREATE INDEX IF NOT EXISTS idx_clocks_session_id  ON clocks (session_id);
+CREATE INDEX IF NOT EXISTS idx_clocks_pinned       ON clocks (pinned);
+
+-- Threats
+CREATE INDEX IF NOT EXISTS idx_threats_session_id  ON threats (session_id);
+CREATE INDEX IF NOT EXISTS idx_threats_pinned       ON threats (pinned);
+CREATE INDEX IF NOT EXISTS idx_threats_status       ON threats (status);
+CREATE INDEX IF NOT EXISTS idx_threats_sort_order   ON threats (sort_order);
+
+-- Join table
+CREATE INDEX IF NOT EXISTS idx_clock_threats_clock_id   ON clock_threats (clock_id);
+CREATE INDEX IF NOT EXISTS idx_clock_threats_threat_id  ON clock_threats (threat_id);
 
 -- ============================================
 -- REFRESH TOKENS

@@ -25,7 +25,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import DiceBox from '@3d-dice/dice-box-threejs';
 import { diceAnimBridge } from '../../tools/diceAnimBridge.js';
-import { buildDiceBoxConfig, readDiceConfig } from '../modals/DiceConfigModal.jsx';
+import useDiceConfig, {buildDiceBoxConfig, readDiceConfig} from "../../hooks/useDiceConfig.js";
 
 const WAVE_SETTLE_DELAY = 800;
 const EXPLOSION_FLASH   = 350;
@@ -44,6 +44,8 @@ const DiceAnimationOverlay = () => {
     const [label,       setLabel]       = useState('');
     const [isExploding, setIsExploding] = useState(false);
     const [isFinished,  setIsFinished]  = useState(false);
+
+    const { getDiceBoxConfig, config } = useDiceConfig();
 
     // ── Enregistrement sur le bridge au mount ─────────────────────────────────
     useEffect(() => {
@@ -80,7 +82,7 @@ const DiceAnimationOverlay = () => {
         el.style.width    = `${window.innerWidth}px`;
         el.style.height   = `${window.innerHeight}px`;
 
-        const userConfig = buildDiceBoxConfig(readDiceConfig());
+        const userConfig = getDiceBoxConfig();
 
         const box = new DiceBox(`#${containerId}`, {
             assetPath: '/dice-assets/',
@@ -179,6 +181,16 @@ const DiceAnimationOverlay = () => {
     };
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+    const rollAndWaitMixed = (box, segments) => {
+        const descriptors = segments.map(seg => ({
+            qty:   seg.dice.length,
+            sides: parseInt(seg.diceType.replace('d', ''), 10),
+            value: seg.dice,
+            ...(seg.theme ? { theme: seg.theme } : {}),
+        }));
+        return new Promise(resolve => box.roll(descriptors).then(resolve));
+    };
+
     const buildBoxNotation = (diceValues, diceType) =>
         `${diceValues.length}${diceType}@${diceValues.join(',')}`;
 

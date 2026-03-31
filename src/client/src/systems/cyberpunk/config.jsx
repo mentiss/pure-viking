@@ -46,6 +46,28 @@ const STAT_LABEL = {
     cred:   'Cred',
 };
 
+export const OUTCOME_LABEL = {
+    success: 'Succès plein',
+    partial: 'Succès partiel',
+    failure: 'Échec',
+};
+
+export const OUTCOME_CLASS = {
+    success: 'cp-outcome-success',
+    partial: 'cp-outcome-partial',
+    failure: 'cp-outcome-failure',
+};
+
+/**
+ * Interprète le total 2d10 + modificateur selon les seuils The Sprawl.
+ * @param {number} total
+ * @returns {'success' | 'partial' | 'failure'}
+ */
+function getOutcome(total) {
+    if (total >= SEUIL_SUCCES)  return 'success';
+    if (total >= SEUIL_PARTIEL) return 'partial';
+    return 'failure';
+}
 
 // ── Bloc dice — contrat diceEngine v2 ────────────────────────────────────────
 
@@ -330,6 +352,22 @@ const cyberpunkConfig = {
     slug:  'cyberpunk',
     label: 'Cyberpunk',
     dice,
+    diceDefaults: {
+        mode:   'custom',
+        custom: {
+            foreground: '#00e5ff',
+            background: '#050508',
+            outline:    '#ff2d78',
+            edge:       '#001a20',
+            texture:    '',
+            material:   'metal',
+        },
+        lightColor:       '#00e5ff',
+        strength:         6,
+        gravity:          400,
+        sounds:           false,
+        animationEnabled: true,
+    },
 };
 
 export default cyberpunkConfig;

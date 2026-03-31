@@ -1,31 +1,13 @@
 import React from "react";
-import {STAT_LABELS} from "../../config.jsx";
+import {OUTCOME_CLASS, OUTCOME_LABEL, STAT_LABELS} from "../../config.jsx";
 
-/**
- * Interprète le total 2d10 + modificateur selon les seuils The Sprawl.
- * @param {number} total
- * @returns {'success' | 'partial' | 'failure'}
- */
-function getOutcome(total) {
-    if (total >= SEUIL_SUCCES)  return 'success';
-    if (total >= SEUIL_PARTIEL) return 'partial';
-    return 'failure';
-}
 
-const OUTCOME_LABEL = {
-    success: 'Succès plein',
-    partial: 'Succès partiel',
-    failure: 'Échec',
-};
 
-const OUTCOME_CLASS = {
-    success: 'cp-outcome-success',
-    partial: 'cp-outcome-partial',
-    failure: 'cp-outcome-failure',
-};
 
-const DiceEntryHistory = (roll) => {
-    const result = roll.roll.roll_result;
+const DiceEntryHistory = ({roll}) => {
+    console.log(roll);
+    const result = roll?.roll?.roll_result ?? roll?.roll_result;
+    //const result = roll.roll.roll_result;
     const outcome  = result?.outcome ?? 'failure';
     const total    = result.total;
     const diceVals = result.diceVals ?? [];

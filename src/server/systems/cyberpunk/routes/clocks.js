@@ -31,7 +31,7 @@ router.get('/', authenticate, (req, res) => {
                 LEFT JOIN clock_threats ct ON ct.clock_id = c.id
                 WHERE c.session_id = ? OR c.session_id IS NULL
                 GROUP BY c.id
-                ORDER BY c.session_id NULLS LAST, c.created_at DESC
+                ORDER BY c.pinned DESC, c.session_id NULLS LAST, c.created_at DESC
             `).all(sessionId);
         } else {
             rows = req.db.prepare(`
@@ -40,7 +40,7 @@ router.get('/', authenticate, (req, res) => {
                 FROM clocks c
                 LEFT JOIN clock_threats ct ON ct.clock_id = c.id
                 GROUP BY c.id
-                ORDER BY c.session_id NULLS LAST, c.created_at DESC
+                ORDER BY c.pinned DESC, c.session_id NULLS LAST, c.created_at DESC
             `).all();
         }
 
@@ -76,15 +76,15 @@ router.get('/:id', authenticate, (req, res) => {
 
 router.post('/', authenticate, requireGM, (req, res) => {
     try {
-        const { sessionId, name, segments, consequence, threatIds } = req.body;
+        const { sessionId, name, segments, consequence, threatIds, icon } = req.body;
 
         if (!name) return res.status(400).json({ error: 'name est requis' });
         const seg = parseInt(segments) || 6;
 
         const result = req.db.prepare(`
-            INSERT INTO clocks (session_id, name, segments, current, consequence)
-            VALUES (?, ?, ?, 0, ?)
-        `).run(sessionId ?? null, name, seg, consequence ?? '');
+            INSERT INTO clocks (session_id, name, segments, current, consequence, icon)
+            VALUES (?, ?, ?, 0, ?, ?)
+        `).run(sessionId ?? null, name, seg, consequence ?? '', icon ?? '');
 
         const clockId = result.lastInsertRowid;
 
@@ -104,7 +104,7 @@ router.post('/', authenticate, requireGM, (req, res) => {
 
 router.put('/:id', authenticate, requireGM, (req, res) => {
     try {
-        const { name, segments, consequence, current, threatIds } = req.body;
+        const { name, segments, consequence, current, threatIds, icon } = req.body;
         const id = req.params.id;
 
         req.db.prepare(`
@@ -113,9 +113,10 @@ router.put('/:id', authenticate, requireGM, (req, res) => {
                 segments    = COALESCE(?, segments),
                 consequence = COALESCE(?, consequence),
                 current     = COALESCE(?, current),
+                icon        = COALESCE(?, icon),
                 updated_at  = CURRENT_TIMESTAMP
             WHERE id = ?
-        `).run(name ?? null, segments ?? null, consequence ?? null, current ?? null, id);
+        `).run(name ?? null, segments ?? null, consequence ?? null, current ?? null, icon ?? '', id);
 
         // Remplacement des liens threats si fournis
         if (Array.isArray(threatIds)) {
@@ -152,6 +153,19 @@ router.patch('/:id/advance', authenticate, requireGM, (req, res) => {
     }
 });
 
+router.patch('/:id/pin', authenticate, requireGM, (req, res) => {
+    try {
+        const row = req.db.prepare('SELECT pinned FROM clocks WHERE id = ?').get(req.params.id);
+        if (!row) return res.status(404).json({ error: 'Clock introuvable' });
+        req.db.prepare('UPDATE clocks SET pinned = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+            .run(row.pinned ? 0 : 1, req.params.id);
+        res.json(_loadClock(req.db, req.params.id));
+    } catch (err) {
+        console.error('[cyberpunk] PATCH /clocks/:id/pin:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ── DELETE /:id — Supprimer une clock (GM uniquement) ────────────────────────
 
 router.delete('/:id', authenticate, requireGM, (req, res) => {
@@ -174,9 +188,9 @@ function _formatClock(row) {
         segments:    row.segments,
         current:     row.current,
         consequence: row.consequence ?? '',
-        threatIds:   row.threat_ids
-            ? row.threat_ids.split(',').map(Number)
-            : [],
+        icon:        row.icon   ?? '⏱',
+        pinned:      !!row.pinned,
+        threatIds:   row.threat_ids ? row.threat_ids.split(',').map(Number) : [],
         createdAt:   row.created_at,
         updatedAt:   row.updated_at,
     };

@@ -1,45 +1,31 @@
 // src/server/systems/cyberpunk/routes/threats.js
-// ─────────────────────────────────────────────────────────────────────────────
-// Routes Threats (Menaces).
-// Montée automatiquement sur /api/cyberpunk/threats par loader.js.
-//
-// Une Threat peut être liée à zéro, une ou plusieurs Clocks (many-to-many).
-// session_id NULL = scope campagne (persistant).
-// ─────────────────────────────────────────────────────────────────────────────
-
 const express = require('express');
 const router  = express.Router();
-
 const { authenticate, requireGM } = require('../../../middlewares/auth');
 
-// ── GET / — Toutes les threats (optionnel : filtrer par session) ──────────────
-
+// ── GET / ─────────────────────────────────────────────────────────────────────
 router.get('/', authenticate, (req, res) => {
     try {
         const { sessionId } = req.query;
-
         let rows;
         if (sessionId) {
             rows = req.db.prepare(`
-                SELECT t.*,
-                    GROUP_CONCAT(ct.clock_id) AS clock_ids
+                SELECT t.*, GROUP_CONCAT(ct.clock_id) AS clock_ids
                 FROM threats t
                 LEFT JOIN clock_threats ct ON ct.threat_id = t.id
                 WHERE t.session_id = ? OR t.session_id IS NULL
                 GROUP BY t.id
-                ORDER BY t.session_id NULLS LAST, t.created_at DESC
+                ORDER BY t.pinned DESC, t.sort_order ASC, t.created_at DESC
             `).all(sessionId);
         } else {
             rows = req.db.prepare(`
-                SELECT t.*,
-                    GROUP_CONCAT(ct.clock_id) AS clock_ids
+                SELECT t.*, GROUP_CONCAT(ct.clock_id) AS clock_ids
                 FROM threats t
                 LEFT JOIN clock_threats ct ON ct.threat_id = t.id
                 GROUP BY t.id
-                ORDER BY t.session_id NULLS LAST, t.created_at DESC
+                ORDER BY t.pinned DESC, t.sort_order ASC, t.created_at DESC
             `).all();
         }
-
         res.json(rows.map(_formatThreat));
     } catch (err) {
         console.error('[cyberpunk] GET /threats:', err);
@@ -47,19 +33,16 @@ router.get('/', authenticate, (req, res) => {
     }
 });
 
-// ── GET /:id — Une threat avec ses clocks liées ───────────────────────────────
-
+// ── GET /:id ──────────────────────────────────────────────────────────────────
 router.get('/:id', authenticate, (req, res) => {
     try {
         const row = req.db.prepare(`
-            SELECT t.*,
-                GROUP_CONCAT(ct.clock_id) AS clock_ids
+            SELECT t.*, GROUP_CONCAT(ct.clock_id) AS clock_ids
             FROM threats t
             LEFT JOIN clock_threats ct ON ct.threat_id = t.id
             WHERE t.id = ?
             GROUP BY t.id
         `).get(req.params.id);
-
         if (!row) return res.status(404).json({ error: 'Threat introuvable' });
         res.json(_formatThreat(row));
     } catch (err) {
@@ -68,35 +51,26 @@ router.get('/:id', authenticate, (req, res) => {
     }
 });
 
-// ── POST / — Créer une threat (GM uniquement) ─────────────────────────────────
-
+// ── POST / ────────────────────────────────────────────────────────────────────
 router.post('/', authenticate, requireGM, (req, res) => {
     try {
-        const { sessionId, name, type, impulse, moves, notes, clockIds } = req.body;
-
+        const { sessionId, name, type, impulse, moves, notes, clockIds, icon, status } = req.body;
         if (!name) return res.status(400).json({ error: 'name est requis' });
 
         const movesJson = JSON.stringify(Array.isArray(moves) ? moves : []);
-
         const result = req.db.prepare(`
-            INSERT INTO threats (session_id, name, type, impulse, moves_json, notes)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO threats (session_id, name, type, impulse, moves_json, notes, icon, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
-            sessionId ?? null,
-            name,
-            type ?? '',
-            impulse ?? '',
-            movesJson,
-            notes ?? ''
+            sessionId ?? null, name,
+            type ?? '', impulse ?? '', movesJson, notes ?? '',
+            icon ?? '⚠', status ?? 'active'
         );
 
         const threatId = result.lastInsertRowid;
-
-        // Liens clocks
         if (Array.isArray(clockIds) && clockIds.length > 0) {
             _setThreatClocks(req.db, threatId, clockIds);
         }
-
         res.status(201).json(_loadThreat(req.db, threatId));
     } catch (err) {
         console.error('[cyberpunk] POST /threats:', err);
@@ -104,32 +78,31 @@ router.post('/', authenticate, requireGM, (req, res) => {
     }
 });
 
-// ── PUT /:id — Modifier une threat (GM uniquement) ────────────────────────────
-
+// ── PUT /:id ──────────────────────────────────────────────────────────────────
 router.put('/:id', authenticate, requireGM, (req, res) => {
     try {
-        const { name, type, impulse, moves, notes, clockIds, sessionId } = req.body;
+        const { name, type, impulse, moves, notes, clockIds, sessionId, icon, status } = req.body;
         const id = req.params.id;
-
         const movesJson = Array.isArray(moves) ? JSON.stringify(moves) : null;
 
         req.db.prepare(`
             UPDATE threats SET
-                name        = COALESCE(?, name),
-                type        = COALESCE(?, type),
-                impulse     = COALESCE(?, impulse),
-                moves_json  = COALESCE(?, moves_json),
-                notes       = COALESCE(?, notes),
-                session_id  = COALESCE(?, session_id),
-                updated_at  = CURRENT_TIMESTAMP
+                name       = COALESCE(?, name),
+                type       = COALESCE(?, type),
+                impulse    = COALESCE(?, impulse),
+                moves_json = COALESCE(?, moves_json),
+                notes      = COALESCE(?, notes),
+                session_id = COALESCE(?, session_id),
+                icon       = COALESCE(?, icon),
+                status     = COALESCE(?, status),
+                updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        `).run(name ?? null, type ?? null, impulse ?? null, movesJson, notes ?? null, sessionId ?? null, id);
+        `).run(
+            name ?? null, type ?? null, impulse ?? null, movesJson,
+            notes ?? null, sessionId ?? null, icon ?? null, status ?? null, id
+        );
 
-        // Remplacement des liens clocks si fournis
-        if (Array.isArray(clockIds)) {
-            _setThreatClocks(req.db, id, clockIds);
-        }
-
+        if (Array.isArray(clockIds)) _setThreatClocks(req.db, id, clockIds);
         res.json(_loadThreat(req.db, id));
     } catch (err) {
         console.error('[cyberpunk] PUT /threats/:id:', err);
@@ -137,8 +110,51 @@ router.put('/:id', authenticate, requireGM, (req, res) => {
     }
 });
 
-// ── DELETE /:id — Supprimer une threat (GM uniquement) ────────────────────────
+// ── PATCH /:id/pin — Toggle épinglage ─────────────────────────────────────────
+router.patch('/:id/pin', authenticate, requireGM, (req, res) => {
+    try {
+        const row = req.db.prepare('SELECT pinned FROM threats WHERE id = ?').get(req.params.id);
+        if (!row) return res.status(404).json({ error: 'Threat introuvable' });
+        req.db.prepare('UPDATE threats SET pinned = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+            .run(row.pinned ? 0 : 1, req.params.id);
+        res.json(_loadThreat(req.db, req.params.id));
+    } catch (err) {
+        console.error('[cyberpunk] PATCH /threats/:id/pin:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
 
+// ── PATCH /:id/status — Changer le statut narratif ───────────────────────────
+router.patch('/:id/status', authenticate, requireGM, (req, res) => {
+    try {
+        const { status } = req.body;
+        const allowed = ['active', 'dormante', 'neutralisée'];
+        if (!allowed.includes(status)) return res.status(400).json({ error: 'Statut invalide' });
+        req.db.prepare('UPDATE threats SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+            .run(status, req.params.id);
+        res.json(_loadThreat(req.db, req.params.id));
+    } catch (err) {
+        console.error('[cyberpunk] PATCH /threats/:id/status:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── PATCH /reorder — Mise à jour sort_order en batch ─────────────────────────
+router.patch('/reorder', authenticate, requireGM, (req, res) => {
+    try {
+        const { items } = req.body; // [{ id, sortOrder }]
+        if (!Array.isArray(items)) return res.status(400).json({ error: 'items requis' });
+        const stmt = req.db.prepare('UPDATE threats SET sort_order = ? WHERE id = ?');
+        const tx   = req.db.transaction(() => items.forEach(({ id, sortOrder }) => stmt.run(sortOrder, id)));
+        tx();
+        res.json({ success: true });
+    } catch (err) {
+        console.error('[cyberpunk] PATCH /threats/reorder:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── DELETE /:id ───────────────────────────────────────────────────────────────
 router.delete('/:id', authenticate, requireGM, (req, res) => {
     try {
         req.db.prepare('DELETE FROM threats WHERE id = ?').run(req.params.id);
@@ -150,11 +166,9 @@ router.delete('/:id', authenticate, requireGM, (req, res) => {
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
 function _formatThreat(row) {
     let moves = [];
     try { moves = JSON.parse(row.moves_json || '[]'); } catch (_) {}
-
     return {
         id:        row.id,
         sessionId: row.session_id ?? null,
@@ -163,9 +177,11 @@ function _formatThreat(row) {
         impulse:   row.impulse   ?? '',
         moves,
         notes:     row.notes     ?? '',
-        clockIds:  row.clock_ids
-            ? row.clock_ids.split(',').map(Number)
-            : [],
+        icon:      row.icon      ?? '⚠',
+        status:    row.status    ?? 'active',
+        pinned:    !!row.pinned,
+        sortOrder: row.sort_order ?? 0,
+        clockIds:  row.clock_ids ? row.clock_ids.split(',').map(Number) : [],
         createdAt: row.created_at,
         updatedAt: row.updated_at,
     };
@@ -175,7 +191,7 @@ function _loadThreat(db, id) {
     const row = db.prepare(`
         SELECT t.*, GROUP_CONCAT(ct.clock_id) AS clock_ids
         FROM threats t
-        LEFT JOIN clock_threats ct ON ct.threat_id = t.id
+                 LEFT JOIN clock_threats ct ON ct.threat_id = t.id
         WHERE t.id = ?
         GROUP BY t.id
     `).get(id);
@@ -185,9 +201,7 @@ function _loadThreat(db, id) {
 function _setThreatClocks(db, threatId, clockIds) {
     db.prepare('DELETE FROM clock_threats WHERE threat_id = ?').run(threatId);
     const stmt = db.prepare('INSERT OR IGNORE INTO clock_threats (clock_id, threat_id) VALUES (?, ?)');
-    for (const cid of clockIds) {
-        stmt.run(cid, threatId);
-    }
+    for (const cid of clockIds) stmt.run(cid, threatId);
 }
 
 module.exports = router;

@@ -14,7 +14,7 @@ export const DEFAULT_SYSTEM = 'vikings';
 
 /**
  * Retourne les infos du système actif.
- * @returns {{ slug: string, label: string, apiBase: string, isValid: boolean, isLoading: boolean }}
+ * @returns {{ slug: string, label: string|null, apiBase: string, isValid: boolean, isLoading: boolean }}
  */
 export function useSystem() {
     const { system } = useParams();
