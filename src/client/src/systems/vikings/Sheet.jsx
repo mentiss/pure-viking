@@ -14,7 +14,7 @@ import EditModals       from './components/modals/EditModals.jsx';
 import Experience       from './Experience.jsx';
 import AvatarUploader   from '../../components/AvatarUploader.jsx';
 import RunesTab         from './components/tabs/RunesTab.jsx';
-import InventoryTab     from '../../components/tabs/InventoryTab.jsx';
+import InventoryTab     from './gm/tabs/InventoryTab.jsx';
 import JournalTab       from '../../components/tabs/JournalTab.jsx';
 //import Combat           from './Combat.jsx';
 import ToastNotifications from '../../components/layout/ToastNotifications.jsx';

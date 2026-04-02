@@ -1,10 +1,10 @@
 // components/GMView/tabs/TabSession.jsx - Onglet Session (vue personnages de la table)
 import React, { useState, useEffect } from 'react';
-import { useSocket } from '../../../context/SocketContext.jsx';
-import { useFetch } from '../../../hooks/useFetch.js';
-import GMCharacterCard from '../../../systems/vikings/gm/pj/GMCharacterCard.jsx';
-import GMSendModal from "../modals/GMSendModal.jsx";
-import GMSendItemModal from "../modals/GMSendItemModal.jsx";
+import { useSocket } from '../../../../context/SocketContext.jsx';
+import { useFetch } from '../../../../hooks/useFetch.js';
+import GMCharacterCard from '../pj/GMCharacterCard.jsx';
+import GMSendModal from "../../../../components/gm/modals/GMSendModal.jsx";
+import GMSendItemModal from "../../../../components/gm/modals/GMSendItemModal.jsx";
 
 const TabSession = ({ activeSession, onlineCharacters }) => {
     const [characters, setCharacters] = useState({}); // Map id -> fullCharacter

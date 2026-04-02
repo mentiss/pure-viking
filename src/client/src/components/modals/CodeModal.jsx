@@ -41,19 +41,20 @@ const CodeModal = ({ isOpen, onClose, character, onSuccess }) => {
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
-            <div className="bg-white dark:bg-viking-brown rounded-lg shadow-2xl p-6 max-w-md w-full mx-4 border-4 border-viking-bronze">
+            <div className="bg-surface rounded-lg shadow-2xl p-6 max-w-md w-full mx-4 border-4 border-default">
+
                 {/* Header */}
                 <div className="mb-4">
-                    <h2 className="text-2xl font-bold text-viking-brown dark:text-viking-parchment mb-2">
+                    <h2 className="text-2xl font-bold text-default mb-2">
                         🔐 Code d'accès
                     </h2>
-                    <p className="text-viking-leather dark:text-viking-bronze mb-1">
+                    <p className="text-muted mb-1">
                         Entrez le code pour accéder à :
                     </p>
-                    <p className="text-lg font-semibold text-viking-bronze">
+                    <p className="text-lg font-semibold text-accent">
                         {character.name}
                     </p>
-                    <p className="text-sm text-viking-leather dark:text-viking-bronze">
+                    <p className="text-sm text-muted">
                         👤 {character.playerName}
                     </p>
                 </div>
@@ -67,10 +68,10 @@ const CodeModal = ({ isOpen, onClose, character, onSuccess }) => {
                             onChange={(e) => setCode(e.target.value.toUpperCase())}
                             placeholder="ABC123"
                             maxLength={6}
-                            className="w-full px-4 py-3 border-2 border-viking-leather dark:border-viking-bronze rounded-lg bg-white dark:bg-gray-800 text-viking-text dark:text-viking-parchment uppercase text-center text-2xl font-bold tracking-widest"
+                            className="w-full px-4 py-3 border-2 border-default rounded-lg bg-surface text-default uppercase text-center text-2xl font-bold tracking-widest"
                             autoFocus
                         />
-                        <p className="text-xs text-viking-leather dark:text-viking-bronze mt-2 text-center">
+                        <p className="text-xs text-muted mt-2 text-center">
                             Code à 6 caractères
                         </p>
                     </div>
@@ -94,7 +95,7 @@ const CodeModal = ({ isOpen, onClose, character, onSuccess }) => {
                         <button
                             type="submit"
                             disabled={loading || !code}
-                            className="flex-1 px-4 py-2 bg-viking-bronze text-viking-brown rounded-lg font-semibold hover:bg-viking-leather disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 px-4 py-2 bg-primary text-bg rounded-lg font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? 'Vérification...' : 'Valider'}
                         </button>

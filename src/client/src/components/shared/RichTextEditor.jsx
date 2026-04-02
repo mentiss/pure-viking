@@ -18,8 +18,8 @@ const ToolbarButton = ({ onClick, active, title, children }) => (
         onMouseDown={(e) => { e.preventDefault(); onClick(); }}
         className={`px-1.5 py-1 rounded text-xs font-semibold transition-colors ${
             active
-                ? 'bg-viking-bronze text-viking-brown'
-                : 'text-viking-leather dark:text-viking-bronze hover:bg-viking-bronze/20'
+                ? 'bg-primary text-bg'
+                : 'text-muted hover:bg-primary/20'
         }`}
         title={title}
     >
@@ -29,7 +29,7 @@ const ToolbarButton = ({ onClick, active, title, children }) => (
 
 // --- Séparateur ---
 const Separator = () => (
-    <div className="w-px h-5 bg-viking-leather/20 dark:bg-viking-bronze/30 mx-0.5" />
+    <div className="w-px h-5 bg-muted/20 mx-0.5" />
 );
 
 const RichTextEditor = ({
@@ -281,12 +281,12 @@ const RichTextEditor = ({
                     <button
                         type="button"
                         onClick={handleImageButton}
-                        className="px-2 py-1 text-xs text-viking-leather dark:text-viking-bronze hover:bg-viking-bronze/20 rounded transition-colors"
+                        className="px-2 py-1 text-xs text-muted hover:bg-primary/20 rounded transition-colors"
                         title="Ajouter une image"
                     >
                         📎 Image
                     </button>
-                    <span className="text-[10px] text-viking-leather/50 dark:text-viking-bronze/40">
+                    <span className="text-[10px] text-muted/50">
                         Sélectionnez du texte pour formater • Glissez-déposez des images • Redimensionnez par les bords
                     </span>
                 </div>

@@ -41,6 +41,7 @@ import useSystem from "../../../../hooks/useSystem.js";
 import {useFetch} from "../../../../hooks/useFetch.js";
 import {useSocket} from "../../../../context/SocketContext.jsx";
 import GMSendModal from "../../../../components/gm/modals/GMSendModal.jsx";
+import {useParams} from "react-router-dom";
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
@@ -77,6 +78,7 @@ const Btn = ({ onClick, children, variant = 'default', small = false, disabled =
 
 const TabSession = ({ activeSession, onlineCharacters, onSessionChange }) => {
     const { apiBase }   = useSystem();
+    const { system } = useParams();
     const fetchWithAuth = useFetch();
     const socket        = useSocket();
 
@@ -99,6 +101,7 @@ const TabSession = ({ activeSession, onlineCharacters, onSessionChange }) => {
     const [showSendItem, setShowSendItem] = useState(false);
     const [sendItemForm, setSendItemForm] = useState({ name: '', description: '', quantity: 1 });
     const [sendItemMsg,  setSendItemMsg]  = useState(null);
+    const [copied, setCopied] = useState(false);
 
     const onlineIds = new Set((onlineCharacters ?? []).map(c => c.characterId));
 
@@ -343,6 +346,13 @@ const TabSession = ({ activeSession, onlineCharacters, onSessionChange }) => {
         }
     };
 
+    const handleLinkCopy = () => {
+        const text = `━━━━━━━━━━━━━━━━━━━━\n ⬢  IDENTITÉ DÉTECTÉE\n━━━━━━━━━━━━━━━━━━━━\n 👤  Cible : ${char.prenom} ${char.nom}\n 🔗  Lien Neural : ${window.location.origin}/${system}/${char.accessUrl}\n 🔐  Code d'accès : \`${char.accessCode}\`\n━━━━━━━━━━━━━━━━━━━━`;
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
     // sessionCharacters pour GMSendModal
     const sessionCharacters = (activeSession?.characters ?? []).map(sc => ({
         id:   sc.id,
@@ -475,6 +485,7 @@ const TabSession = ({ activeSession, onlineCharacters, onSessionChange }) => {
                             </span>
                         </div>
                         <div className="flex gap-2 flex-wrap">
+                            <Btn small onClick={handleLinkCopy}>{copied ? '✓ Copié !' : '🔗 Copier le lien'}</Btn>
                             <Btn small onClick={() => { setShowSendItem(v => !v); setSendItemMsg(null); }}>
                                 📦 Envoyer item
                             </Btn>

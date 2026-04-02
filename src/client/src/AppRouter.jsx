@@ -9,6 +9,7 @@ import SystemLayout from './pages/SystemLayout.jsx';
 import GMPage       from './pages/GMPage.jsx';
 import PlayerPage   from './pages/PlayerPage.jsx';
 import HomePage     from './pages/HomePage.jsx';
+import CreationPage from './pages/CreationPage.jsx';
 
 const AppRouter = () => {
     const [darkMode, setDarkMode] = useState(false);
@@ -45,6 +46,7 @@ const AppRouter = () => {
                 { index: true,        element: <PlayerPage /> },
                 { path: 'gm',         element: <GMPage /> },
                 { path: ':accessUrl', element: <PlayerPage /> },
+                { path: 'creation',   element: <CreationPage /> },
             ],
         },
     ]);

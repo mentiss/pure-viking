@@ -1,5 +1,9 @@
 // components/gm/OnlinePlayersPanel.jsx - Panel des joueurs en ligne
 import React from 'react';
+import useSystem from "../../hooks/useSystem.js";
+import {useSession} from "../../context/SessionContext.jsx";
+import {useGMSession} from "../../hooks/useGMSession.js";
+import {useParams} from "react-router-dom";
 
 const OnlinePlayersPanel = ({
                                 onlineCharacters,
@@ -10,14 +14,18 @@ const OnlinePlayersPanel = ({
         return null;
     }
     const combatants = combatState.combatants ?? [];
-
+    const { slug } = useSystem();
+    const { system } = useParams();
+    const apiBase = `/api/${system}`;
+    const { activeSession } = useGMSession({apiBase});
+    const currentOnlineCharacters = onlineCharacters.filter((c) => c.slug === slug && c.sessionId === activeSession?.id);
     return (
         <div className="bg-white dark:bg-viking-brown rounded-lg shadow-lg border-2 border-viking-bronze p-4 mb-4">
             <h2 className="text-xl font-bold text-viking-brown dark:text-viking-parchment mb-4">
-                👥 Joueurs en ligne ({onlineCharacters.length})
+                👥 Joueurs en ligne ({currentOnlineCharacters.length})
             </h2>
             <div className="space-y-2">
-                {onlineCharacters.map(char => {
+                {currentOnlineCharacters.map(char => {
                     const alreadyAdded = combatants.some(c => c.characterId === char.characterId);
 
                     return (

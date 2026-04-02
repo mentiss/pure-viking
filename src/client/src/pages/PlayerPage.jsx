@@ -4,16 +4,16 @@
 // Délègue Sheet et Creation au système via import.meta.glob.
 
 import React, { useState, useEffect, Suspense } from 'react';
-import { useParams, useOutletContext } from 'react-router-dom';
+import {useParams, useOutletContext, useNavigate} from 'react-router-dom';
 import { useAuth }          from '../context/AuthContext.jsx';
 import { useFetch }         from '../hooks/useFetch.js';
 import { usePlayerSession } from '../hooks/usePlayerSession.js';
 import CharacterListModal   from '../components/modals/CharacterListModal.jsx';
 import CodeModal            from '../components/modals/CodeModal.jsx';
 import DiceAnimationOverlay from "../components/shared/DiceAnimationOverlay.jsx";
+import LoadingScreen from "../components/gm/layout/LoadingScreen.jsx";
 
 const SHEETS    = import.meta.glob('../systems/*/Sheet.jsx');
-const CREATIONS = import.meta.glob('../systems/*/Creation.jsx');
 
 const lazyCache = {};
 const getLazyComponent = (glob, key) => {
@@ -28,6 +28,7 @@ const PlayerPage = () => {
     const { darkMode, onToggleDarkMode } = useOutletContext();
     const { user, loading: authLoading, logout } = useAuth();
     const fetchWithAuth = useFetch();
+    const navigate = useNavigate();
 
     const apiBase = `/api/${system}`;
 
@@ -158,7 +159,7 @@ const PlayerPage = () => {
     const sheetKey    = `../systems/${system}/Sheet.jsx`;
     const creationKey = `../systems/${system}/Creation.jsx`;
 
-    if (!SHEETS[sheetKey] || !CREATIONS[creationKey]) {
+    if (!SHEETS[sheetKey]) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
                 <div className="text-center">
@@ -173,7 +174,6 @@ const PlayerPage = () => {
     }
 
     const SystemSheet    = getLazyComponent(SHEETS, sheetKey);
-    const SystemCreation = getLazyComponent(CREATIONS, creationKey);
 
     // ── Rendu ────────────────────────────────────────────────────────────────
     if (appState === 'loading') return <LoadingScreen />;
@@ -186,7 +186,7 @@ const PlayerPage = () => {
                     <div className="text-center space-y-4">
                         <div className="text-5xl mb-6">🎲</div>
                         <button
-                            onClick={() => setAppState('creating')}
+                            onClick={() => navigate(`/${system}/creation`)}
                             className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-lg transition-colors block"
                         >
                             ⚔️ Créer un nouveau personnage
@@ -215,19 +215,6 @@ const PlayerPage = () => {
                     onSuccess={handleCodeSuccess}
                 />
             </>
-        );
-    }
-
-    if (appState === 'creating') {
-        return (
-            <Suspense fallback={<LoadingScreen />}>
-                <SystemCreation
-                    onCreated={handleCreated}
-                    onCancel={() => setAppState('selecting')}
-                    darkMode={darkMode}
-                    onToggleDarkMode={onToggleDarkMode}
-                />
-            </Suspense>
         );
     }
 
@@ -263,11 +250,5 @@ const PlayerPage = () => {
         </>
     );
 };
-
-const LoadingScreen = () => (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-2xl text-white animate-pulse">Chargement...</div>
-    </div>
-);
 
 export default PlayerPage;

@@ -13,44 +13,63 @@ const HEX_GRID = [
 
 // Hexagone de stat cliquable
 const StatHex = ({ statKey, value, onClick }) => {
-    const HEX_SIZE = 60; // px, largeur du hex
+    const HEX_SIZE = 60;
 
     return (
         <button
             onClick={() => onClick(statKey)}
             title={`Jet de ${STAT_LABELS[statKey]} (${value >= 0 ? '+' : ''}${value})`}
-            className="flex flex-col items-center gap-3 group pt-2"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            // On utilise "group" pour piloter les enfants
+            className="group relative flex flex-col items-center justify-center transition-all active:scale-90"
+            style={{
+                width: `${HEX_SIZE}px`,
+                height: `${Math.round(HEX_SIZE * 1.15)}px`,
+                background: 'none', border: 'none', padding: 0
+            }}
         >
-            {/* Label au-dessus ou au-dessous selon la colonne, géré par le parent */}
-            <div
-                className="relative flex items-center justify-center"
-                style={{
-                    width:      `${HEX_SIZE}px`,
-                    height:     `${Math.round(HEX_SIZE * 1.15)}px`,
-                }}
+            {/* 1. Le SVG (Fond + Bordure) */}
+            <svg
+                viewBox="0 0 100 115"
+                className={`
+                    absolute inset-0 w-full h-full transition-all duration-300
+                    text-primary/20 fill-surface/10
+                    group-hover:text-primary/100 group-hover:glow-sm-primary/80
+                `}
+                style={{ stroke: 'currentColor', fill: 'var(--cp-hex-bg)' }}
             >
-                <svg
-                    viewBox="0 0 100 115"
-                    className="absolute inset-0 w-full h-full drop-shadow-[0_0_8px_var(--cp-glow-cyan)] transition-all duration-200"
-                    style={{ filter: 'drop-shadow(0 0 5px var(--cp-hex-border))' }}
-                >
-                    <polygon
-                        points="50 0, 100 28.75, 100 86.25, 50 115, 0 86.25, 0 28.75"
-                        fill="var(--cp-hex-bg)"
-                        stroke="var(--cp-hex-border)"
-                        strokeWidth="4" /* Ta bordure est ici ! */
-                        className="transition-colors duration-200"
-                    />
-                </svg>
-                <span
-                    className="font-mono font-bold text-xl select-none z-10"
-                    style={{ color: 'var(--cp-hex-text)' }}
-                >
-                    {value >= 0 ? `+${value}` : value}
-                </span>
+                <polygon
+                    points="50 0, 100 28.75, 100 86.25, 50 115, 0 86.25, 0 28.75"
+                    fill="var(--cp-hex-bg)"
+                    stroke="var(--cp-hex-border)"
+                    strokeWidth="4"
+                    className="transition-all duration-300 group-hover:stroke-[6px]"
+                />
+            </svg>
+
+            {/* 2. L'effet de Scanline (uniquement au hover via CSS) */}
+            <div className="hex-scan-container">
+                <div className="hex-scan-line" style={{ animationDuration: '0.8s', height: '2px', opacity: 0.7 }} />
+                <div
+                    className="hex-glitch-line cp-bg-glow-amber"
+                    style={{
+                        animationDuration: '1.8s, 0.1s, 0.3s',
+                        animationDelay: '-0.5s',
+                        height: '1px',
+                        filter: 'blur(1px)'
+                    }}
+                />
             </div>
 
+            {/* 3. La Valeur (+1, -2, etc.) */}
+            <span
+                className={`
+                    cp-font-mono font-bold text-xl select-none z-10 transition-all
+                    text-primary/80 group-hover:text-primary/100 group-hover:glow-xs-primary/100 group-hover:animate-glitch-amber
+                `}
+                //style={{ color: 'var(--cp-hex-text)' }}
+            >
+                {value >= 0 ? `+${value}` : value}
+            </span>
         </button>
     );
 };
@@ -125,8 +144,11 @@ export const StatCard = ({ editMode, char, editableChar, setMoveModal, set }) =>
                             {/* 2. Bloc Texte + Edition */}
                             <div className={`flex flex-col ${isRight ? 'items-start' : 'items-end'}`}>
                                 <span
-                                    className="text-[18px] cp-font-mono font-bold uppercase tracking-widest leading-none mb-1"
-                                    style={{ color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}
+                                    className={`
+                                        text-[18px] cp-font-mono font-bold uppercase tracking-widest leading-none mb-1 transition-all
+                                        text-muted/50 group-hover/item:text-accent/100 group-hover/item:glow-3xs-accent
+                                    `}
+                                    style={{ whiteSpace: 'nowrap' }}
                                 >
                                     {STAT_LABELS[stat]}
                                 </span>

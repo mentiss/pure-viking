@@ -19,7 +19,7 @@ import { useSystem } from '../../hooks/useSystem.js';
 import './theme.css';
 
 import cyberpunkConfig, {
-    PLAYBOOKS, STAT_PROFILES, STATS, STAT_LABELS, DIRECTIVES_PERSONNELLES,
+    PLAYBOOKS, STAT_PROFILES, STATS, STAT_LABELS, DIRECTIVES_PERSONNELLES, CYBERWARE_ALL,
 } from './config.jsx';
 
 // ── Étapes ────────────────────────────────────────────────────────────────────
@@ -41,6 +41,15 @@ const STAT_BADGE_CLASS = {
     esprit: 'cp-stat-badge-esprit',
     style:  'cp-stat-badge-style',
     synth:  'cp-stat-badge-synth',
+};
+
+const DESCRIPTIONS_STATS = {
+    cran:   'Garder votre calme et rester concentré durant des situations tendues',
+    pro:    'Faire appel à votre sens de la débrouillardise et à votre expérience ou donner l’impression que vous êtes un dur',
+    chair:  'Surmonter un problème par un effort physique sans l’aide de la cybernétique',
+    esprit: 'Vous sortir des emmerdes par la logique, l’instinct, la créativité ou tout autre processus mental',
+    style:  'Gérer une situation avec votre charisme, votre présence ou votre aplomb',
+    synth:  'Vous interfacer sans heurt avec la technologie',
 };
 
 const CHIP_COLORS = {
@@ -79,73 +88,77 @@ const StatChip = ({ chip, onDragStart }) => (
 );
 
 // Cellule stat (drop target)
-const StatDropCell = ({ statKey, value, onDrop, onReturn, isDragOver, onDragOver, onDragLeave }) => {
+const StatDropCell = ({ statKey, value, onDrop, onReturn, isDragOver, onDragOver, onDragLeave, onHover, onLeave }) => {
     const occupied = value !== null;
     const c = occupied ? (CHIP_COLORS[String(value)] ?? CHIP_COLORS['0']) : null;
 
     return (
-        <div
-            onDragOver={e => { e.preventDefault(); onDragOver(); }}
-            onDragLeave={onDragLeave}
-            onDrop={e => { e.preventDefault(); if (!occupied) onDrop(e.dataTransfer.getData('chipId')); }}
-            className="rounded-xl flex flex-col items-center gap-1.5 py-3 px-2 transition-all"
-            style={{
-                background:  isDragOver && !occupied
-                    ? 'rgba(0,229,255,0.1)'
-                    : occupied ? c.bg : 'var(--color-surface-alt)',
-                border:      `1.5px ${isDragOver && !occupied ? 'dashed' : 'solid'} ${
-                    isDragOver && !occupied
-                        ? 'var(--color-primary)'
-                        : occupied ? c.border : 'var(--color-border)'
-                }`,
-                boxShadow:   isDragOver && !occupied ? 'var(--cp-glow-cyan)' : 'none',
-                cursor:      occupied ? 'default' : 'copy',
-                minHeight:   '80px',
-                position:    'relative',
-            }}
-        >
-            {/* Label stat */}
-            <span
-                className="text-xs cp-font-ui uppercase tracking-widest"
-                style={{ color: occupied ? c.text : 'var(--color-text-muted)' }}
+        <>
+            <div
+                onDragOver={e => { e.preventDefault(); onDragOver(); }}
+                onDragLeave={onDragLeave}
+                onDrop={e => { e.preventDefault(); if (!occupied) onDrop(e.dataTransfer.getData('chipId')); }}
+                onMouseEnter={onHover}
+                onMouseLeave={onLeave}
+                className="rounded-xl flex flex-col items-center gap-1.5 py-3 px-2 transition-all"
+                style={{
+                    background:  isDragOver && !occupied
+                        ? 'rgba(0,229,255,0.1)'
+                        : occupied ? c.bg : 'var(--color-surface-alt)',
+                    border:      `1.5px ${isDragOver && !occupied ? 'dashed' : 'solid'} ${
+                        isDragOver && !occupied
+                            ? 'var(--color-primary)'
+                            : occupied ? c.border : 'var(--color-border)'
+                    }`,
+                    boxShadow:   isDragOver && !occupied ? 'var(--cp-glow-cyan)' : 'none',
+                    cursor:      occupied ? 'default' : 'copy',
+                    minHeight:   '80px',
+                    position:    'relative',
+                }}
             >
-                {STAT_LABELS[statKey]}
-            </span>
-
-            {/* Valeur ou placeholder */}
-            {occupied ? (
+                {/* Label stat */}
                 <span
-                    className="font-mono font-bold text-2xl"
-                    style={{ color: c.text }}
+                    className="text-xs cp-font-ui uppercase tracking-widest"
+                    style={{ color: occupied ? c.text : 'var(--color-text-muted)' }}
                 >
-                    {value > 0 ? `+${value}` : value}
+                    {STAT_LABELS[statKey]}
                 </span>
-            ) : (
-                <span
-                    className="font-mono text-xl"
-                    style={{ color: 'var(--color-border)', lineHeight: 1 }}
-                >
-                    —
-                </span>
-            )}
 
-            {/* Bouton retour */}
-            {occupied && (
-                <button
-                    onClick={onReturn}
-                    title="Remettre au pool"
-                    className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-xs leading-none"
-                    style={{
-                        background: 'var(--color-surface)',
-                        border:     `1px solid ${c.border}`,
-                        color:      c.text,
-                        cursor:     'pointer',
-                    }}
-                >
-                    ✕
-                </button>
-            )}
-        </div>
+                {/* Valeur ou placeholder */}
+                {occupied ? (
+                    <span
+                        className="font-mono font-bold text-2xl"
+                        style={{ color: c.text }}
+                    >
+                        {value > 0 ? `+${value}` : value}
+                    </span>
+                ) : (
+                    <span
+                        className="font-mono text-xl"
+                        style={{ color: 'var(--color-border)', lineHeight: 1 }}
+                    >
+                        —
+                    </span>
+                )}
+
+                {/* Bouton retour */}
+                {occupied && (
+                    <button
+                        onClick={onReturn}
+                        title="Remettre au pool"
+                        className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-xs leading-none"
+                        style={{
+                            background: 'var(--color-surface)',
+                            border:     `1px solid ${c.border}`,
+                            color:      c.text,
+                            cursor:     'pointer',
+                        }}
+                    >
+                        ✕
+                    </button>
+                )}
+            </div>
+        </>
     );
 };
 
@@ -367,6 +380,7 @@ const Step2Identite = ({ data, onChange, onPrev, onNext }) => (
 const Step3Stats = ({ profile, stats, pool, onProfileSelect, onDrop, onReturn, onPrev, onNext }) => {
     const [draggingId,   setDraggingId]   = useState(null);
     const [dragOverStat, setDragOverStat] = useState(null);
+    const [hoveredStat,  setHoveredStat]  = useState(null);
 
     const allPlaced   = pool.length === 0 && STATS.every(s => stats[s] !== null);
     const selectedProfile = STAT_PROFILES.find(p => p.id === profile);
@@ -457,16 +471,37 @@ const Step3Stats = ({ profile, stats, pool, onProfileSelect, onDrop, onReturn, o
                                     onDrop(stat, chipId);
                                 }}
                                 onReturn={() => onReturn(stat)}
+                                onHover={() => setHoveredStat(stat)}
+                                onLeave={() => setHoveredStat(null)}
                             />
                         ))}
                     </div>
 
-                    {/* Message validation */}
-                    {pool.length > 0 && (
-                        <p className="text-xs text-center" style={{ color: 'var(--color-text-muted)' }}>
-                            Dépose toutes les valeurs pour continuer.
-                        </p>
-                    )}
+                    {/* Bandeau de description — remplace le message de validation */}
+                    <div
+                        className={`
+                            flex items-center justify-center
+                            rounded-lg px-4 py-2.5 text-center transition-all duration-200 bg-surface
+                            border ${hoveredStat ? 'border-primary' : 'border-default'}
+                            hover:cp-glow-cyan min-h-[60px]
+                        `}
+                    >
+                        {hoveredStat ? (
+                            <p className="text-xs cp-font-mono text-primary w-full">
+                                <span className="font-bold uppercase tracking-widest mr-2">
+                                    {STAT_LABELS[hoveredStat]}
+                                </span>
+                                — {DESCRIPTIONS_STATS[hoveredStat]}
+                            </p>
+                        ) : (
+                            <p className="text-xs text-muted w-full">
+                                {pool.length > 0
+                                    ? 'Dépose toutes les valeurs pour continuer.'
+                                    : '✦ Toutes les stats sont placées.'
+                                }
+                            </p>
+                        )}
+                    </div>
                 </>
             )}
 
@@ -740,10 +775,78 @@ const Step6RelationsAndCyberware = ({
                                     }) => {
     const pb = PLAYBOOKS.find(p => p.id === playbook);
     const maxPicks = (pb?.defaultPicks ?? 1) + (hasChromeMove ? 1 : 0);
+    const [customName, setCustomName] = useState('');
+
+    // Cyberwares suggérés par le playbook (avec leur fiche CYBERWARE_ALL si disponible)
+    const playbookSuggestions = (pb?.cyberware ?? []).map(name =>
+        CYBERWARE_ALL.find(cw => cw.name === name) ?? { name, description: null, optionHint: null }
+    );
+
+    // Reste de CYBERWARE_ALL non déjà dans les suggestions du playbook
+    const playbookNames   = new Set(pb?.cyberware ?? []);
+    const otherCyberware  = CYBERWARE_ALL.filter(cw => !playbookNames.has(cw.name));
+
+    const handleAddCustom = () => {
+        const trimmed = customName.trim();
+        if (!trimmed || cyberware.length >= maxPicks) return;
+        onAddCyberware(trimmed);
+        setCustomName('');
+    };
+
+
+    // Bouton de sélection d'un cyberware
+    const CwItem = ({ cw, isSuggestion }) => {
+        const selected = cyberware.includes(cw.name);
+        const disabled = !selected && cyberware.length >= maxPicks;
+        return (
+            <button
+                onClick={() => {
+                    if (disabled) return;
+                    selected ? onRemoveCyberware(cw.name) : onAddCyberware(cw.name);
+                }}
+                className="text-left rounded-lg px-3 py-2 flex items-start gap-3 transition-all w-full"
+                style={{
+                    background: selected
+                        ? 'rgba(0,229,255,0.08)'
+                        : 'var(--color-surface-alt)',
+                    border:    `1px solid ${selected ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                    boxShadow: selected ? 'var(--cp-glow-cyan)' : 'none',
+                    opacity:   disabled ? 0.4 : 1,
+                    cursor:    disabled ? 'not-allowed' : 'pointer',
+                }}
+            >
+                <span style={{ color: 'var(--color-primary)', flexShrink: 0, marginTop: '2px' }}>⬡</span>
+                <div className="flex-1 min-w-0">
+                    <span
+                        className="font-semibold text-sm block"
+                        style={{ color: selected ? 'var(--color-primary)' : 'var(--color-text)' }}
+                    >
+                        {cw.name}
+                        {pb?.mandatoryCyberware === cw.name && (
+                            <span className="ml-2 text-xs font-normal" style={{ color: 'var(--color-accent)' }}>
+                                obligatoire
+                            </span>
+                        )}
+                    </span>
+                    {cw.description && (
+                        <span className="text-xs leading-snug block mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                            {cw.description}
+                        </span>
+                    )}
+                    {cw.optionHint && (
+                        <span className="text-xs italic block mt-0.5" style={{ color: 'var(--color-accent)' }}>
+                            {cw.optionHint}
+                        </span>
+                    )}
+                </div>
+            </button>
+        );
+    };
 
     return (
         <div className="flex flex-col gap-5">
-            {/* Relations */}
+
+            {/* ── Relations ─────────────────────────────────────────────── */}
             <div>
                 <h2 className="text-xl font-bold cp-font-ui" style={{ color: 'var(--color-primary)' }}>
                     Relations & Cyberware
@@ -759,21 +862,15 @@ const Step6RelationsAndCyberware = ({
                         <div
                             key={i}
                             className="rounded-xl p-3 flex flex-col gap-2"
-                            style={{
-                                background: 'var(--color-surface-alt)',
-                                border:     '1px solid var(--color-border)',
-                            }}
+                            style={{ background: 'var(--color-surface-alt)', border: '1px solid var(--color-border)' }}
                         >
                             <div className="flex gap-2 items-center">
-                                {/* Score de lien */}
                                 <div className="flex items-center gap-1 flex-shrink-0">
                                     <button
                                         onClick={() => onUpdateRelation(i, { link_score: Math.max(-3, (r.link_score ?? 1) - 1) })}
                                         className="w-6 h-6 rounded text-xs font-bold flex items-center justify-center"
                                         style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}
-                                    >
-                                        −
-                                    </button>
+                                    >−</button>
                                     <span
                                         className="font-mono font-bold text-sm w-8 text-center"
                                         style={{
@@ -788,48 +885,31 @@ const Step6RelationsAndCyberware = ({
                                         onClick={() => onUpdateRelation(i, { link_score: Math.min(3, (r.link_score ?? 1) + 1) })}
                                         className="w-6 h-6 rounded text-xs font-bold flex items-center justify-center"
                                         style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}
-                                    >
-                                        +
-                                    </button>
+                                    >+</button>
                                 </div>
-
                                 <input
                                     type="text"
                                     value={r.name}
                                     onChange={e => onUpdateRelation(i, { name: e.target.value })}
                                     placeholder="Nom de la relation…"
                                     className="flex-1 rounded-lg px-2 py-1 text-sm"
-                                    style={{
-                                        background: 'var(--color-surface)',
-                                        border:     '1px solid var(--color-border)',
-                                        color:      'var(--color-text)',
-                                        outline:    'none',
-                                    }}
+                                    style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)', outline: 'none' }}
                                 />
-
                                 {relations.length > 2 && (
                                     <button
                                         onClick={() => onRemoveRelation(i)}
                                         className="text-xs"
                                         style={{ color: 'var(--color-danger)', background: 'none', border: 'none', cursor: 'pointer' }}
-                                    >
-                                        ✕
-                                    </button>
+                                    >✕</button>
                                 )}
                             </div>
-
                             <input
                                 type="text"
                                 value={r.description}
                                 onChange={e => onUpdateRelation(i, { description: e.target.value })}
                                 placeholder="Description courte (qui c'est, lien narratif)…"
                                 className="w-full rounded-lg px-2 py-1 text-xs"
-                                style={{
-                                    background: 'var(--color-surface)',
-                                    border:     '1px solid var(--color-border)',
-                                    color:      'var(--color-text-muted)',
-                                    outline:    'none',
-                                }}
+                                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)', outline: 'none' }}
                             />
                         </div>
                     ))}
@@ -838,12 +918,7 @@ const Step6RelationsAndCyberware = ({
                         <button
                             onClick={onAddRelation}
                             className="py-2 rounded-xl text-sm"
-                            style={{
-                                background: 'var(--color-surface-alt)',
-                                border:     '1px dashed var(--color-border)',
-                                color:      'var(--color-primary)',
-                                cursor:     'pointer',
-                            }}
+                            style={{ background: 'var(--color-surface-alt)', border: '1px dashed var(--color-border)', color: 'var(--color-primary)', cursor: 'pointer' }}
                         >
                             + Ajouter une relation
                         </button>
@@ -851,53 +926,96 @@ const Step6RelationsAndCyberware = ({
                 </div>
             </div>
 
-            {/* Cyberware */}
-            <div>
-                <Label>
-                    Cyberware ({cyberware.length}/{maxPicks} pick{maxPicks > 1 ? 's' : ''})
-                    {hasChromeMove && <span className="ml-2 text-success">+1 grâce à Chromé</span>}
-                </Label>
+            {/* ── Cyberware ─────────────────────────────────────────────── */}
+            <div className="flex flex-col gap-3">
+                <div className="flex items-baseline gap-2">
+                    <Label>Cyberware ({cyberware.length}/{maxPicks} slot{maxPicks > 1 ? 's' : ''})</Label>
+                    {hasChromeMove && (
+                        <span className="text-xs" style={{ color: 'var(--color-success)' }}>
+                            +1 slot via Chromé
+                        </span>
+                    )}
+                </div>
 
-                {pb && (
-                    <div className="flex flex-col gap-1.5">
-                        {pb.cyberware.map(cw => {
-                            const selected = cyberware.includes(cw);
-                            const disabled = !selected && cyberware.length >= maxPicks;
-                            return (
+                {/* Suggestions du playbook */}
+                <div className="flex flex-col gap-1.5">
+                    {playbookSuggestions.map(cw => (
+                        <CwItem key={cw.name} cw={cw} isSuggestion />
+                    ))}
+                </div>
+
+                {/* Tous les autres cyberwares */}
+                {otherCyberware.length > 0 && (
+                    <details>
+                        <summary
+                            className="text-xs cursor-pointer cp-font-ui uppercase tracking-wide py-1"
+                            style={{ color: 'var(--color-text-muted)', listStyle: 'none' }}
+                        >
+                            ▶ Tous les cyberwares ({otherCyberware.length} autres)
+                        </summary>
+                        <div className="flex flex-col gap-1.5 mt-2">
+                            {otherCyberware.map(cw => (
+                                <CwItem key={cw.name} cw={cw} isSuggestion={false} />
+                            ))}
+                        </div>
+                    </details>
+                )}
+
+                {/* Saisie libre — implant custom */}
+                <div
+                    className="flex gap-2 items-center rounded-lg px-3 py-2"
+                    style={{ background: 'var(--color-surface-alt)', border: '1px dashed var(--color-border)' }}
+                >
+                    <input
+                        type="text"
+                        value={customName}
+                        onChange={e => setCustomName(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleAddCustom()}
+                        placeholder="Implant custom…"
+                        className="flex-1 bg-transparent text-sm outline-none"
+                        style={{ color: 'var(--color-text)' }}
+                    />
+                    <button
+                        onClick={handleAddCustom}
+                        disabled={!customName.trim() || cyberware.length >= maxPicks}
+                        className="text-xs px-3 py-1 rounded-lg flex-shrink-0"
+                        style={{
+                            background: (!customName.trim() || cyberware.length >= maxPicks)
+                                ? 'var(--color-border)'
+                                : 'var(--color-primary)',
+                            color:  (!customName.trim() || cyberware.length >= maxPicks)
+                                ? 'var(--color-text-muted)'
+                                : 'var(--color-bg)',
+                            border: 'none',
+                            cursor: (!customName.trim() || cyberware.length >= maxPicks) ? 'not-allowed' : 'pointer',
+                        }}
+                    >
+                        + Ajouter
+                    </button>
+                </div>
+
+                {/* Récap des sélections */}
+                {cyberware.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                        {cyberware.map(name => (
+                            <div
+                                key={name}
+                                className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
+                                style={{
+                                    background: 'rgba(0,229,255,0.1)',
+                                    border:     '1px solid var(--color-primary)',
+                                    color:      'var(--color-primary)',
+                                }}
+                            >
+                                {name}
                                 <button
-                                    key={cw}
-                                    onClick={() => {
-                                        if (disabled) return;
-                                        if (selected) onRemoveCyberware(cw);
-                                        else onAddCyberware(cw);
-                                    }}
-                                    className="text-left rounded-lg px-3 py-2 flex items-center gap-3 transition-all"
-                                    style={{
-                                        background: selected ? 'rgba(0,229,255,0.08)' : 'var(--color-surface-alt)',
-                                        border:     `1px solid ${selected ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                                        boxShadow:  selected ? 'var(--cp-glow-cyan)' : 'none',
-                                        opacity:    disabled ? 0.4 : 1,
-                                        cursor:     disabled ? 'not-allowed' : 'pointer',
-                                    }}
+                                    onClick={() => onRemoveCyberware(name)}
+                                    style={{ background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', lineHeight: 1, padding: 0 }}
                                 >
-                                    <span
-                                        className="text-sm"
-                                        style={{ color: 'var(--color-primary)' }}
-                                    >
-                                        ⬡
-                                    </span>
-                                    <span
-                                        className="text-sm font-semibold"
-                                        style={{ color: selected ? 'var(--color-primary)' : 'var(--color-text)' }}
-                                    >
-                                        {cw}
-                                    </span>
-                                    {pb.mandatoryCyberware === cw && (
-                                        <span className="text-xs ml-auto" style={{ color: 'var(--color-accent)' }}>obligatoire</span>
-                                    )}
+                                    ✕
                                 </button>
-                            );
-                        })}
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>
@@ -905,7 +1023,11 @@ const Step6RelationsAndCyberware = ({
             <NavButtons
                 step={6} totalSteps={7}
                 onPrev={onPrev} onNext={onNext}
-                disabledNext={relations.length < 2 || relations.some(r => !r.name.trim()) || cyberware.length === 0}
+                disabledNext={
+                    relations.length < 2 ||
+                    relations.some(r => !r.name.trim()) ||
+                    cyberware.length === 0
+                }
             />
         </div>
     );
@@ -919,7 +1041,7 @@ const Step7Finalisation = ({
                                data, playbook, stats, selectedMoveIds,
                                directives, relations, cyberware,
                                darkSecret, onDarkSecretChange,
-                               onPrev, onSubmit, loading, error, created,
+                               onPrev, onSubmit, loading, error, created, onCreated,
                            }) => {
     const pb = PLAYBOOKS.find(p => p.id === playbook);
 
@@ -959,8 +1081,11 @@ const Step7Finalisation = ({
                     <CopyButton text={created.accessCode} />
                 </div>
 
-                <a
-                    href={`/${created.accessUrl ?? ''}`}
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onCreated(created);
+                    }}
                     className="px-8 py-3 rounded-xl font-bold cp-font-ui uppercase tracking-wide text-sm"
                     style={{
                         background: 'var(--color-primary)',
@@ -970,7 +1095,7 @@ const Step7Finalisation = ({
                     }}
                 >
                     ⬡ Accéder à la fiche
-                </a>
+                </button>
             </div>
         );
     }
@@ -1116,46 +1241,6 @@ const Creation = ({ darkMode, onToggleDarkMode, onCreated, onCancel }) => {
         setStatPool([...p.values].map((v, i) => ({ id: `chip-${profileId}-${i}`, value: v })));
     }, []);
 
-    // Swap d'une stat : +1 ou -1, avec respect des valeurs du profil
-    const handleStatSwap = useCallback((statKey, delta) => {
-        setStats(prev => {
-            const profile = STAT_PROFILES.find(p => p.id === statProfile);
-            console.log('statKey', statKey, 'delta', delta);
-            if (!profile) {
-                console.log('i dont have profile')
-                return prev;
-            }
-
-            const newVal     = (prev[statKey] ?? 0) + delta;
-            const profileMin = Math.min(...profile.values);
-            const profileMax = Math.max(...profile.values);
-
-            // Contraintes : rester dans les bornes du profil
-            if (newVal < profileMin || newVal > profileMax) {
-                console.log('non non non');
-                return prev;
-            }
-
-            // Vérifier qu'on peut "prendre" cette valeur (conservation du multiset)
-            const nextStats = { ...prev, [statKey]: newVal };
-            const currentCounts = countValues(Object.values(prev));
-            const nextCounts    = countValues(Object.values(nextStats));
-            const profileCounts = countValues(profile.values);
-
-            // La valeur ajoutée doit exister dans le profil en quantité suffisante
-            for (const [v, count] of Object.entries(nextCounts)) {
-                if ((profileCounts[v] ?? 0) < count) {
-                    console.log('profileCounts of v :', profileCounts[v], ' with count ', count, ' and v is ', v);
-                    return prev;
-                }
-            }
-
-            return nextStats;
-        });
-    }, [statProfile]);
-
-    const countValues = (arr) => arr.reduce((acc, v) => { acc[v] = (acc[v] ?? 0) + 1; return acc; }, {});
-
     // Toggle move
     const handleToggleMove = useCallback((moveId, moveObj) => {
         setSelectedMoveIds(prev => {
@@ -1185,7 +1270,7 @@ const Creation = ({ darkMode, onToggleDarkMode, onCreated, onCancel }) => {
     const updateRelation = (i, updates) => setRelations(prev => prev.map((r, j) => j === i ? { ...r, ...updates } : r));
 
     // Cyberware — check si Chromé est dans les moves sélectionnés
-    const hasChromeMove = selectedMoveObjs.some(m => m.name === 'Chromé');; // sera déterminé après chargement des moves si nécessaire
+    const hasChromeMove = selectedMoveObjs.some(m => m.name === 'Chromé' || m.name === 'Plus machine qu\'homme'); // sera déterminé après chargement des moves si nécessaire
 
     const addCyberware    = (name) => setCyberware(prev => [...prev, name]);
     const removeCyberware = (name) => setCyberware(prev => prev.filter(c => c !== name));
@@ -1250,13 +1335,12 @@ const Creation = ({ darkMode, onToggleDarkMode, onCreated, onCancel }) => {
 
             const char = await res.json();
             setCreated(char);
-            onCreated?.(char);
         } catch (err) {
             setError(err.message);
         } finally {
             setLoading(false);
         }
-    }, [loading, identite, playbook, stats, darkSecret, directives, relations, cyberware, selectedMoveIds, apiBase, onCreated]);
+    }, [loading, identite, playbook, stats, darkSecret, directives, relations, cyberware, selectedMoveIds, apiBase]);
 
     // ── Render ────────────────────────────────────────────────────────────────
 
@@ -1385,6 +1469,7 @@ const Creation = ({ darkMode, onToggleDarkMode, onCreated, onCancel }) => {
                                 loading={loading}
                                 error={error}
                                 created={created}
+                                onCreated={onCreated}
                             />
                         )}
                     </div>

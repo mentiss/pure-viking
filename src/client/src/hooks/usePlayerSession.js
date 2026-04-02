@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { useSocket } from '../context/SocketContext.jsx';
 import { useSession } from '../context/SessionContext.jsx';
 import { useFetch } from './useFetch.js';
+import useSystem from "./useSystem.js";
 
 /**
  * @param {object|null} character       - personnage actif (null si pas connecté)
@@ -24,8 +25,9 @@ import { useFetch } from './useFetch.js';
  */
 export function usePlayerSession({ character, onCharacterUpdate, onCharacterHasUpdated, onCharacterReload, apiBase }) {
     const socket = useSocket();
-    const { updateCharacterSessions } = useSession();
+    const { updateCharacterSessions, activeGMSession } = useSession();
     const fetchWithAuth = useFetch();
+    const { slug } = useSystem();
     const [journalUnread, setJournalUnread] = useState(0);
 
     // ── Charger les sessions du personnage ──────────────────────────────────
@@ -51,12 +53,14 @@ export function usePlayerSession({ character, onCharacterUpdate, onCharacterHasU
             playerName:  character.playerName,
             agilite:     character.agilite     ?? 1,
             actionsMax:  character.actionsDisponibles ?? 1,
+            slug,
+            sessionId:   activeGMSession,
         });
 
         return () => {
             socket.emit('character-left', character.id);
         };
-    }, [socket, character?.id]);
+    }, [socket, character?.id, activeGMSession]);
 
     // ── Événements temps réel ───────────────────────────────────────────────
     useEffect(() => {

@@ -10,6 +10,8 @@ const STAT_BADGE_CLASS = {
 };
 
 export const MoveCard = ({ move, isUnlocked, onClick, showFull = false, isEditMode = false, isAcquired = false }) => {
+    const isClickable = (isUnlocked && move.stat) && !isEditMode;
+
     const toggleStyle = isEditMode ? {
         background: isAcquired ? 'rgba(0,229,255,0.1)' : 'var(--cp-move-hover)',
         border:     `1px solid ${isAcquired ? 'var(--color-primary)' : 'var(--cp-move-border)'}`,
@@ -18,14 +20,18 @@ export const MoveCard = ({ move, isUnlocked, onClick, showFull = false, isEditMo
     } : {
         background: isUnlocked ? 'var(--cp-move-hover)' : 'transparent',
         border:     `1px solid ${isUnlocked ? 'var(--cp-move-border)' : 'transparent'}`,
-        cursor:     (isUnlocked && move.stat) ? 'pointer' : 'default',
+        cursor:     isClickable ? 'pointer' : 'default',
         opacity:    isUnlocked ? 1 : 0.35,
     };
 
     return (
         <button
             onClick={onClick}
-            className="w-full text-left rounded-lg px-3 py-2.5 flex flex-col gap-1 transition-all"
+            className={`
+                group w-full text-left rounded-lg px-3 py-2.5 
+                flex flex-col gap-1 transition-all
+                ${isClickable ? 'move-button cursor-pointer' : 'cursor-default'}
+            `}
             style={toggleStyle}
         >
             <div className="flex items-center gap-2">
@@ -42,8 +48,7 @@ export const MoveCard = ({ move, isUnlocked, onClick, showFull = false, isEditMo
                     </span>
                 )}
                 <span
-                    className="text-sm font-semibold leading-tight flex-1"
-                    style={{color: isUnlocked || showFull ? 'var(--color-text)' : 'var(--color-text-muted)'}}
+                    className={`text-sm font-semibold leading-tight flex-1 ${isUnlocked || showFull ? 'text-default' : 'text-muted'} ${isClickable ? 'group-hover:text-primary move-title-glitch' : ''}`}
                 >
                     {move.name}
                 </span>
@@ -53,17 +58,18 @@ export const MoveCard = ({ move, isUnlocked, onClick, showFull = false, isEditMo
                         color: 'var(--cp-neon-amber)',
                         border: '1px solid rgba(255,170,0,0.3)'
                     }}>
-                    {move.playbook}
-                </span>
+                        {move.playbook}
+                    </span>
                 )}
                 {move.stat && (
                     <span className={`cp-stat-badge ${STAT_BADGE_CLASS[move.stat] ?? ''} flex-shrink-0`}>
-                    {STAT_LABELS[move.stat]}
-                </span>
+                        {STAT_LABELS[move.stat]}
+                    </span>
                 )}
+
             </div>
             {(isUnlocked || showFull || isEditMode) && (
-                <p className="text-xs leading-relaxed line-clamp-3" style={{color: 'var(--color-text-muted)'}}>
+                <p className={`text-xs leading-relaxed line-clamp-3 text-muted ${isClickable ? 'group-hover:text-default' : ''}`}>
                     {move.description}
                 </p>
             )}

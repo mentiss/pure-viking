@@ -13,7 +13,7 @@ const {generateAccessUrl} = require("../config");
 router.get('/', (req, res) => {
     try {
         const characters = req.db.prepare(`
-            SELECT id, access_code, access_url, player_name, prenom, surnom,
+            SELECT id, access_code, access_url, player_name, prenom, surnom, nom_parent,
                    avatar, age, sexe, saga_actuelle, saga_totale,
                    tokens_blessure, tokens_fatigue
             FROM characters ORDER BY updated_at DESC
@@ -25,6 +25,10 @@ router.get('/', (req, res) => {
             accessUrl: c.access_url,
             playerName: c.player_name,
             name: `${c.prenom}${c.surnom ? ' "' + c.surnom + '"' : ''}`,
+            nom: c.nom,
+            prenom: c.prenom,
+            surnom: c.surnom,
+            nomParent: c.nom_parent,
             avatar: c.avatar,
             age: c.age,
             sexe: c.sexe,

@@ -106,9 +106,6 @@ const TabCombat = ({
                 )}
             </div>
 
-            {/* Règles Référence */}
-            <RulesReference />
-
             {/* ── Modals ─────────────────────────────────────────────────── */}
 
             {/* Bibliothèque NPC — remplace AddNPCModal + EditNPCModal */}

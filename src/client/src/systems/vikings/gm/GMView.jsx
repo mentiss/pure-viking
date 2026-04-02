@@ -9,10 +9,10 @@ import ToastNotifications from "../../../components/layout/ToastNotifications.js
 import HistoryPanel from "../../../components/layout/HistoryPanel.jsx";
 import {useAuth} from "../../../context/AuthContext.jsx";
 import {toSystemUrl, useFetch} from "../../../hooks/useFetch.js";
-import GMHeader from "../../../components/gm/layout/GMHeader.jsx";
+import GMHeader from "./layout/GMHeader.jsx";
 import TableManagementModal from "../../../components/gm/modals/TableManagementModal.jsx";
 import TabCombat from "./tabs/TabCombat.jsx";
-import TabSession from "../../../components/gm/tabs/TabSession.jsx";
+import TabSession from "./tabs/TabSession.jsx";
 import TabJournal from "../../../components/gm/tabs/TabJournal.jsx";
 import DiceConfigModal from "../../../components/modals/DiceConfigModal.jsx";
 import vikingsConfig from '../config.jsx';
@@ -20,6 +20,7 @@ import { useParams } from 'react-router-dom';
 
 const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, onToggleDarkMode }) => {
     console.log('[GMView] Component rendering...');
+    console.log(activeSession);
     const { system } = useParams();
     const apiBase    = `/api/${system}`;
 

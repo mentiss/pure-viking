@@ -5,7 +5,7 @@ const ThemeToggle = ({ darkMode, onToggle }) => {
     return (
         <button
             onClick={onToggle}
-            className="p-2 rounded-lg bg-viking-bronze dark:bg-viking-leather text-viking-brown dark:text-viking-parchment transition-colors hover:opacity-80"
+            className="p-2 rounded-lg bg-primary text-bg transition-colors hover:opacity-80"
             aria-label="Toggle theme"
         >
             {darkMode ? (

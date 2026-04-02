@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useGMSession } from '../hooks/useGMSession.js';
 import CodeModal from '../components/modals/CodeModal.jsx';
 import DiceAnimationOverlay from "../components/shared/DiceAnimationOverlay.jsx";
+import LoadingScreen from "../components/gm/layout/LoadingScreen.jsx";
 
 const SYSTEM_GM_APPS = import.meta.glob('../systems/*/GMApp.jsx');
 
@@ -108,11 +109,5 @@ const GMPage = () => {
         </>
     );
 };
-
-const LoadingScreen = () => (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-2xl text-white animate-pulse">Chargement...</div>
-    </div>
-);
 
 export default GMPage;

@@ -132,7 +132,6 @@
 
 .cp-font-title {
     font-family: 'Cyberpunk', ui-monospace, monospace;
-
 }
 
 /* ── Utilitaires slug-spécifiques ────────────────────────────────────────── */
@@ -147,6 +146,12 @@
 .hover\:cp-glow-magenta:hover { box-shadow: var(--cp-glow-magenta); }
 .hover\:cp-glow-amber:hover   { box-shadow: var(--cp-glow-amber); }
 .hover\:cp-glow-active:hover  { box-shadow: var(--cp-glow-active); }
+
+.cp-bg-glow-cyan {background-color: var(--cp-glow-cyan); }
+.cp-bg-glow-magenta {background-color: var(--cp-glow-magenta); }
+.cp-bg-glow-amber {background-color: var(--cp-glow-amber); }
+.cp-bg-glow-active {background-color: var(--cp-glow-active); }
+
 
 .cp-neon-glow {
     text-shadow:    0 0 7px #fff,
@@ -341,4 +346,300 @@
 .cp-pinned-indicator {
     color: var(--cp-neon-amber);
     filter: drop-shadow(0 0 4px rgba(255,170,0,0.6));
+}
+
+@layer utilities {
+    .cp-access-key {
+        background: var(--color-bg);
+        border: 1px solid var(--color-primary);
+        box-shadow: inset 0 0 5px var(--color-primary);
+        font-family: 'CyberConsole', monospace;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.2s ease-out;
+    }
+
+    /* Le code par défaut : semi-visible et légèrement flou */
+    .cp-access-key .code-text {
+        opacity: 0.3; /* Très discret */
+        filter: blur(1px); /* Léger flou initial */
+        transition: all 0.3s ease-out;
+        letter-spacing: 0.1em;
+    }
+
+    /* Au survol : 100% lisible, net et lumineux */
+    .cp-access-key:hover .code-text {
+        opacity: 1;
+        filter: blur(0);
+        letter-spacing: 0.15em;
+        color: var(--color-primary);
+        text-shadow: 0 0 5px var(--color-primary);
+    }
+
+    /* Animation de "décodage" au clic */
+    .animate-decode-glitch {
+        animation: decode-glitch 0.2s steps(1) 3; /* 3 flashs rapides */
+    }
+
+    @keyframes decode-glitch {
+        0% { transform: translate(0); outline: 1px solid var(--color-accent); filter: hue-rotate(90deg); }
+        33% { transform: translate(-1px, 1px); color: var(--color-accent); filter: hue-rotate(-90deg); }
+        66% { transform: translate(1px, -1px); outline: 1px solid var(--color-primary); filter: hue-rotate(180deg); }
+        100% { transform: translate(0); }
+    }
+}
+
+@layer utilities {
+    .hex-scan-container {
+        position: absolute;
+        inset: 0;
+        z-index: 5;
+        pointer-events: none;
+        clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        opacity: 0;
+    }
+
+    .group:hover .hex-scan-container {
+        opacity: 1;
+    }
+
+    .hex-glitch-line {
+        position: absolute;
+        left: -10%;
+        width: 120%; /* Plus large pour permettre les décalages horizontaux */
+        height: 2px;
+        background: var(--color-primary);
+        box-shadow: 0 0 8px var(--color-primary), 0 0 15px var(--color-secondary);
+
+        /* On combine 3 animations :
+           1. La descente saccadée
+           2. La déformation "électrique" (skew/scale)
+           3. Le clignotement de survie (opacité)
+        */
+        animation:
+                glitch-descent 2.5s infinite step-end,
+                glitch-wave 0.15s infinite alternate,
+                glitch-flicker 0.4s infinite;
+    }
+
+    /* 1. La descente n'est pas fluide : elle "saute" d'une position à l'autre */
+    @keyframes glitch-descent {
+        0%   { top: 10%; }
+        5%   { top: 12%; }
+        10%  { top: 40%; } /* Sursaut subit */
+        12%  { top: 38%; } /* Léger retour en arrière */
+        25%  { top: 38%; } /* Pause (le signal bloque) */
+        35%  { top: 80%; }
+        40%  { top: 15%; } /* Remonte d'un coup (instabilité) */
+        60%  { top: 90%; }
+        85%  { top: 95%; }
+        100% { top: 10%; }
+    }
+
+    /* 2. La déformation "courbe/électrique" */
+    @keyframes glitch-wave {
+        0% {
+            transform: skewY(0deg) scaleY(1);
+        }
+        30% {
+            transform: skewY(15deg) scaleY(4); /* Crée une pointe vers le haut */
+            filter: hue-rotate(45deg);
+        }
+        60% {
+            transform: skewY(-10deg) scaleY(0.5); /* S'aplatit et plonge */
+        }
+        100% {
+            transform: skewY(25deg) scaleY(2);
+            filter: brightness(2);
+        }
+    }
+
+    /* 3. Le clignotement erratique */
+    @keyframes glitch-flicker {
+        0%   { opacity: 0.8; }
+        20%  { opacity: 0.2; }
+        21%  { opacity: 0.9; }
+        50%  { opacity: 0.5; }
+        80%  { opacity: 0; } /* Disparition brève */
+        100% { opacity: 0.8; }
+    }
+
+    .hex-scan-line {
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 8px; /* Plus fin pour faire "interférence" */
+
+        /* On crée un effet de "pixels morts" / neige */
+        background: repeating-linear-gradient(
+                90deg,
+                var(--color-primary) 0%,
+                var(--color-primary) 2px,
+                transparent 2px,
+                transparent 4px
+        );
+
+        /* On ajoute une lueur diffuse pour l'effet tube cathodique */
+        box-shadow: 0 0 10px var(--color-primary);
+
+        /* Animation 1 : Descente plus lente (1.2s) et saccadée */
+        /* Animation 2 : Distorsion horizontale violente */
+        animation:
+                hex-glitch-move 1.2s steps(20) infinite,
+                hex-glitch-distortion 0.1s steps(2) infinite;
+    }
+
+    /* Descente avec des paliers (steps) pour éviter le côté "glissement fluide" */
+    @keyframes hex-glitch-move {
+        0% { top: -10%; }
+        100% { top: 110%; }
+    }
+
+    /* Distorsion : la ligne change de largeur et de position X de façon erratique */
+    @keyframes hex-glitch-distortion {
+        0% {
+            transform: translateX(-2px) scaleX(1.1);
+            opacity: 0.4;
+        }
+        50% {
+            transform: translateX(3px) scaleX(0.9);
+            opacity: 0.8;
+            filter: hue-rotate(90deg); /* Change brièvement de couleur */
+        }
+        100% {
+            transform: translateX(0) scaleX(1);
+            opacity: 0.6;
+        }
+    }
+
+    /* Le petit plus : faire clignoter le fond de l'hexagone très vite au hover */
+    .group:hover .hex-bg-flicker {
+        animation: hex-flicker 0.15s opacity infinite;
+    }
+
+    @keyframes glitch-text-amber {
+        0%, 100% {
+            color: var(--color-primary);
+            filter: drop-shadow(0 0 2px var(--color-primary));
+        }
+        50% {
+            color: var(--color-accent);
+            filter: drop-shadow(0 0 8px var(--color-accent));
+            transform: scale(1.05) skewX(-5deg);
+        }
+    }
+
+    /* La classe utilitaire que ton script pourrait presque générer */
+    .group:hover .group-hover\:animate-glitch-amber {
+        animation: glitch-text-amber 0.2s steps(2) infinite;
+    }
+}
+
+@layer utilities {
+    .logo-container {
+        position: relative;
+        display: inline-block;
+        padding: 0 10px;
+    }
+
+    /* 1. L'Effet d'aberration chromatique (Le vrai glitch cyberpunk) */
+    .logo-chromatic-glitch {
+        animation: chromatic-jump 8s step-end infinite;
+    }
+
+    @keyframes chromatic-jump {
+        0%, 98%, 100% { text-shadow: 0 0 5px var(--color-accent); transform: translate(0); }
+        98.5% {
+            text-shadow: 2px 0 0 #ff0055, -2px 0 0 #00ffcc;
+            transform: translate(1px, -1px);
+        }
+        99% {
+            text-shadow: -3px 0 0 #ff0055, 3px 0 0 #00ffcc;
+            transform: translate(-2px, 1px);
+        }
+    }
+
+    .logo-title-base {
+        position: relative;
+        /* Le secret : un contour noir net pour détacher les lettres */
+        -webkit-text-stroke: 0.25px var(--cp-matos-color);
+        text-stroke: 0.25px var(--cp-matos-color);
+    }
+
+    /* 2. La Pulsation Stabilisée (Plus de phase éteinte) */
+    .logo-neon-pulse {
+        animation: neon-stable-breathing 4s ease-in-out infinite;
+    }
+
+    @keyframes neon-stable-breathing {
+        0%, 100% {
+            /* Fond de cuve : Ton Glow de base costaud */
+            text-shadow: 0 0 7px #fff, 0 0 10px var(--cp-neon-cyan), 0 0 21px var(--cp-neon-cyan), 0 0 42px rgba(0, 229, 255, 0.8), 0 0 82px rgba(247, 255, 0, 0.5);
+            filter: brightness(1);
+        }
+        50% {
+            /* La Surcharge : On booste l'intensité sans éteindre */
+            text-shadow: 0 0 15px #fff, 0 0 30px var(--cp-neon-cyan), 0 0 50px var(--cp-neon-cyan), 0 0 100px rgba(0, 229, 255, 1), 0 0 150px rgba(247, 255, 0, 0.8);
+            filter: brightness(1.3) saturate(1.1);
+        }
+    }
+
+    .move-button {
+        transition: all 0.3s ease-in-out;
+        border: 1px solid var(--cp-move-border);
+    }
+
+    .move-button:hover {
+        transform: scale(0.97) translateY(1px) !important;
+        filter: brightness(0.9);
+        animation: neon-stable-breathing-el 4s ease-in-out infinite;
+        z-index: 50;
+    }
+
+    @keyframes neon-stable-breathing-el {
+        0%, 100% {
+            /* Fond de cuve : Ton Glow de base costaud */
+            box-shadow: 0 0 5px #fff, 0 0 10px var(--cp-neon-cyan), 0 0 15px var(--cp-neon-cyan), 0 0 20px rgba(0, 229, 255, 0.8), 0 0 30px rgba(247, 255, 0, 0.5);
+            filter: brightness(1);
+            border-color: var(--cp-neon-amber);
+        }
+        50% {
+            /* La Surcharge : On booste l'intensité sans éteindre */
+            box-shadow: 0 0 8px #fff, 0 0 15px var(--cp-neon-cyan), 0 0 25px var(--cp-neon-cyan), 0 0 35px rgba(0, 229, 255, 1), 0 0 48px rgba(247, 255, 0, 0.8);
+            filter: brightness(1.3) saturate(1.1);
+            border-color: var(--cp-neon-magenta);
+        }
+    }
+
+    .move-button:hover .move-title-glitch {
+        animation: quick-glitch 0.2s ease-out;
+    }
+
+    @keyframes quick-glitch {
+        0% { transform: translate(0); filter: hue-rotate(0deg); }
+        25% { transform: translate(-2px, 1px); filter: hue-rotate(90deg); }
+        50% { transform: translate(2px, -1px); filter: brightness(1.5); }
+        100% { transform: translate(0); filter: hue-rotate(0deg); }
+    }
+
+    /* 3. Le Mega Glow des éclairs SVG (drop-shadow sur le path) */
+    .mega-glow-bolt {
+        stroke: #fff; /* Cœur blanc */
+        filter:
+                drop-shadow(0 0 5px #fff)
+                drop-shadow(0 0 15px var(--cp-neon-cyan))
+                drop-shadow(0 0 30px var(--cp-neon-cyan));
+        stroke-width: 1.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        opacity: 0;
+    }
+
+    /* 4. Animation de Zap : Nerf et Saccades (step-end) */
+    @keyframes zap-vibe {
+        0%, 2.5%, 100% { opacity: 0; }
+        1% { opacity: 1; transform: scale(var(--zap-scale, 1)) rotate(var(--zap-rotate, 0deg)) translate(2px, -2px); }
+        1.5% { opacity: 0.7; transform: scale(0.9) translate(-1px, 1px); }
+        2% { opacity: 1; transform: scale(1.1) rotate(5deg); }
+    }
 }

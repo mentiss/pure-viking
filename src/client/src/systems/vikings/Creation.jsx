@@ -8,9 +8,14 @@ import {
     getSuccessThreshold, isSpecializableSkill
 } from "../../tools/utils.js";
 import {CARACNAMES, COMPETENCES, RUNES, TRAITS} from "../../tools/data.js";
+import useSystem from "../../hooks/useSystem.js";
 
 const Creation = ({ onCreated, onCancel }) => {
-    const { useState } = React;
+    const { apiBase } = useSystem();
+    const [created,  setCreated]  = useState(null);
+    const [loading,  setLoading]  = useState(false);
+    const [error,    setError]    = useState(null);
+    const [copied,   setCopied]   = useState(false);
     const [step, setStep] = useState(1);
     const [customCode, setCustomCode] = useState('');
     const [showSpecModal, setShowSpecModal] = useState(false);
@@ -692,19 +697,82 @@ const Creation = ({ onCreated, onCancel }) => {
     const renderStep6 = () => {
         const fullName = formatFullName(character);
 
-        const handleComplete = () => {
-            const characterToSave = customCode 
-                ? { ...character, accessCode: customCode }
-                : character;
-            onCreated(characterToSave);
+        const handleComplete = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const characterToSave = customCode
+                    ? { ...character, accessCode: customCode }
+                    : character;
+                const res = await fetch(`${apiBase}/characters`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(characterToSave),
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.error || 'Erreur lors de la création');
+                }
+                const newChar = await res.json();
+                setCreated(newChar);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
         };
 
+        const copyCode = () => {
+            navigator.clipboard.writeText(created.accessCode);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        };
+
+        // ── Écran post-création ───────────────────────────────────────────────
+        if (created) {
+            return (
+                <div className="text-center space-y-5 py-4">
+                    <div className="text-5xl">⚔️</div>
+                    <div className="text-2xl font-bold text-viking-brown dark:text-viking-parchment">
+                        {formatFullName(created)} est né·e !
+                    </div>
+                    <div className="p-4 bg-viking-bronze/20 border-2 border-viking-bronze rounded-lg mx-auto max-w-xs text-center">
+                        <div className="text-sm text-viking-leather dark:text-viking-bronze mb-2">
+                            Votre code d'accès
+                        </div>
+                        <div className="font-mono text-4xl font-bold tracking-widest text-viking-brown dark:text-viking-parchment mb-3">
+                            {created.accessCode}
+                        </div>
+                        <button
+                            onClick={copyCode}
+                            className="px-4 py-1.5 text-sm border-2 border-viking-bronze text-viking-brown dark:text-viking-parchment rounded hover:bg-viking-bronze/20 transition-colors"
+                        >
+                            {copied ? '✅ Copié !' : '📋 Copier le code'}
+                        </button>
+                        <p className="text-xs text-viking-leather dark:text-viking-bronze mt-2">
+                            Conservez ce code — clé d'accès permanente.
+                        </p>
+                    </div>
+                    <div className="text-xs text-viking-leather dark:text-viking-bronze">
+                        URL : <span className="font-mono">{created.accessUrl}</span>
+                    </div>
+                    <button
+                        onClick={() => onCreated(created)}
+                        className="w-full px-6 py-3 bg-viking-success hover:bg-green-700 text-white font-bold text-lg rounded-lg transition-colors shadow-lg"
+                    >
+                        Accéder à ma fiche →
+                    </button>
+                </div>
+            );
+        }
+
+        // ── Formulaire récap ──────────────────────────────────────────────────
         return (
             <div className="space-y-4">
                 <h3 className="text-2xl font-viking font-bold text-viking-brown dark:text-viking-parchment mb-4">
                     Récapitulatif
                 </h3>
-                
+
                 <div className="p-4 bg-white dark:bg-viking-brown border-2 border-viking-leather dark:border-viking-bronze rounded-lg">
                     <h4 className="font-bold text-lg text-viking-brown dark:text-viking-parchment mb-2">{fullName}</h4>
                     <p className="text-viking-text dark:text-viking-parchment">
@@ -727,10 +795,12 @@ const Creation = ({ onCreated, onCancel }) => {
                 </div>
 
                 <div className="p-4 bg-white dark:bg-viking-brown border-2 border-viking-leather dark:border-viking-bronze rounded-lg">
-                    <h4 className="font-bold text-viking-brown dark:text-viking-parchment mb-2">Compétences ({character.skills.length})</h4>
+                    <h4 className="font-bold text-viking-brown dark:text-viking-parchment mb-2">
+                        Compétences ({character.skills.length})
+                    </h4>
                     <div className="grid grid-cols-2 gap-2 text-sm">
                         {character.skills.map(s => (
-                            <div key={s.name} className="text-viking-text dark:text-viking-parchment">
+                            <div key={`${s.name}-${s.specialization}`} className="text-viking-text dark:text-viking-parchment">
                                 • {s.name} ({s.level})
                             </div>
                         ))}
@@ -738,7 +808,9 @@ const Creation = ({ onCreated, onCancel }) => {
                 </div>
 
                 <div className="p-4 bg-white dark:bg-viking-brown border-2 border-viking-leather dark:border-viking-bronze rounded-lg">
-                    <h4 className="font-bold text-viking-brown dark:text-viking-parchment mb-2">Traits ({character.traits.length})</h4>
+                    <h4 className="font-bold text-viking-brown dark:text-viking-parchment mb-2">
+                        Traits ({character.traits.length})
+                    </h4>
                     <div className="space-y-1 text-sm">
                         {character.traits.map(t => (
                             <div key={t.name} className="text-viking-text dark:text-viking-parchment">
@@ -750,7 +822,9 @@ const Creation = ({ onCreated, onCancel }) => {
 
                 {character.runes.length > 0 && (
                     <div className="p-4 bg-white dark:bg-viking-brown border-2 border-viking-leather dark:border-viking-bronze rounded-lg">
-                        <h4 className="font-bold text-viking-brown dark:text-viking-parchment mb-2">Runes ({character.runes.length})</h4>
+                        <h4 className="font-bold text-viking-brown dark:text-viking-parchment mb-2">
+                            Runes ({character.runes.length})
+                        </h4>
                         <div className="grid grid-cols-2 gap-2 text-sm">
                             {character.runes.map(r => (
                                 <div key={r.name} className="text-viking-text dark:text-viking-parchment">
@@ -772,8 +846,10 @@ const Creation = ({ onCreated, onCancel }) => {
                 </div>
 
                 <div className="p-4 bg-white dark:bg-viking-brown border-2 border-viking-leather dark:border-viking-bronze rounded-lg">
-                    <h4 className="font-bold text-viking-brown dark:text-viking-parchment mb-2">Code d'accès personnalisé (optionnel)</h4>
-                    <input 
+                    <h4 className="font-bold text-viking-brown dark:text-viking-parchment mb-2">
+                        Code d'accès personnalisé (optionnel)
+                    </h4>
+                    <input
                         value={customCode}
                         onChange={e => setCustomCode(e.target.value.toUpperCase().substring(0, 6))}
                         placeholder="Laisser vide pour génération automatique"
@@ -781,19 +857,29 @@ const Creation = ({ onCreated, onCancel }) => {
                         className="w-full px-3 py-2 border-2 border-viking-leather dark:border-viking-bronze rounded-lg bg-white dark:bg-gray-800 text-viking-text dark:text-viking-parchment font-mono"
                     />
                     <div className="text-xs text-viking-leather dark:text-viking-bronze mt-2">
-                        6 caractères max. Plusieurs personnages peuvent partager le même code (utile pour groupes).
+                        6 caractères max. Plusieurs personnages peuvent partager le même code.
                     </div>
                 </div>
 
+                {error && (
+                    <div className="p-3 bg-red-100 border-2 border-red-500 rounded-lg text-sm text-red-800">
+                        ⚠️ {error}
+                    </div>
+                )}
+
                 <div className="flex gap-2 mt-6">
-                    <button onClick={() => setStep(5)} className="flex-1 px-6 py-3 bg-viking-leather hover:bg-viking-brown text-viking-parchment font-semibold rounded-lg transition-colors">
+                    <button
+                        onClick={() => setStep(5)}
+                        className="flex-1 px-6 py-3 bg-viking-leather hover:bg-viking-brown text-viking-parchment font-semibold rounded-lg transition-colors"
+                    >
                         ← Précédent
                     </button>
-                    <button 
+                    <button
                         onClick={handleComplete}
-                        className="flex-1 px-6 py-3 bg-viking-success hover:bg-green-700 text-white font-bold text-lg rounded-lg transition-colors shadow-lg"
+                        disabled={loading}
+                        className="flex-1 px-6 py-3 bg-viking-success hover:bg-green-700 text-white font-bold text-lg rounded-lg transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        ✓ Créer le personnage
+                        {loading ? 'Création...' : '✓ Créer le personnage'}
                     </button>
                 </div>
             </div>

@@ -1,21 +1,148 @@
+/* src/client/src/systems/vikings/theme.css */
+/* ─────────────────────────────────────────────────────────────────────────────
+   Thème Vikings — Pure Saga
+   Mode jour : parchemin, cuir, or vieilli
+   Mode nuit  : nuit nordique, fer, runes
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* ── Mode JOUR (par défaut) ─────────────────────────────────────────────── */
 :root {
-    --color-primary:        #8B6914;
-    --color-primary-hover:  #A0522D;
-    --color-bg:             #F5E6C8;
-    --color-surface:        #d3c8b1;
-    --color-surface-alt: #ecdfc5;
+    --color-primary:        #B8860B;
+    --color-secondary:      #8B4513;
+    --color-accent:         #D2691E;
+
+    --color-bg:             #F2E8CF;
+    --color-surface:        #E7D9B8;
+    --color-surface-alt:    #DFCFA3;
+
     --color-text:           #2C1810;
-    --color-text-muted:     #8B6914;
+    --color-text-muted:     #6D4C41;
+
     --color-border:         #A0522D;
-    --color-danger:         #DC2626;
-    --color-success:        #16A34A;
+    --color-danger:         #991B1B;
+    --color-success:        #166534;
+
+
+    --viking-iron:         #454545;
+    --viking-leather-dark: #5D4037;
+    --viking-bronze-light: #FFD700;
 }
 
+/* ── Mode NUIT ──────────────────────────────────────────────────────────── */
 .dark {
-    --color-bg:             #1A0F0A;
-    --color-surface:        #2C1810;
-    --color-surface-alt:    #3D2415;
-    --color-text:           #F5E6C8;
-    --color-text-muted:     #A0522D;
-    --color-border:         #6B3A2A;
+    --color-bg:             #0F1419;
+    --color-surface:        #1A1F26;
+    --color-surface-alt:    #242B33;
+
+    --color-primary:        #EBCB8B;
+    --color-secondary:      #5E81AC;
+    --color-accent:         #BF616A;
+
+    --color-text:           #ECEFF4;
+    --color-text-muted:     #81A1C1;
+
+    --color-border:         #4C566A;
+    --color-danger:         #BF616A;
+    --color-success:        #A3BE8C;
+}
+
+/* ── Utilitaires slug-spécifiques ────────────────────────────────────────── */
+/* Remplacent les classes Tailwind générées depuis tailwind.config.js.
+   Les variables CSS s'adaptent automatiquement au mode jour/nuit.
+   Mapping sémantique :
+     viking-brown     → --color-text        (brun d'encre)
+     viking-leather   → --color-text-muted  (cuir estompé)
+     viking-bronze    → --color-primary     (or / bronze)
+     viking-parchment → --color-bg          (fond parchemin)
+     viking-text      → --color-text
+     viking-danger    → --color-danger
+     viking-success   → --color-success     */
+
+/* ── Backgrounds ─────────────────────────────────────────────────────────── */
+.bg-viking-brown        { background-color: var(--color-text); }
+.bg-viking-leather      { background-color: var(--color-text-muted); }
+.bg-viking-bronze       { background-color: var(--color-primary); }
+.bg-viking-parchment    { background-color: var(--color-bg); }
+.bg-viking-success      { background-color: var(--color-success); }
+
+/* Variantes d'opacité */
+.bg-viking-bronze\/10   { background-color: color-mix(in srgb, var(--color-primary) 10%, transparent); }
+.bg-viking-bronze\/20   { background-color: color-mix(in srgb, var(--color-primary) 20%, transparent); }
+.bg-viking-bronze\/30   { background-color: color-mix(in srgb, var(--color-primary) 30%, transparent); }
+.bg-viking-leather\/10  { background-color: color-mix(in srgb, var(--color-text-muted) 10%, transparent); }
+.bg-viking-leather\/30  { background-color: color-mix(in srgb, var(--color-text-muted) 30%, transparent); }
+.bg-viking-parchment\/30 { background-color: color-mix(in srgb, var(--color-bg) 30%, transparent); }
+
+/* ── Textes ───────────────────────────────────────────────────────────────── */
+.text-viking-brown      { color: var(--color-text); }
+.text-viking-leather    { color: var(--color-text-muted); }
+.text-viking-bronze     { color: var(--color-primary); }
+.text-viking-parchment  { color: var(--color-bg); }
+.text-viking-text       { color: var(--color-text); }
+.text-viking-danger     { color: var(--color-danger); }
+.text-viking-success    { color: var(--color-success); }
+
+/* ── Bordures ─────────────────────────────────────────────────────────────── */
+.border-viking-bronze   { border-color: var(--color-primary); }
+.border-viking-leather  { border-color: var(--color-text-muted); }
+.border-viking-brown    { border-color: var(--color-text); }
+
+/* ── Hover: Backgrounds ───────────────────────────────────────────────────── */
+.hover\:bg-viking-bronze:hover      { background-color: var(--color-primary); }
+.hover\:bg-viking-leather:hover     { background-color: var(--color-text-muted); }
+.hover\:bg-viking-brown:hover       { background-color: var(--color-text); }
+.hover\:bg-viking-parchment:hover   { background-color: var(--color-bg); }
+.hover\:bg-viking-bronze\/30:hover  { background-color: color-mix(in srgb, var(--color-primary) 30%, transparent); }
+.hover\:bg-viking-leather\/50:hover { background-color: color-mix(in srgb, var(--color-text-muted) 50%, transparent); }
+
+/* ── Hover: Textes ────────────────────────────────────────────────────────── */
+.hover\:text-viking-danger:hover    { color: var(--color-danger); }
+.hover\:text-viking-parchment:hover { color: var(--color-bg); }
+.hover\:text-viking-bronze:hover    { color: var(--color-primary); }
+.hover\:text-viking-brown:hover     { color: var(--color-text); }
+
+/* ── Hover: Bordures ──────────────────────────────────────────────────────── */
+.hover\:border-viking-bronze:hover  { border-color: var(--color-primary); }
+.hover\:border-viking-leather:hover { border-color: var(--color-text-muted); }
+
+/* ── Group Hover: Backgrounds ────────────────────────────────────────────── */
+.group:hover .group-hover\:bg-viking-bronze    { background-color: var(--color-primary); }
+.group:hover .group-hover\:bg-viking-leather   { background-color: var(--color-text-muted); }
+.group:hover .group-hover\:bg-viking-parchment { background-color: var(--color-bg); }
+
+/* ── Group Hover: Textes ──────────────────────────────────────────────────── */
+.group:hover .group-hover\:text-viking-bronze    { color: var(--color-primary); }
+.group:hover .group-hover\:text-viking-parchment { color: var(--color-bg); }
+.group:hover .group-hover\:text-viking-brown     { color: var(--color-text); }
+.group:hover .group-hover\:text-viking-leather   { color: var(--color-text-muted); }
+
+/* ── Group Hover: Bordures ────────────────────────────────────────────────── */
+.group:hover .group-hover\:border-viking-bronze  { border-color: var(--color-primary); }
+.group:hover .group-hover\:border-viking-leather { border-color: var(--color-text-muted); }
+
+
+/* ── Couleurs supplémentaires ─────────────────────────────────────────────── */
+.bg-viking-iron           { background-color: var(--viking-iron); }
+.bg-viking-leather-dark   { background-color: var(--viking-leather-dark); }
+.bg-viking-bronze-light   { background-color: var(--viking-bronze-light); }
+
+.text-viking-iron         { color: var(--viking-iron); }
+.text-viking-leather-dark { color: var(--viking-leather-dark); }
+.text-viking-bronze-light { color: var(--viking-bronze-light); }
+
+.hover\:bg-viking-iron:hover           { background-color: var(--viking-iron); }
+.hover\:bg-viking-leather-dark:hover   { background-color: var(--viking-leather-dark); }
+.hover\:bg-viking-bronze-light:hover   { background-color: var(--viking-bronze-light); }
+
+/* ── Box shadow ───────────────────────────────────────────────────────────── */
+.shadow-viking-bold {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* ── Typographie ──────────────────────────────────────────────────────────── */
+.font-viking {
+    font-family: 'Eagle Lake', Georgia, serif;
+}
+.font-vikingText {
+    font-family: 'Grenze Gotisch', serif;
 }

@@ -1,6 +1,6 @@
 // components/GMView/GMHeader.jsx - Header GM avec tabs intégrés, menu hamburger et sélecteur de table
 import React, { useState } from 'react';
-import ThemeToggle from '../../ui/ThemeToggle.jsx';
+import ThemeToggle from '../../../../components/ui/ThemeToggle.jsx';
 
 const GM_TABS = [
     { id: 'combat', label: '⚔️ Combat' },

@@ -28,6 +28,7 @@ import TabThreats from "./tabs/TabThreats.jsx";
 import TabMoves from "./tabs/TabMoves.jsx";
 import DiceEntryHistory from "../components/layout/DiceEntryHistory.jsx";
 import DiceHistoryPage from "../../../components/layout/DiceHistoryPage.jsx";
+import BoltFarm from "../components/ui/BoltFarm.jsx";
 
 // ── Onglets GM ────────────────────────────────────────────────────────────────
 
@@ -104,24 +105,28 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
                     boxShadow:    '0 2px 12px rgba(0,0,0,0.5)',
                 }}
             >
+                <div className="text-center ml-3 gap-0 min-w-0 group relative flex flex-col items-center">
 
-                <div className="text-center ml-2 gap-0 min-w-0">
-                    <div className="text-[38px] cp-font-title text-accent tracking-widest cp-neon-glow">
-                        CyberPunk
+                    <div  className="relative logo-chromatic-glitch logo-neon-pulse">
+                        <BoltFarm />
+
+                        <div className="text-[38px] cp-font-title text-accent tracking-widest logo-title-base relative z-10">
+                            CyberPunk
+                        </div>
                     </div>
-                    <div className="mt-0.5 mb-0.5 cp-divider"></div>
-                    {activeSession ? (
-                        <p
-                            className="text-xs cp-font-ui uppercase tracking-widest text-muted"
-                        >
-                            Session : <b>{activeSession.name}</b>
-                        </p>
-                    ) : (
-                        <p className="text-xs cp-font-ui uppercase tracking-widest text-muted">
-                            The Sprawl — édition Ré²
-                        </p>
-                    )}
 
+                    <div className="relative mt-0.5 mb-0.5 cp-divider w-full opacity-70"></div>
+                    <p className="relative text-xs cp-font-ui uppercase tracking-widest text-muted">
+                        {activeSession ? (
+                            <>
+                                Session : <b>{activeSession.name}</b>
+                            </>
+                        ) : (
+                            <>
+                                The Sprawl — édition Ré²
+                            </>
+                        )}
+                    </p>
                 </div>
 
                 <div className="flex items-center gap-2">

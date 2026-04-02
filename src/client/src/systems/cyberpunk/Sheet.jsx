@@ -35,13 +35,14 @@ import { useSession } from '../../context/SessionContext.jsx';
 import {Tag, TagAdder} from "./components/layout/TagManager.jsx";
 import {IdentityCard} from "./components/layout/IdentityCard.jsx";
 import {Card} from "./components/layout/Card.jsx";
-import {CyberwareRow, DirectiveRow, ItemRow, RelationRow} from "./components/layout/Rows.jsx";
+import {CyberwareRow, DirectiveRow, ItemRow, QuickAddItem, RelationRow} from "./components/layout/Rows.jsx";
 import {StatCard} from "./components/layout/StatCard.jsx";
 import {XPPanel} from "./components/modals/XPPanel.jsx";
 import {MoveCard} from "./components/layout/MoveCard.jsx";
 import {ResourceCounter} from "./components/layout/ResourceCounter.jsx";
 import cyberpunkConfig from "./config.jsx";
 import DiceEntryHistory from "./components/layout/DiceEntryHistory.jsx";
+import BoltFarm from "./components/ui/BoltFarm.jsx";
 
 // ── Onglets ───────────────────────────────────────────────────────────────────
 
@@ -51,8 +52,39 @@ const TABS = [
     { id: 'historique', label: '▤ Historique' },
 ];
 
-// ── Sheet ─────────────────────────────────────────────────────────────────────
+const AccessKeyBadge = ({ code }) => {
+    const [isClicking, setIsClicking] = React.useState(false);
 
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(code);
+        setIsClicking(true);
+        setTimeout(() => setIsClicking(false), 200);
+    };
+
+    return (
+        <div
+            onClick={copyToClipboard}
+            className={`
+                group cursor-pointer flex items-center gap-2 px-2 py-1 rounded border
+                font-['CyberConsole'] transition-all duration-300
+                bg-surface/10 border-primary/30 
+                hover:bg-primary/10 hover:border-primary/100 hover:glow-primary-sm
+                active:scale-95
+                ${isClicking ? 'animate-glitch-quick border-accent/100 glow-accent-md' : ''}
+            `}
+        >
+            <span className="text-[9px] uppercase text-primary/40 group-hover:text-accent/100 transition-colors">
+                Access Key
+            </span>
+            <span className="text-xs font-bold tracking-widest text-primary/10 blur-[2px] group-hover:blur-0 group-hover:text-primary/100 group-hover:glow-primary-3xs transition-all duration-500">
+                {code}
+            </span>
+            <div className="w-1.5 h-1.5 rounded-full bg-primary/100 glow-primary-xs animate-pulse group-hover:bg-secondary group-hover:glow-secondary-xs" />
+        </div>
+    );
+};
+
+// ── Sheet ─────────────────────────────────────────────────────────────────────
 const Sheet = ({
                    character,
                    onCharacterUpdate,
@@ -273,18 +305,26 @@ const Sheet = ({
                     boxShadow:    '0 2px 12px rgba(0,0,0,0.4)',
                 }}
             >
-                <div className="text-center ml-2 gap-0 min-w-0">
-                    <div className="text-[38px] cp-font-title text-accent tracking-widest cp-neon-glow">
-                        CyberPunk
+                <div className="text-center ml-3 gap-0 min-w-0 group relative flex flex-col items-center">
+
+                    <div  className="relative logo-chromatic-glitch logo-neon-pulse">
+                        <BoltFarm />
+
+                        <div className="text-[38px] cp-font-title text-accent tracking-widest logo-title-base relative z-10">
+                            CyberPunk
+                        </div>
                     </div>
-                    <div className="mt-0.5 mb-0.5 cp-divider"></div>
-                    <p className="text-xs cp-font-ui uppercase tracking-widest text-muted">
+
+                    <div className="relative mt-0.5 mb-0.5 cp-divider w-full opacity-70"></div>
+                    <p className="relative text-xs cp-font-ui uppercase tracking-widest text-muted">
                         The Sprawl — édition Ré²
                     </p>
                 </div>
 
                 {/* Actions droite */}
                 <div className="flex items-center gap-2">
+                    <AccessKeyBadge code={character.accessCode} />
+
                     <ThemeToggle darkMode={darkMode} onToggle={onToggleDarkMode} />
 
                     {editMode ? (
@@ -353,7 +393,7 @@ const Sheet = ({
                                 >
                                     {/* Créer un personnage */}
                                     <button
-                                        onClick={() => { setShowMenu(false); window.location.href = `/${system}/`; }}
+                                        onClick={() => { setShowMenu(false); window.location.href = `/${system}/creation`; }}
                                         className="w-full text-left px-4 py-3 text-sm hover:bg-surface-alt transition-colors"
                                     >
                                         ✨ Créer un personnage
@@ -598,45 +638,49 @@ const Sheet = ({
                                     </Card>
 
                                     {/* ── INVENTAIRE ───────────────────────────── */}
-                                    <Card title="Inventaire">
+                                    <Card title="Matos">
                                         {(char?.items ?? []).length === 0 && !editMode && (
                                             <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Inventaire vide.</p>
                                         )}
-                                        {(char?.items ?? []).map((item, i) => (
+                                        {(char?.items ?? []).map((item, idx) => (
                                             <ItemRow
-                                                key={item.id ?? i}
-                                                item={item}
+                                                key={item.id ?? `new_${idx}`}
+                                                item={editMode ? (editableChar?.items?.[idx] ?? item) : item}
                                                 editMode={editMode}
                                                 onChange={(updated) => {
-                                                    setEditableChar(prev => ({
-                                                        ...prev,
-                                                        items: prev.items.map(x => x.id === item.id ? { ...x, ...updated } : x),
-                                                    }));
+                                                    const base = editMode ? editableChar : char;
+                                                    const nextItems = base.items.map((x, i) =>
+                                                        (item.id ? x.id === item.id : i === idx)
+                                                            ? { ...x, ...updated }
+                                                            : x
+                                                    );
+                                                    const next = { ...base, items: nextItems };
+                                                    setEditableChar(next);
+                                                    if (!editMode) onCharacterUpdate(next);
                                                 }}
-                                                onRemove={() => setEditableChar(prev => ({
-                                                    ...prev,
-                                                    items: prev.items.filter(x => x.id !== item.id),
-                                                }))}
+                                                onRemove={() => {
+                                                    const base = editMode ? editableChar : char;
+                                                    const nextItems = base.items.filter((x, i) =>
+                                                        item.id ? x.id !== item.id : i !== idx
+                                                    );
+                                                    const next = { ...base, items: nextItems };
+                                                    setEditableChar(next);
+                                                    if (!editMode) onCharacterUpdate(next);
+                                                }}
                                                 onRemoveTag={(tagIdx) => removeTag('item', item.id, tagIdx)}
-                                                onAddTag={(text, variant) => addTag('item', r.id, text, variant)}
+                                                onAddTag={(text, variant) => addTag('item', item.id, text, variant)}
                                             />
                                         ))}
-                                        {editMode && (
-                                            <button
-                                                onClick={() => setEditableChar(prev => ({
-                                                    ...prev,
-                                                    items: [...(prev.items ?? []), { name: '', description: '', quantity: 1, tags: [] }],
-                                                }))}
-                                                className="text-sm py-1.5 w-full rounded-lg"
-                                                style={{
-                                                    color:      'var(--color-primary)',
-                                                    background: 'var(--color-surface-alt)',
-                                                    border:     '1px dashed var(--color-border)',
-                                                }}
-                                            >
-                                                + Ajouter un objet
-                                            </button>
-                                        )}
+
+                                        {/* Bouton ajout — toujours visible */}
+                                        <QuickAddItem
+                                            onAdd={(newItem) => {
+                                                const base = editMode ? editableChar : char;
+                                                const next = { ...base, items: [...(base.items ?? []), newItem] };
+                                                setEditableChar(next);
+                                                if (!editMode) onCharacterUpdate(next);
+                                            }}
+                                        />
                                     </Card>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
@@ -683,9 +727,9 @@ const Sheet = ({
 
                                         {/* Mission */}
                                         <div className="flex flex-col gap-2">
-                                    <span className="text-xs cp-font-ui uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>
-                                        De Mission
-                                    </span>
+                                            <span className="text-xs cp-font-ui uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>
+                                                De Mission
+                                            </span>
                                             {(char?.directives ?? [])
                                                 .filter(d => d.type === 'mission')
                                                 .map((d, i) => (

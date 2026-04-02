@@ -17,9 +17,7 @@ const TableManagementModal = ({ isOpen, onClose, onSelectTable, activeSessionId 
     const fetchWithAuth = useFetch();
 
     useEffect(() => {
-        if (isOpen) {
-            loadSessions();
-        }
+        if (isOpen) loadSessions();
     }, [isOpen]);
 
     const loadSessions = async () => {
@@ -41,7 +39,6 @@ const TableManagementModal = ({ isOpen, onClose, onSelectTable, activeSessionId 
                 method: 'POST',
                 body: JSON.stringify(sessionData)
             });
-
             if (response.ok) {
                 await loadSessions();
                 setShowCreateModal(false);
@@ -58,7 +55,6 @@ const TableManagementModal = ({ isOpen, onClose, onSelectTable, activeSessionId 
                 method: 'PUT',
                 body: JSON.stringify(sessionData)
             });
-
             if (response.ok) {
                 await loadSessions();
                 setShowEditModal(false);
@@ -72,14 +68,11 @@ const TableManagementModal = ({ isOpen, onClose, onSelectTable, activeSessionId 
 
     const handleDeleteSession = async (sessionId) => {
         if (!confirm('Êtes-vous sûr de vouloir supprimer cette table ?')) return;
-
         try {
             const response = await fetchWithAuth(`/api/sessions/${sessionId}`, {
                 method: 'DELETE'
             });
-
             if (response.ok) {
-                // Si c'était la table active, la désélectionner
                 if (sessionId === activeSessionId) {
                     localStorage.removeItem('activeSessionId');
                     onSelectTable(null);
@@ -101,16 +94,17 @@ const TableManagementModal = ({ isOpen, onClose, onSelectTable, activeSessionId 
     return (
         <>
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                <div className="bg-white dark:bg-viking-brown rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col border-4 border-viking-bronze">
+                <div className="bg-surface rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col border-4 border-default">
+
                     {/* Header */}
-                    <div className="p-4 border-b-2 border-viking-bronze flex-shrink-0">
+                    <div className="p-4 border-b-2 border-default flex-shrink-0">
                         <div className="flex justify-between items-center">
-                            <h2 className="text-2xl font-bold text-viking-brown dark:text-viking-parchment">
+                            <h2 className="text-2xl font-bold text-default">
                                 📋 Gestion des tables
                             </h2>
                             <button
                                 onClick={onClose}
-                                className="text-2xl text-viking-leather dark:text-viking-bronze hover:text-viking-danger"
+                                className="text-2xl text-muted hover:text-danger"
                             >
                                 ✕
                             </button>
@@ -119,6 +113,7 @@ const TableManagementModal = ({ isOpen, onClose, onSelectTable, activeSessionId 
 
                     {/* Content */}
                     <div className="p-4 overflow-y-auto flex-1">
+
                         {/* Recherche + Créer */}
                         <div className="mb-4 space-y-3">
                             <input
@@ -126,12 +121,11 @@ const TableManagementModal = ({ isOpen, onClose, onSelectTable, activeSessionId 
                                 placeholder="🔍 Rechercher une table..."
                                 value={filter}
                                 onChange={(e) => setFilter(e.target.value)}
-                                className="w-full px-4 py-2 border-2 border-viking-leather dark:border-viking-bronze rounded-lg bg-white dark:bg-gray-800 text-viking-text dark:text-viking-parchment"
+                                className="w-full px-4 py-2 border-2 border-default rounded-lg bg-surface text-default"
                             />
-
                             <button
                                 onClick={() => setShowCreateModal(true)}
-                                className="w-full px-4 py-3 bg-viking-bronze text-viking-brown rounded-lg font-semibold hover:bg-viking-leather"
+                                className="w-full px-4 py-3 bg-primary text-bg rounded-lg font-semibold hover:opacity-90"
                             >
                                 ✨ Créer une nouvelle table
                             </button>
@@ -139,46 +133,43 @@ const TableManagementModal = ({ isOpen, onClose, onSelectTable, activeSessionId 
 
                         {/* Liste des tables */}
                         {loading ? (
-                            <div className="text-center py-8 text-viking-leather dark:text-viking-bronze">
+                            <div className="text-center py-8 text-muted">
                                 Chargement...
                             </div>
                         ) : filteredSessions.length === 0 ? (
-                            <div className="text-center py-8 text-viking-leather dark:text-viking-bronze">
+                            <div className="text-center py-8 text-muted">
                                 {filter ? 'Aucune table trouvée' : 'Aucune table créée'}
                             </div>
                         ) : (
                             <div className="space-y-2">
                                 {filteredSessions.map(session => {
                                     const isActive = session.id === activeSessionId;
-
                                     return (
                                         <div
                                             key={session.id}
                                             className={`p-4 rounded-lg border-2 ${
                                                 isActive
-                                                    ? 'bg-viking-bronze/20 border-viking-bronze'
-                                                    : 'bg-viking-parchment dark:bg-gray-800 border-viking-leather dark:border-viking-bronze'
+                                                    ? 'bg-primary/20 border-primary'
+                                                    : 'bg-surface-alt border-default'
                                             }`}
                                         >
                                             <div className="flex justify-between items-start">
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-2 mb-1">
-                                                        <div className="text-lg font-bold text-viking-brown dark:text-viking-parchment">
+                                                        <div className="text-lg font-bold text-default">
                                                             {session.name}
                                                         </div>
                                                         {isActive && (
-                                                            <span className="px-2 py-0.5 bg-viking-bronze text-viking-brown text-xs font-bold rounded">
+                                                            <span className="px-2 py-0.5 bg-primary text-bg text-xs font-bold rounded">
                                                                 ACTIVE
                                                             </span>
                                                         )}
                                                     </div>
-
-                                                    <div className="text-sm text-viking-leather dark:text-viking-bronze">
+                                                    <div className="text-sm text-muted">
                                                         {session.characterCount} personnage{session.characterCount > 1 ? 's' : ''}
                                                     </div>
-
                                                     {session.notes && (
-                                                        <div className="text-xs text-viking-leather dark:text-viking-bronze mt-1 italic">
+                                                        <div className="text-xs text-muted mt-1 italic">
                                                             {session.notes}
                                                         </div>
                                                     )}
@@ -187,33 +178,24 @@ const TableManagementModal = ({ isOpen, onClose, onSelectTable, activeSessionId 
                                                 <div className="flex gap-2">
                                                     {!isActive && (
                                                         <button
-                                                            onClick={() => {
-                                                                onSelectTable(session);
-                                                                onClose();
-                                                            }}
+                                                            onClick={() => { onSelectTable(session); onClose(); }}
                                                             className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
                                                         >
                                                             ✓ Activer
                                                         </button>
                                                     )}
-
                                                     <button
                                                         onClick={() => setShowCharactersModal(session)}
                                                         className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
                                                     >
                                                         👥 Persos
                                                     </button>
-
                                                     <button
-                                                        onClick={() => {
-                                                            setEditingSession(session);
-                                                            setShowEditModal(true);
-                                                        }}
+                                                        onClick={() => { setEditingSession(session); setShowEditModal(true); }}
                                                         className="px-3 py-1 bg-orange-600 text-white rounded text-sm hover:bg-orange-700"
                                                     >
                                                         ✏️
                                                     </button>
-
                                                     <button
                                                         onClick={() => handleDeleteSession(session.id)}
                                                         className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
@@ -231,31 +213,27 @@ const TableManagementModal = ({ isOpen, onClose, onSelectTable, activeSessionId 
                 </div>
             </div>
 
-            {/* Modale de création */}
             {showCreateModal && (
                 <SessionFormModal
                     isOpen={showCreateModal}
                     onClose={() => setShowCreateModal(false)}
                     onSubmit={handleCreateSession}
+                    onAlert={setAlertMessage}
                     title="Créer une nouvelle table"
                 />
             )}
 
-            {/* Modale d'édition */}
             {showEditModal && editingSession && (
                 <SessionFormModal
                     isOpen={showEditModal}
-                    onClose={() => {
-                        setShowEditModal(false);
-                        setEditingSession(null);
-                    }}
+                    onClose={() => { setShowEditModal(false); setEditingSession(null); }}
                     onSubmit={(data) => handleUpdateSession(editingSession.id, data)}
+                    onAlert={setAlertMessage}
                     initialData={editingSession}
                     title="Modifier la table"
                 />
             )}
 
-            {/* Modale persos */}
             {showCharactersModal && (
                 <TableCharactersModal
                     isOpen={!!showCharactersModal}
@@ -276,7 +254,7 @@ const TableManagementModal = ({ isOpen, onClose, onSelectTable, activeSessionId 
 };
 
 // Modale de formulaire création/édition
-const SessionFormModal = ({ isOpen, onClose, onSubmit, initialData = null, title }) => {
+const SessionFormModal = ({ isOpen, onClose, onSubmit, initialData = null, title, onAlert }) => {
     const [formData, setFormData] = useState({
         name: initialData?.name || '',
         notes: initialData?.notes || ''
@@ -287,7 +265,7 @@ const SessionFormModal = ({ isOpen, onClose, onSubmit, initialData = null, title
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!formData.name.trim()) {
-            setAlertMessage('Le nom de la table est requis');
+            onAlert('Le nom de la table est requis');
             return;
         }
         onSubmit(formData);
@@ -295,38 +273,35 @@ const SessionFormModal = ({ isOpen, onClose, onSubmit, initialData = null, title
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
-            <div className="bg-white dark:bg-viking-brown rounded-lg shadow-2xl max-w-md w-full mx-4 border-4 border-viking-bronze p-6">
-                <h3 className="text-2xl font-bold text-viking-brown dark:text-viking-parchment mb-4">
+            <div className="bg-surface rounded-lg shadow-2xl max-w-md w-full mx-4 border-4 border-default p-6">
+                <h3 className="text-2xl font-bold text-default mb-4">
                     {title}
                 </h3>
-
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-semibold text-viking-brown dark:text-viking-parchment mb-1">
+                        <label className="block text-sm font-semibold text-default mb-1">
                             Nom de la table *
                         </label>
                         <input
                             type="text"
                             value={formData.name}
-                            onChange={(e) => setFormData({...formData, name: e.target.value})}
-                            className="w-full px-3 py-2 border-2 border-viking-leather dark:border-viking-bronze rounded bg-white dark:bg-gray-800 text-viking-text dark:text-viking-parchment"
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            className="w-full px-3 py-2 border-2 border-default rounded bg-surface text-default"
                             placeholder="Campagne principale"
                         />
                     </div>
-
                     <div>
-                        <label className="block text-sm font-semibold text-viking-brown dark:text-viking-parchment mb-1">
+                        <label className="block text-sm font-semibold text-default mb-1">
                             Notes (optionnel)
                         </label>
                         <textarea
                             value={formData.notes}
-                            onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                            className="w-full px-3 py-2 border-2 border-viking-leather dark:border-viking-bronze rounded bg-white dark:bg-gray-800 text-viking-text dark:text-viking-parchment"
+                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                            className="w-full px-3 py-2 border-2 border-default rounded bg-surface text-default"
                             rows="3"
                             placeholder="Session hebdomadaire du mercredi..."
                         />
                     </div>
-
                     <div className="flex gap-3">
                         <button
                             type="button"
@@ -337,7 +312,7 @@ const SessionFormModal = ({ isOpen, onClose, onSubmit, initialData = null, title
                         </button>
                         <button
                             type="submit"
-                            className="flex-1 px-4 py-2 bg-viking-bronze text-viking-brown rounded-lg font-semibold hover:bg-viking-leather"
+                            className="flex-1 px-4 py-2 bg-primary text-bg rounded-lg font-semibold hover:opacity-90"
                         >
                             {initialData ? 'Modifier' : 'Créer'}
                         </button>

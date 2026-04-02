@@ -9,8 +9,8 @@ import {
     formatExplosion, getBestCharacteristic, getExplosionThreshold
 } from '../../../../tools/utils.js';
 import { CARACNAMES, TRAITS } from '../../../../tools/data.js';
-import TokenRow from "../../../../components/gm/pj/TokenRow.jsx";
-import CollapsibleSection from "../../../../components/gm/pj/CollapsibleSection.jsx";
+import TokenRow from "../layout/TokenRow.jsx";
+import CollapsibleSection from "../layout/CollapsibleSection.jsx";
 
 // --- Composant principal ---
 const GMCharacterCard = ({ character, isOnline, onUpdateTokens, onSendMessage, onSendItem }) => {

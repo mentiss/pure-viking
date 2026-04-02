@@ -11,19 +11,6 @@ import RichTextEditor, { stripHtml } from '../shared/RichTextEditor.jsx';
 import useImageLightbox from "../../hooks/useImageLightbox.js";
 import ImageLightbox from "../ui/ImageLightbox.jsx";
 
-// ── Styles inline partagés ────────────────────────────────────────────────────
-const S = {
-    surface:     { background: 'var(--color-surface)',     color: 'var(--color-text)' },
-    surfaceAlt:  { background: 'var(--color-surface-alt)', color: 'var(--color-text)' },
-    border:      { borderColor: 'var(--color-border)' },
-    text:        { color: 'var(--color-text)' },
-    textMuted:   { color: 'var(--color-text-muted)' },
-    primary:     { background: 'var(--color-primary)',     color: 'var(--color-bg)' },
-    success:     { background: 'var(--color-success)',     color: '#fff' },
-    danger:      { color: 'var(--color-danger)' },
-    bg:          { background: 'var(--color-bg)' },
-};
-
 const JournalTab = ({ characterId }) => {
     const [entries,       setEntries]       = useState([]);
     const [selectedEntry, setSelectedEntry] = useState(null);
@@ -228,22 +215,15 @@ const JournalTab = ({ characterId }) => {
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
                             placeholder="Rechercher dans le journal..."
-                            className="w-full pl-8 pr-3 py-2 text-sm border-2 rounded-lg outline-none"
-                            style={{
-                                ...S.bg,
-                                ...S.text,
-                                borderColor: 'var(--color-border)',
-                            }}
+                            className="w-full pl-8 pr-3 py-2 text-sm border-2 rounded-lg outline-none bg-default text-default border-default"
                         />
-                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm"
-                              style={S.textMuted}>🔍</span>
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-muted">🔍</span>
                     </div>
 
                     {/* Toggle filtres */}
                     <button
                         onClick={() => setShowFilters(!showFilters)}
-                        className="px-3 py-2 rounded-lg text-sm font-semibold transition-opacity"
-                        style={showFilters || hasActiveFilters ? S.primary : { ...S.bg, ...S.textMuted, border: '1px solid var(--color-border)' }}
+                        className={`px-3 py-2 rounded-lg text-sm font-semibold border text-muted transition-colors ${hasActiveFilters ? 'bg-default border-secondary' : 'bg-surface border-default'} hover:text-default hover:bg-surface-alt hover:border-accent`}
                         title="Filtres avancés"
                     >
                         🔍 {hasActiveFilters ? '●' : ''}
@@ -252,8 +232,7 @@ const JournalTab = ({ characterId }) => {
                     {/* Créer */}
                     <button
                         onClick={createNote}
-                        className="px-4 py-2 rounded-lg text-sm font-semibold shrink-0 transition-opacity hover:opacity-85"
-                        style={S.success}
+                        className="px-4 py-2 rounded-lg text-sm font-semibold shrink-0 border border-default text-muted transition-colors bg-surface hover:text-default hover:bg-surface-alt hover:border-accent"
                     >
                         ✏️ Nouvelle note
                     </button>
@@ -262,8 +241,7 @@ const JournalTab = ({ characterId }) => {
                 {/* Filtres avancés */}
                 {showFilters && (
                     <div
-                        className="flex flex-wrap gap-3 items-center rounded-lg border p-3"
-                        style={{ ...S.surface, borderColor: 'var(--color-border)' }}
+                        className="flex flex-wrap gap-3 items-center rounded-lg border p-3 bg-surface border-default"
                     >
                         {/* Filtre session */}
                         <div className="flex gap-1">
@@ -275,8 +253,7 @@ const JournalTab = ({ characterId }) => {
                                 <button
                                     key={opt.value}
                                     onClick={() => setSessionFilter(opt.value)}
-                                    className="px-2.5 py-1 rounded text-xs font-semibold transition-opacity"
-                                    style={sessionFilter === opt.value ? S.primary : { ...S.surfaceAlt, ...S.textMuted }}
+                                    className={`px-2.5 py-1 rounded text-xs font-semibold transition-opacity ${sessionFilter === opt.value ? 'text-default bg-primary' : 'bg-surface-alt text-muted border border-transparent hover:border-accent hover:bg-surface'}`}
                                 >
                                     {opt.label}
                                 </button>
@@ -284,30 +261,27 @@ const JournalTab = ({ characterId }) => {
                         </div>
 
                         {/* Filtre date */}
-                        <div className="flex items-center gap-1.5 text-xs" style={S.textMuted}>
+                        <div className="flex items-center gap-1.5 text-xs text-muted">
                             <span>Du</span>
                             <input
                                 type="date"
                                 value={dateFrom}
                                 onChange={e => setDateFrom(e.target.value)}
-                                className="px-2 py-1 rounded border text-xs"
-                                style={{ ...S.bg, ...S.text, borderColor: 'var(--color-border)' }}
+                                className="px-2 py-1 rounded border text-xs border-default text-default bg-default"
                             />
                             <span>au</span>
                             <input
                                 type="date"
                                 value={dateTo}
                                 onChange={e => setDateTo(e.target.value)}
-                                className="px-2 py-1 rounded border text-xs"
-                                style={{ ...S.bg, ...S.text, borderColor: 'var(--color-border)' }}
+                                className="px-2 py-1 rounded border text-xs border-default text-default bg-default"
                             />
                         </div>
 
                         {hasActiveFilters && (
                             <button
                                 onClick={clearFilters}
-                                className="px-2.5 py-1 text-xs font-semibold rounded transition-opacity hover:opacity-75"
-                                style={S.danger}
+                                className="px-2.5 py-1 text-xs font-semibold rounded transition-opacity hover:opacity-75 text-danger"
                             >
                                 ✕ Réinitialiser
                             </button>
@@ -321,7 +295,7 @@ const JournalTab = ({ characterId }) => {
                 <div className="flex-1 flex items-center justify-center">
                     <div className="text-center">
                         <div className="text-2xl animate-pulse mb-2">⏳</div>
-                        <p style={S.textMuted}>Chargement du journal...</p>
+                        <p className="text-muted">Chargement du journal...</p>
                     </div>
                 </div>
             )}
@@ -331,14 +305,13 @@ const JournalTab = ({ characterId }) => {
                 <div className="flex-1 flex items-center justify-center">
                     <div className="text-center">
                         <div className="text-4xl mb-4">📓</div>
-                        <h3 className="text-xl font-bold mb-2" style={S.text}>Journal vide</h3>
-                        <p className="mb-4" style={S.textMuted}>
+                        <h3 className="text-xl font-bold mb-2 text-default">Journal vide</h3>
+                        <p className="mb-4 text-muted">
                             Créez votre première note pour garder une trace de vos aventures.
                         </p>
                         <button
                             onClick={createNote}
-                            className="px-6 py-2 rounded-lg font-semibold transition-opacity hover:opacity-85"
-                            style={S.primary}
+                            className="px-6 py-2 rounded-lg font-semibold transition-opacity hover:opacity-85 text-primary"
                         >
                             ✏️ Créer une note
                         </button>
@@ -354,14 +327,12 @@ const JournalTab = ({ characterId }) => {
                     <div
                         className={`shrink-0 flex flex-col rounded-lg border-2 overflow-hidden transition-all ${
                             listCollapsed ? 'w-10' : 'w-72'
-                        }`}
-                        style={{ ...S.surface, borderColor: 'var(--color-primary)' }}
+                        } border-primary bg-surface`}
                     >
                         {/* Bouton collapse */}
                         <button
                             onClick={() => setListCollapsed(!listCollapsed)}
-                            className="shrink-0 px-2 py-2 border-b text-sm transition-opacity hover:opacity-75 flex items-center gap-2"
-                            style={{ ...S.surfaceAlt, ...S.textMuted, borderColor: 'var(--color-border)' }}
+                            className="shrink-0 px-2 py-2 border-b text-sm transition-opacity hover:opacity-75 flex items-center gap-2 bg-surface-alt text-muted border-default"
                             title={listCollapsed ? 'Afficher la liste' : 'Masquer la liste'}
                         >
                             {listCollapsed ? (
@@ -382,9 +353,9 @@ const JournalTab = ({ characterId }) => {
                         </button>
 
                         {!listCollapsed && (
-                            <div className="flex-1 overflow-y-auto divide-y" style={{ borderColor: 'var(--color-border)' }}>
+                            <div className="flex-1 overflow-y-auto divide-y border-default">
                                 {filteredEntries.length === 0 ? (
-                                    <div className="p-4 text-center text-xs" style={S.textMuted}>
+                                    <div className="p-4 text-center text-xs text-muted">
                                         Aucune note ne correspond aux filtres.
                                     </div>
                                 ) : (
@@ -394,7 +365,7 @@ const JournalTab = ({ characterId }) => {
                                             <button
                                                 key={entry.id}
                                                 onClick={() => selectEntry(entry)}
-                                                className="w-full text-left px-3 py-2.5 transition-opacity border-l-4"
+                                                className={`w-full text-left px-3 py-2.5 transition-opacity border-l-4`}
                                                 style={{
                                                     background: isSelected
                                                         ? 'color-mix(in srgb, var(--color-primary) 15%, transparent)'
@@ -404,20 +375,19 @@ const JournalTab = ({ characterId }) => {
                                                         : 'transparent',
                                                 }}
                                             >
-                                                <div className="font-semibold text-sm truncate" style={S.text}>
+                                                <div className="font-semibold text-sm truncate text-default">
                                                     {entry.type === 'gm_message' ? '📨 ' : ''}
                                                     {entry.title || 'Sans titre'}
                                                 </div>
                                                 <div className="flex items-center gap-1.5 mt-0.5">
-                                                    <span className="text-[10px]" style={S.textMuted}>
+                                                    <span className="text-[10px] text-muted">
                                                         {formatDateShort(entry.updatedAt)}
                                                     </span>
                                                     {entry.sessionName && (
                                                         <span
-                                                            className="text-[10px] px-1 rounded truncate max-w-[100px]"
+                                                            className="text-[10px] px-1 rounded truncate max-w-[100px] text-primary"
                                                             style={{
                                                                 background: 'color-mix(in srgb, var(--color-primary) 20%, transparent)',
-                                                                color: 'var(--color-primary)',
                                                             }}
                                                         >
                                                             {entry.sessionName}
@@ -425,7 +395,7 @@ const JournalTab = ({ characterId }) => {
                                                     )}
                                                 </div>
                                                 {entry.body && (
-                                                    <div className="text-[11px] mt-1 line-clamp-2" style={{ color: 'var(--color-text-muted)' }}>
+                                                    <div className="text-[11px] mt-1 line-clamp-2 text-muted">
                                                         {stripHtml(entry.body).substring(0, 60)}{entry.body.length > 60 ? '...' : ''}
                                                     </div>
                                                 )}
@@ -441,13 +411,11 @@ const JournalTab = ({ characterId }) => {
                     <div className="flex-1 min-w-0">
                         {selectedEntry ? (
                             <div
-                                className="h-full flex flex-col rounded-lg border-2"
-                                style={{ ...S.surface, borderColor: 'var(--color-primary)' }}
+                                className="h-full flex flex-col rounded-lg border-2 bg-surface border-primary"
                             >
                                 {/* Header */}
                                 <div
-                                    className="shrink-0 p-4 border-b"
-                                    style={{ borderColor: 'var(--color-border)' }}
+                                    className="shrink-0 p-4 border-b border-default"
                                 >
                                     {selectedEntry.type === 'note' ? (
                                         <input
@@ -456,20 +424,16 @@ const JournalTab = ({ characterId }) => {
                                             value={selectedEntry.title || ''}
                                             onChange={e => handleFieldChange('title', e.target.value)}
                                             placeholder="Titre de la note..."
-                                            className="w-full text-xl font-bold px-0 py-1 bg-transparent border-0 border-b-2 border-transparent outline-none transition-colors"
-                                            style={{
-                                                color: 'var(--color-text)',
-                                                borderBottomColor: 'transparent',
-                                            }}
+                                            className="w-full text-xl font-bold px-0 py-1 bg-transparent border-0 border-b-2 border-transparent outline-none transition-colors text-default border-b-transparent"
                                             onFocus={e => { e.target.style.borderBottomColor = 'var(--color-primary)'; }}
                                             onBlur={e => { e.target.style.borderBottomColor = 'transparent'; flushPendingSave(); }}
                                         />
                                     ) : (
-                                        <div className="text-xl font-bold py-1 flex items-center gap-2" style={S.text}>
+                                        <div className="text-xl font-bold py-1 flex items-center gap-2 text-default">
                                             📨 {selectedEntry.title || 'Message du MJ'}
                                         </div>
                                     )}
-                                    <div className="flex items-center gap-3 mt-2 text-xs" style={S.textMuted}>
+                                    <div className="flex items-center gap-3 mt-2 text-xs text-muted">
                                         <span>
                                             {selectedEntry.sessionName
                                                 ? `📜 ${selectedEntry.sessionName}`
@@ -477,10 +441,9 @@ const JournalTab = ({ characterId }) => {
                                         </span>
                                         {selectedEntry.type === 'gm_message' && (
                                             <span
-                                                className="px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                                                className="px-1.5 py-0.5 rounded text-[10px] font-semibold text-primary"
                                                 style={{
                                                     background: 'color-mix(in srgb, var(--color-primary) 20%, transparent)',
-                                                    color: 'var(--color-primary)',
                                                 }}
                                             >
                                                 Message du MJ
@@ -508,11 +471,7 @@ const JournalTab = ({ characterId }) => {
                                             editable={true}
                                             onImageDoubleClick={openLightbox}
                                             placeholder="Écrivez vos notes ici..."
-                                            className="w-full h-full border-2 rounded-lg transition-colors"
-                                            style={{
-                                                borderColor: 'var(--color-border)',
-                                                background: 'var(--color-bg)',
-                                            }}
+                                            className="w-full h-full border-2 rounded-lg transition-colors border-default bg-default"
                                         />
                                     ) : (
                                         /* ── Message GM (lecture + image éventuelle) ── */
@@ -521,28 +480,20 @@ const JournalTab = ({ characterId }) => {
                                                 content={selectedEntry.body || ''}
                                                 editable={false}
                                                 onImageDoubleClick={openLightbox}
-                                                className="flex-1 min-h-0 border-2 rounded-lg"
-                                                style={{
-                                                    borderColor: 'var(--color-border)',
-                                                    background: 'var(--color-bg)',
-                                                    opacity: 0.9,
-                                                }}
+                                                className="flex-1 min-h-0 border-2 rounded-lg border-default bg-default opacity-0.9"
                                             />
                                             {selectedEntry.metadata?.imageUrl && (
                                                 <div
-                                                    className="shrink-0 overflow-y-auto rounded-lg border-2 p-2"
+                                                    className="shrink-0 overflow-y-auto rounded-lg border-2 p-2 border-default bg-default"
                                                     style={{
                                                         maxHeight: '220px',
-                                                        borderColor: 'var(--color-border)',
-                                                        background: 'var(--color-bg)',
                                                     }}
                                                 >
                                                     <img
                                                         src={selectedEntry.metadata.imageUrl}
                                                         alt=""
-                                                        className="max-w-full rounded-lg border-2"
+                                                        className="max-w-full rounded-lg border-2 border-primary"
                                                         style={{
-                                                            borderColor: 'var(--color-primary)',
                                                             cursor: 'zoom-in',
                                                         }}
                                                         onDoubleClick={() => openLightbox(selectedEntry.metadata.imageUrl)}
@@ -555,13 +506,11 @@ const JournalTab = ({ characterId }) => {
 
                                 {/* Footer */}
                                 <div
-                                    className="shrink-0 px-4 py-3 border-t flex justify-end"
-                                    style={{ borderColor: 'var(--color-border)' }}
+                                    className="shrink-0 px-4 py-3 border-t flex justify-end border-default"
                                 >
                                     <button
                                         onClick={() => setDeleteTarget(selectedEntry)}
-                                        className="px-4 py-1.5 text-sm rounded font-semibold transition-opacity hover:opacity-75"
-                                        style={S.danger}
+                                        className="px-4 py-1.5 text-sm rounded font-semibold transition-opacity hover:opacity-75 text-danger"
                                     >
                                         🗑️ Supprimer
                                     </button>
@@ -569,12 +518,11 @@ const JournalTab = ({ characterId }) => {
                             </div>
                         ) : (
                             <div
-                                className="h-full flex items-center justify-center rounded-lg border-2"
-                                style={{ ...S.surface, borderColor: 'var(--color-primary)' }}
+                                className="h-full flex items-center justify-center rounded-lg border-2 text-surface border-primary"
                             >
                                 <div className="text-center">
                                     <div className="text-3xl mb-2 opacity-30">📝</div>
-                                    <p className="text-sm" style={S.textMuted}>
+                                    <p className="text-sm text-muted">
                                         Sélectionnez une note ou créez-en une nouvelle
                                     </p>
                                 </div>

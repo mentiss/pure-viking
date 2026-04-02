@@ -28,23 +28,19 @@ const TableCharactersModal = ({ isOpen, onClose, session, onSessionUpdated }) =>
     const loadData = async () => {
         setLoading(true);
         try {
-            // Session + ses persos
             const sessionResponse = await fetchWithAuth(`/api/sessions/${session.id}`);
             const sessionFull = await sessionResponse.json();
             setSessionData(sessionFull);
 
-            // Tous les personnages du système
             const charsResponse = await fetchWithAuth('/api/characters');
             const chars = await charsResponse.json();
 
-            // ✅ Défense contra réponse non-array (erreur API, 403, 500…)
             if (!Array.isArray(chars)) {
                 console.error('[TableCharactersModal] /api/characters n\'a pas retourné un tableau :', chars);
                 setAllCharacters([]);
                 return;
             }
 
-            // Filtrer le compte GM (id = -1)
             setAllCharacters(chars.filter(c => c.id !== -1));
         } catch (error) {
             console.error('[TableCharactersModal] Error loading data:', error);
@@ -95,28 +91,28 @@ const TableCharactersModal = ({ isOpen, onClose, session, onSessionUpdated }) =>
 
     if (!isOpen) return null;
 
-    const assignedIds      = sessionData?.characters?.map(c => c.id) || [];
-    const availableChars   = allCharacters.filter(c => !assignedIds.includes(c.id));
+    const assignedIds    = sessionData?.characters?.map(c => c.id) || [];
+    const availableChars = allCharacters.filter(c => !assignedIds.includes(c.id));
 
     return (
         <>
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
-                <div className="bg-white dark:bg-viking-brown rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col border-4 border-viking-bronze">
+                <div className="bg-surface rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col border-4 border-default">
 
                     {/* En-tête */}
-                    <div className="p-4 border-b-2 border-viking-bronze flex-shrink-0">
+                    <div className="p-4 border-b-2 border-default flex-shrink-0">
                         <div className="flex justify-between items-center">
                             <div>
-                                <h2 className="text-2xl font-bold text-viking-brown dark:text-viking-parchment">
+                                <h2 className="text-2xl font-bold text-default">
                                     👥 Personnages de la table
                                 </h2>
-                                <p className="text-sm text-viking-leather dark:text-viking-bronze">
+                                <p className="text-sm text-muted">
                                     {session.name}
                                 </p>
                             </div>
                             <button
                                 onClick={onClose}
-                                className="text-2xl text-viking-leather dark:text-viking-bronze hover:text-viking-danger"
+                                className="text-2xl text-muted hover:text-danger"
                             >
                                 ✕
                             </button>
@@ -126,22 +122,20 @@ const TableCharactersModal = ({ isOpen, onClose, session, onSessionUpdated }) =>
                     {/* Contenu */}
                     <div className="p-4 overflow-y-auto flex-1">
                         {loading ? (
-                            <div className="text-center py-8 text-viking-leather dark:text-viking-bronze">
+                            <div className="text-center py-8 text-muted">
                                 Chargement...
                             </div>
                         ) : (
                             <>
-                                {/* Bouton ajouter */}
                                 <button
                                     onClick={() => setShowAddModal(true)}
-                                    className="w-full mb-4 px-4 py-3 bg-viking-bronze text-viking-brown rounded-lg font-semibold hover:bg-viking-leather"
+                                    className="w-full mb-4 px-4 py-3 bg-primary text-bg rounded-lg font-semibold hover:opacity-90"
                                 >
                                     ➕ Ajouter un personnage
                                 </button>
 
-                                {/* Liste des persos assignés */}
                                 {!sessionData?.characters?.length ? (
-                                    <div className="text-center py-8 text-viking-leather dark:text-viking-bronze">
+                                    <div className="text-center py-8 text-muted">
                                         Aucun personnage dans cette table
                                     </div>
                                 ) : (
@@ -160,10 +154,10 @@ const TableCharactersModal = ({ isOpen, onClose, session, onSessionUpdated }) =>
                     </div>
 
                     {/* Pied */}
-                    <div className="p-4 border-t-2 border-viking-bronze bg-viking-parchment/30 dark:bg-gray-800/30 flex-shrink-0">
+                    <div className="p-4 border-t-2 border-default bg-surface-alt flex-shrink-0">
                         <button
                             onClick={onClose}
-                            className="w-full px-4 py-2 bg-viking-leather text-viking-parchment rounded-lg font-semibold hover:bg-viking-brown"
+                            className="w-full px-4 py-2 bg-primary text-bg rounded-lg font-semibold hover:opacity-90"
                         >
                             Fermer
                         </button>
@@ -171,7 +165,6 @@ const TableCharactersModal = ({ isOpen, onClose, session, onSessionUpdated }) =>
                 </div>
             </div>
 
-            {/* Modale d'ajout */}
             {showAddModal && (
                 <AddCharacterModal
                     onClose={() => setShowAddModal(false)}
@@ -180,7 +173,6 @@ const TableCharactersModal = ({ isOpen, onClose, session, onSessionUpdated }) =>
                 />
             )}
 
-            {/* Alerte */}
             {alertMessage && (
                 <AlertModal
                     message={alertMessage}
@@ -193,40 +185,33 @@ const TableCharactersModal = ({ isOpen, onClose, session, onSessionUpdated }) =>
 
 // ─── Ligne d'un personnage assigné ───────────────────────────────────────────
 
-/**
- * Normalise le nom d'affichage d'un personnage multi-slug.
- * Les slugs retournent `nom` (Dune), `name` (Viking), ou `prenom` selon leur controller.
- */
 function getDisplayName(char) {
     return char.nom || char.name || char.playerName || '—';
 }
 
 const CharacterRow = ({ char, onRemove }) => (
-    <div className="flex items-center gap-3 p-3 bg-viking-parchment dark:bg-gray-800 rounded-lg border-2 border-viking-leather dark:border-viking-bronze">
-        {/* Avatar */}
+    <div className="flex items-center gap-3 p-3 bg-surface-alt rounded-lg border-2 border-default">
         {char.avatar ? (
             <img
                 src={char.avatar}
                 alt={getDisplayName(char)}
-                className="w-12 h-12 rounded-full border-2 border-viking-bronze flex-shrink-0 object-cover"
+                className="w-12 h-12 rounded-full border-2 border-default flex-shrink-0 object-cover"
             />
         ) : (
-            <div className="w-12 h-12 rounded-full border-2 border-dashed border-viking-leather dark:border-viking-bronze bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 rounded-full border-2 border-dashed border-default bg-surface flex items-center justify-center flex-shrink-0">
                 <span className="text-xl">👤</span>
             </div>
         )}
 
-        {/* Infos */}
         <div className="flex-1 min-w-0">
-            <div className="font-bold text-viking-brown dark:text-viking-parchment truncate">
+            <div className="font-bold text-default truncate">
                 {getDisplayName(char)}
             </div>
-            <div className="text-sm text-viking-leather dark:text-viking-bronze">
+            <div className="text-sm text-muted">
                 Joueur : {char.playerName}
             </div>
         </div>
 
-        {/* Retirer */}
         <button
             onClick={onRemove}
             className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 flex-shrink-0 text-sm"
@@ -240,11 +225,9 @@ const CharacterRow = ({ char, onRemove }) => (
 
 const AddCharacterModal = ({ onClose, availableCharacters, onAddCharacter }) => {
     const [filter,       setFilter]       = useState('');
-    // ✅ alertMessage LOCAL au sous-composant — pas de fuite de scope parent
     const [alertMessage, setAlertMessage] = useState(null);
 
     const filtered = availableCharacters.filter(c => {
-        // ✅ normalisation du nom pour la recherche (multi-slug)
         const displayName = getDisplayName(c);
         const search = `${displayName} ${c.playerName ?? ''}`.toLowerCase();
         return search.includes(filter.toLowerCase());
@@ -252,16 +235,16 @@ const AddCharacterModal = ({ onClose, availableCharacters, onAddCharacter }) => 
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4">
-            <div className="bg-white dark:bg-viking-brown rounded-lg shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col border-4 border-viking-bronze">
+            <div className="bg-surface rounded-lg shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col border-4 border-default">
 
                 {/* En-tête */}
-                <div className="p-4 border-b-2 border-viking-bronze flex-shrink-0 flex justify-between items-center">
-                    <h3 className="text-xl font-bold text-viking-brown dark:text-viking-parchment">
+                <div className="p-4 border-b-2 border-default flex-shrink-0 flex justify-between items-center">
+                    <h3 className="text-xl font-bold text-default">
                         Ajouter un personnage
                     </h3>
                     <button
                         onClick={onClose}
-                        className="text-2xl text-viking-leather dark:text-viking-bronze hover:text-viking-danger"
+                        className="text-2xl text-muted hover:text-danger"
                     >
                         ✕
                     </button>
@@ -274,12 +257,12 @@ const AddCharacterModal = ({ onClose, availableCharacters, onAddCharacter }) => 
                         placeholder="🔍 Rechercher un personnage..."
                         value={filter}
                         onChange={e => setFilter(e.target.value)}
-                        className="w-full mb-4 px-4 py-2 border-2 border-viking-leather dark:border-viking-bronze rounded-lg bg-white dark:bg-gray-800 text-viking-text dark:text-viking-parchment"
+                        className="w-full mb-4 px-4 py-2 border-2 border-default rounded-lg bg-surface text-default"
                         autoFocus
                     />
 
                     {filtered.length === 0 ? (
-                        <div className="text-center py-8 text-viking-leather dark:text-viking-bronze">
+                        <div className="text-center py-8 text-muted">
                             {filter ? 'Aucun personnage trouvé' : 'Tous les personnages sont déjà assignés'}
                         </div>
                     ) : (
@@ -288,32 +271,30 @@ const AddCharacterModal = ({ onClose, availableCharacters, onAddCharacter }) => 
                                 <button
                                     key={char.id}
                                     onClick={() => onAddCharacter(char.id)}
-                                    className="w-full flex items-center gap-3 p-3 bg-viking-parchment dark:bg-gray-800 rounded-lg border-2 border-viking-leather dark:border-viking-bronze hover:border-viking-bronze hover:shadow-lg transition-all text-left"
+                                    className="w-full flex items-center gap-3 p-3 bg-surface-alt rounded-lg border-2 border-default hover:border-primary hover:shadow-lg transition-all text-left"
                                 >
-                                    {/* Avatar */}
                                     {char.avatar ? (
                                         <img
                                             src={char.avatar}
                                             alt={getDisplayName(char)}
-                                            className="w-12 h-12 rounded-full border-2 border-viking-bronze flex-shrink-0 object-cover"
+                                            className="w-12 h-12 rounded-full border-2 border-default flex-shrink-0 object-cover"
                                         />
                                     ) : (
-                                        <div className="w-12 h-12 rounded-full border-2 border-dashed border-viking-leather dark:border-viking-bronze bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                                        <div className="w-12 h-12 rounded-full border-2 border-dashed border-default bg-surface flex items-center justify-center flex-shrink-0">
                                             <span className="text-xl">👤</span>
                                         </div>
                                     )}
 
-                                    {/* Infos */}
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-bold text-viking-brown dark:text-viking-parchment truncate">
+                                        <div className="font-bold text-default truncate">
                                             {getDisplayName(char)}
                                         </div>
-                                        <div className="text-sm text-viking-leather dark:text-viking-bronze">
+                                        <div className="text-sm text-muted">
                                             {char.playerName}
                                         </div>
                                     </div>
 
-                                    <div className="text-viking-bronze text-xl flex-shrink-0">➕</div>
+                                    <div className="text-accent text-xl flex-shrink-0">➕</div>
                                 </button>
                             ))}
                         </div>
@@ -321,7 +302,7 @@ const AddCharacterModal = ({ onClose, availableCharacters, onAddCharacter }) => 
                 </div>
 
                 {/* Pied */}
-                <div className="p-4 border-t-2 border-viking-bronze bg-viking-parchment/30 dark:bg-gray-800/30 flex-shrink-0">
+                <div className="p-4 border-t-2 border-default bg-surface-alt flex-shrink-0">
                     <button
                         onClick={onClose}
                         className="w-full px-4 py-2 bg-gray-500 text-white rounded-lg font-semibold hover:bg-gray-600"
@@ -331,7 +312,6 @@ const AddCharacterModal = ({ onClose, availableCharacters, onAddCharacter }) => 
                 </div>
             </div>
 
-            {/* Alerte locale au sous-composant */}
             {alertMessage && (
                 <AlertModal
                     message={alertMessage}
