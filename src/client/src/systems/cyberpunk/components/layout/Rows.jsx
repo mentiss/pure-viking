@@ -1,6 +1,6 @@
 // Ligne directive
 import {Tag, TagAdder} from "./TagManager.jsx";
-import {CYBERWARE_ALL, ITEMS_ALL} from "../../config.jsx";
+import {CYBERWARE_ALL, ITEM_AND_CYBERWARE_CATEGORY_LABEL, ITEMS_ALL} from "../../config.jsx";
 import {useState} from "react";
 
 export const DirectiveRow = ({ directive, editMode, onChange }) => (
@@ -47,7 +47,7 @@ export const DirectiveRow = ({ directive, editMode, onChange }) => (
 );
 
 // Ligne relation avec score de lien et tags
-export const RelationRow = ({ relation, editMode, onChange, onRemove, onRemoveTag, onAddTag }) => {
+export const RelationRow = ({ relation, editMode, onChange, onRemove, onRemoveTag, onAddTag, toggleTagAdder = true, }) => {
     const score = relation.link_score ?? 1;
     const scoreColor = score > 0
         ? 'var(--color-success)'
@@ -61,7 +61,7 @@ export const RelationRow = ({ relation, editMode, onChange, onRemove, onRemoveTa
             <div className="flex items-center gap-2">
                 {/* Score de lien */}
                 <div
-                    className="font-mono font-bold text-sm w-8 text-center flex-shrink-0"
+                    className="font-mono font-bold text-sm w-8 text-center shrink-0"
                     style={{ color: scoreColor }}
                 >
                     {score > 0 ? `+${score}` : score}
@@ -130,13 +130,13 @@ export const RelationRow = ({ relation, editMode, onChange, onRemove, onRemoveTa
                     ))}
                 </div>
             )}
-            <TagAdder onAdd={onAddTag} compact existingTags={relation.tags ?? []} entityType="relation" />
+            {(editMode || toggleTagAdder) && <TagAdder onAdd={onAddTag} compact existingTags={relation.tags ?? []} entityType="relation" />}
         </div>
     );
 };
 
 // Ligne cyberware avec tags
-export const CyberwareRow = ({ item, editMode, onChange, onRemove, onRemoveTag, onAddTag }) => {
+export const CyberwareRow = ({ item, editMode, onChange, onRemove, onRemoveTag, onAddTag, tagsEditable= false, removable= false, toggleTagAdder = false, }) => {
     const [dropdownOpen, setDropdownOpen] = useState(false);
 
     const nameValue = item.name ?? '';
@@ -153,7 +153,10 @@ export const CyberwareRow = ({ item, editMode, onChange, onRemove, onRemoveTag, 
     const optionPlaceholder = matchedCw?.optionHint ?? 'Option choisie…';
 
     const handleSelect = (cw) => {
-        onChange({ name: cw.name });
+        onChange({
+            name: cw.name,
+            tags: cw.tags.map(t => ({ tag_text: t.text, tag_variant: t.variant })),
+        });
         setDropdownOpen(false);
     };
 
@@ -166,7 +169,7 @@ export const CyberwareRow = ({ item, editMode, onChange, onRemove, onRemoveTag, 
             }}
         >
             <div className="flex items-start gap-2">
-                <span className="text-base flex-shrink-0" style={{ color: 'var(--color-primary)' }}>⬡</span>
+                <span className="text-base shrink-0" style={{ color: 'var(--color-primary)' }}>⬡</span>
 
                 <div className="flex-1 min-w-0">
                     {editMode ? (
@@ -260,8 +263,8 @@ export const CyberwareRow = ({ item, editMode, onChange, onRemove, onRemoveTag, 
                     )}
                 </div>
 
-                {editMode && (
-                    <button onClick={onRemove} className="text-xs flex-shrink-0" style={{ color: 'var(--color-danger)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                {(editMode || removable) && (
+                    <button onClick={onRemove} className="text-xs shrink-0" style={{ color: 'var(--color-danger)', background: 'none', border: 'none', cursor: 'pointer' }}>
                         ✕
                     </button>
                 )}
@@ -271,28 +274,17 @@ export const CyberwareRow = ({ item, editMode, onChange, onRemove, onRemoveTag, 
             {(item.tags ?? []).length > 0 && (
                 <div className="flex flex-wrap gap-1">
                     {(item.tags ?? []).map((tag, i) => (
-                        <Tag key={i} tag={tag} editMode={editMode} onRemove={() => onRemoveTag(i)} />
+                        <Tag key={i} tag={tag} editMode={editMode || tagsEditable} onRemove={() => onRemoveTag(i)} />
                     ))}
                 </div>
             )}
 
-            {editMode && <TagAdder onAdd={onAddTag} compact entityType="cyberware" />}
+            {(editMode || toggleTagAdder) && <TagAdder onAdd={onAddTag} compact entityType="cyberware" />}
         </div>
     );
 };
 
-// Ligne inventaire avec tags
-const ITEM_CATEGORY_LABEL = {
-    arme_feu:     'Armes à feu',
-    grenade:      'Grenades',
-    arme_blanche: 'Armes blanches',
-    protection:   'Protection',
-    equipement:   'Équipement',
-    vehicule:     'Véhicules',
-    drone:        'Drones',
-};
-
-export const ItemRow = ({ item, editMode, onChange, onRemove, onRemoveTag, onAddTag }) => {
+export const ItemRow = ({ item, editMode, onChange, onRemove, onRemoveTag, onAddTag, tagsEditable= false, removable= false, toggleTagAdder = false,}) => {
     const [dropdownOpen, setDropdownOpen] = useState(false);
 
     const nameValue = item.name ?? '';
@@ -379,7 +371,7 @@ export const ItemRow = ({ item, editMode, onChange, onRemove, onRemoveTag, onAdd
                                                 borderBottom: '1px solid var(--color-border)',
                                             }}
                                         >
-                                            {ITEM_CATEGORY_LABEL[cat] ?? cat}
+                                            {ITEM_AND_CYBERWARE_CATEGORY_LABEL[cat] ?? cat}
                                         </div>
                                         {items.map(it => (
                                             <button
@@ -416,7 +408,7 @@ export const ItemRow = ({ item, editMode, onChange, onRemove, onRemoveTag, onAdd
                 )}
 
                 {/* Contrôles quantité — toujours visibles */}
-                <div className="flex items-center gap-1 flex-shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                     <button
                         onClick={() => handleQuantity(-1)}
                         className="w-5 h-5 rounded text-xs font-bold flex items-center justify-center"
@@ -450,7 +442,7 @@ export const ItemRow = ({ item, editMode, onChange, onRemove, onRemoveTag, onAdd
                 </div>
 
                 {/* Suppression — edit mode seulement */}
-                {editMode && (
+                {(editMode || removable) && (
                     <button
                         onClick={onRemove}
                         className="text-xs flex-shrink-0"
@@ -465,12 +457,12 @@ export const ItemRow = ({ item, editMode, onChange, onRemove, onRemoveTag, onAdd
             {(item.tags ?? []).length > 0 && (
                 <div className="flex flex-wrap gap-1">
                     {(item.tags ?? []).map((tag, i) => (
-                        <Tag key={i} tag={tag} editMode={editMode} onRemove={() => onRemoveTag(i)} />
+                        <Tag key={i} tag={tag} editMode={editMode || tagsEditable} onRemove={() => onRemoveTag(i)} />
                     ))}
                 </div>
             )}
 
-            {editMode && <TagAdder onAdd={onAddTag} compact entityType="item" />}
+            {(editMode || toggleTagAdder) && <TagAdder onAdd={onAddTag} compact entityType="item" />}
         </div>
     );
 };
@@ -580,7 +572,7 @@ export const QuickAddItem = ({ onAdd }) => {
                                     borderBottom: '1px solid var(--color-border)',
                                 }}
                             >
-                                {ITEM_CATEGORY_LABEL[cat] ?? cat}
+                                {ITEM_AND_CYBERWARE_CATEGORY_LABEL[cat] ?? cat}
                             </div>
                             {items.map(it => (
                                 <button

@@ -58,91 +58,478 @@ export const OUTCOME_CLASS = {
     failure: 'cp-outcome-failure',
 };
 
+export const ITEM_AND_CYBERWARE_CATEGORY_LABEL = {
+    arme_feu:     'Armes à feu',
+    grenade:      'Grenades',
+    arme_blanche: 'Armes blanches',
+    protection:   'Protection',
+    equipement:   'Équipement',
+    vehicule:     'Véhicules',
+    drone:        'Drones',
+    // Catégories Cyberware
+    neural:       'Système Neural',
+    armement:     'Cyber-armement',
+    survie:       'Survie & Bioware',
+    infiltration: 'Infiltration',
+    membres:      'Membres Cyber',
+    physique:     'Physique & Greffes',
+    sensoriel:    'Capteurs & Optiques',
+    social:       'Social & Cosmétique',
+    netrunning:   'Netrunning',
+    technique:    'Interface Technique',
+};
+
+export const TAG_VARIANT_CLASS = {
+    positive: 'cp-tag-positive',
+    negative: 'cp-tag-negative',
+    neutral:  'cp-tag-neutral',
+};
+
 export const CYBERWARE_ALL = [
+    // --- BORGWARE (TRANSFORMATION LOURDE) ---
     {
-        name:        'Armement incorporé',
-        description: 'Armes dissimulées ou rétractables implantées directement dans le corps.',
-        optionHint:  'Lames rétractables · Arme à feu cachée · Fouet à monofilament · Implant interne d\'assassinat',
+        name:        'Châssis Linéaire (Sigma/Bêta)',
+        category:    'physique',
+        description: 'Exosquelette greffé directement sur l\'ossature. Augmente la puissance brute de manière colossale.',
+        optionHint:  'Sigma (Force +1) · Bêta (Force +2)',
+        tags: [
+            { text: '+surhumain', variant: 'positive' },
+            { text: '+encombrant', variant: 'negative' },
+            { text: '+puissant', variant: 'positive' },
+        ],
     },
     {
-        name:        'Sous-derme',
-        description: 'Plaques hypodermiques d\'armure synthétique. Réduit les conséquences physiques graves — soustrait 2 aux jets de blessure mortelle.',
+        name:        'Monture Multi-Optique',
+        category:    'sensoriel',
+        description: 'Grappe de capteurs faciaux permettant d\'accueillir jusqu\'à 5 yeux cybernétiques supplémentaires.',
+        optionHint:  'Vision 360° · Analyseur de micro-expressions · Spectromètre',
+        tags: [
+            { text: '+360° vision', variant: 'positive' },
+            { text: '+horrifique', variant: 'negative' },
+        ],
+    },
+
+    // --- FASHIONWARE (STYLE & COSMÉTIQUE) ---
+    {
+        name:        'Techhair (Fibre optique)',
+        category:    'social',
+        description: 'Cheveux en fibres synthétiques capables de changer de couleur ou de s\'éclairer selon l\'humeur.',
         optionHint:  null,
+        tags: [
+            { text: '+style', variant: 'positive' },
+            { text: '+lumineux', variant: 'neutral' },
+        ],
     },
     {
-        name:        'Bras cybernétique',
-        description: 'Membre de remplacement allant de la prothèse esthétique à l\'amélioration réelle.',
-        optionHint:  'Force augmentée · Outils intégrés · Arme intégrée',
-    },
-    {
-        name:        'Skilljam',
-        description: 'Système expert cérébral avec ports pour puces de compétence. Démarre avec 2 puces, 2 ports disponibles.',
-        optionHint:  'Ex : arts martiaux · crochetage · escalade · armes à feu · conduite extrême',
-    },
-    {
-        name:        'Neuralink comm',
-        description: 'Communications internes par impulsions mentales. Permet de lancer 2d10+Synth pour Évaluer en situation tactique.',
-        optionHint:  '+brouillage · +relais satellite · +enregistrement · +crypté · +partition inaccessible (choisis 2)',
-    },
-    {
-        name:        'Greffe musculaire',
-        description: 'Fibres synthétiques greffées dans les muscles. Permet de lancer 2d10+Synth au lieu de Chair pour Employer la manière forte.',
+        name:        'Shift Tacts (Lentilles colorées)',
+        category:    'social',
+        description: 'Implants oculaires cosmétiques changeant la couleur et le motif de l\'iris à volonté.',
         optionHint:  null,
+        tags: [
+            { text: '+camouflage iris', variant: 'positive' },
+        ],
     },
     {
-        name:        'Interface neurale',
-        description: 'Interface cérébrale reliant impulsions nerveuses et appareils configurés. Ouvre les Manœuvres du Net et Seconde peau.',
-        optionHint:  'Logiciel de visée · Module de contrôle à distance · Stockage de données',
-    },
-    {
-        name:        'Jambes cybernétiques',
-        description: 'Membres de remplacement avec capacités athlétiques augmentées. +1 sur Agir sous pression si les jambes peuvent aider.',
+        name:        'Skinwatch (Montre dermique)',
+        category:    'social',
+        description: 'Affichage LED sous-cutané sur le poignet indiquant l\'heure et les constantes vitales.',
         optionHint:  null,
+        tags: [
+            { text: '+pratique', variant: 'neutral' },
+        ],
     },
     {
-        name:        'Réflexes câblés',
-        description: 'Remplacement partiel du système nerveux. +1 sur le prochain jet si aucun adversaire ne dispose de nerfs synthétiques.',
+        name:        'Câblage EMP (Threading)',
+        category:    'social',
+        description: 'Circuits dorés ou argentés gravés sur la peau. Ne sert à rien, sauf à montrer qu\'on a les moyens.',
         optionHint:  null,
+        tags: [
+            { text: '+style', variant: 'positive' },
+            { text: '+brillant', variant: 'neutral' },
+        ],
     },
     {
-        name:        'Oreilles cybernétiques',
-        description: 'Oreilles de remplacement avec capacités auditives augmentées. Permet de lancer 2d10+Synth pour Évaluer.',
-        optionHint:  '+atténuation · +gamme de fréquences · +enregistrement · +crypté · +partition inaccessible (choisis 2)',
-    },
-    {
-        name:        'Processeur tactique',
-        description: 'Système expert calculant distance, environnement et mouvement. Gagne 1 retenue supplémentaire sur Évaluer, même sur un raté.',
+        name:        'Mr. Studd / Midnight Lady',
+        category:    'social',
+        description: 'Implants génitaux de performance pour "toute la nuit, toutes les nuits". Augmente le style en situation intime.',
         optionHint:  null,
+        tags: [
+            { text: '+endurance sexuelle', variant: 'neutral' },
+            { text: '+risqué (contrefaçon)', variant: 'negative' },
+        ],
     },
+
+    // --- SURVIE & SPÉCIALISÉ ---
     {
-        name:        'Yeux cybernétiques',
-        description: 'Yeux de remplacement avec capacités visuelles augmentées. Permet de lancer 2d10+Synth pour Évaluer.',
-        optionHint:  '+thermographique · +amplification lumineuse · +zoom · +anti-flash · +enregistrement · +crypté · +partition inaccessible (choisis 2)',
-    },
-    {
-        name:        'Sandevistan',
-        description: 'Boost de réflexes neural qui dilate la perception du temps. Une fois par scène : esquive auto ou action supplémentaire simple.',
+        name:        'Branchies (Gills)',
+        category:    'survie',
+        description: 'Filtres osmotiques implantés dans le cou. Permet de respirer sous l\'eau indéfiniment.',
         optionHint:  null,
+        tags: [
+            { text: '+aquatique', variant: 'positive' },
+        ],
     },
     {
-        name:        'Kerenzikov',
-        description: 'Booster neural pour enchaîner les gestes avec précision surhumaine. Une fois par scène : déclenche un move simple en même temps qu\'Employer la manière forte.',
+        name:        'Radar / Sonar Interne',
+        category:    'sensoriel',
+        description: 'Émetteur d\'ondes ultrasoniques. Permet de détecter les formes à travers les murs ou dans le noir total.',
         optionHint:  null,
+        tags: [
+            { text: '+écholocalisation', variant: 'positive' },
+            { text: '+portée 20m', variant: 'neutral' },
+        ],
     },
     {
-        name:        'Braindance Recorder',
-        description: 'Implant d\'enregistrement sensoriel complet. Déclare que tu enregistres → gagne automatiquement [info] exploitable.',
+        name:        'Holster Dissimulé',
+        category:    'armement',
+        description: 'Compartiment escamotable dans la cuisse ou le torse pour cacher une arme de poing légère.',
         optionHint:  null,
+        tags: [
+            { text: '+discret', variant: 'positive' },
+        ],
     },
+
+    // --- NEURAL ---
     {
-        name:        'Slice \'N Dice',
-        description: 'Fil de monofilament rétractable dans les doigts ou le poignet. (3-dégâts +contact +carnage +discret +implant)',
+        name:        'Puce de Mémoire (Backup)',
+        category:    'neural',
+        description: 'Stockage externe pour souvenirs ou données cryptées. Protège contre les amnésies traumatiques.',
         optionHint:  null,
+        tags: [
+            { text: '+stockage data', variant: 'positive' },
+            { text: '+inaltérable', variant: 'positive' },
+        ],
+    },
+    // --- SYSTÈMES DE RÉFLEXES & COMBAT (NEURAL) ---
+    {
+        name:        'Sandevistan (Accélérateur neural)',
+        category:    'Neural',
+        description: 'Dilate la perception du temps. Une fois par scène : esquive auto ou action supplémentaire simple.',
+        optionHint:  'Dynalar · Militech Falcon · Apogee',
+        tags: [
+            { text: '+vitesse extrême', variant: 'positive' },
+            { text: '+aliénant',   variant: 'negative' },
+            { text: '+douloureux', variant: 'negative' },
+        ],
     },
     {
-        name:        'Cyberdeck intégré',
-        description: 'Version implantée du Cyberdeck — connexion au Net directement dans l\'interface neurale. +Furtivité, impossible à confisquer.',
-        optionHint:  '+vitesse élevée · +crypté · +large capacité · +furtif (choisis 2)',
+        name:        'Module Berserk (Injecteur d\'adrénaline)',
+        category:    'Neural',
+        description: 'Une fois par scène : ignore la douleur et gagne +1 dégât au contact. Impossible de battre en retraite tant qu\'actif.',
+        optionHint:  'Biodyne · Moore Tech · Zetatech',
+        tags: [
+            { text: '+bestial',  variant: 'neutral' },
+            { text: '+1 dégât mêlée', variant: 'positive' },
+            { text: '+résilience', variant: 'positive' },
+        ],
+    },
+    {
+        name:        'Kerenzikov (Réflexes passifs)',
+        category:    'Neural',
+        description: 'Boost de réactivité constante. Une fois par scène : déclenche un move simple en même temps qu\'un autre move de combat.',
+        optionHint:  null,
+        tags: [
+            { text: '+précision',  variant: 'positive'  },
+            { text: '+réactif', variant: 'positive' },
+        ],
+    },
+    {
+        name:        'Câblage Nerveux (Boost)',
+        category:    'Neural',
+        description: 'Amélioration des influx synaptiques. +1 sur le prochain jet si aucun adversaire n\'est "câblé".',
+        optionHint:  null,
+        tags: [
+            { text: '+réactif', variant: 'positive' },
+            { text: '+1 Agir sous pression', variant: 'positive' },
+        ],
+    },
+
+    // --- CYBER-ARMEMENT ---
+    {
+        name:        'Cyberarmement de corps',
+        category:    'Armement',
+        description: 'Armes dissimulées sous la peau : Lames Mantis, Monocâble, Bras de Gorille ou Lance-projectile.',
+        optionHint:  'Lames Mantis · Monocâble · Bras de Gorille · Lance-projectile',
+        tags: [
+            { text: '+discret',  variant: 'positive' },
+            { text: '+Lames Mantis',  variant: 'neutral' },
+            { text: '+Monocâble',  variant: 'neutral' },
+            { text: '+Bras de Gorille',  variant: 'neutral' },
+        ],
+    },
+    {
+        name:        'Slice \'N Dice (Fil monofilament)',
+        category:    'Armement',
+        description: 'Fil de monofilament logé dans le poignet, capable de trancher l\'acier. (3-dégâts +contact +carnage +discret)',
+        optionHint:  null,
+        tags: [
+            { text: '3-dégâts',  variant: 'neutral'  },
+            { text: '+contact',  variant: 'neutral'  },
+            { text: '+carnage',  variant: 'neutral'  },
+            { text: '+discret',  variant: 'positive' },
+        ],
+    },
+    {
+        name:        'Projecteur de Micro-vibrations',
+        category:    'Armement',
+        description: 'Émetteur ultrasonique intégré. Augmente la perforation des lames ou des poings. Ignore 1-Armure.',
+        optionHint:  null,
+        tags: [
+            { text: 'perce-armure', variant: 'positive' },
+            { text: '+vibration', variant: 'neutral' },
+        ],
+    },
+
+    // --- PROTECTION & SYSTÈME IMMUNITAIRE ---
+    {
+        name:        'Blindage Sous-cutané',
+        category:    'Protection',
+        description: 'Plaques de céramique/kevlar. Réduit les conséquences graves — soustrait 2 aux jets de blessure mortelle.',
+        optionHint:  null,
+        tags: [
+            { text: '-2 blessure mortelle', variant: 'positive' },
+            { text: '-3 vs +fléchettes',    variant: 'positive' },
+        ],
+    },
+    {
+        name:        'Revêtement de Chaleur / Anti-EMP',
+        category:    'Protection',
+        description: 'Protection contre les températures extrêmes et les décharges électriques. Immunise contre les tags +feu et +électrique.',
+        optionHint:  null,
+        tags: [
+            { text: '+isolé', variant: 'positive' },
+            { text: '+blindé', variant: 'positive' },
+        ],
+    },
+    {
+        name:        'Optique de Camouflage',
+        category:    'Infiltration',
+        description: 'Nano-pigments de réfraction. Une fois par scène : deviens invisible pendant quelques instants (bonus de +2 en discrétion).',
+        optionHint:  null,
+        tags: [
+            { text: '+invisible', variant: 'positive' },
+            { text: '+consomme énergie', variant: 'negative' },
+        ],
+    },
+    {
+        name:        'Éditeur de douleur',
+        category:    'Protection',
+        description: 'Supprime les signaux sensoriels de douleur. Ignore les malus de blessure tant que vous n\'êtes pas HS.',
+        optionHint:  null,
+        tags: [
+            { text: '+insensible', variant: 'positive' },
+            { text: '+aliénant', variant: 'negative' },
+        ],
+    },
+
+    // --- SYSTÈMES VITAUX & BIOWARE ---
+    {
+        name:        'Second Cœur',
+        category:    'Survie',
+        description: 'Organe de secours automatique. Une fois par mission : ignore une blessure qui devrait être fatale.',
+        optionHint:  null,
+        tags: [
+            { text: '+survie', variant: 'positive' },
+            { text: '+automatique', variant: 'neutral' },
+        ],
+    },
+    {
+        name:        'Pompe Sanguine / Bio-moniteur',
+        category:    'Survie',
+        description: 'Injecte des coagulants en cas de choc. Une fois par mission : soigne automatiquement 1-segment de dégâts.',
+        optionHint:  null,
+        tags: [
+            { text: '+soins auto', variant: 'positive' },
+            { text: '+adrénaline', variant: 'neutral' },
+        ],
+    },
+    {
+        name:        'Cœur Synthétique (Adrénaline)',
+        category:    'Survie',
+        description: 'Remplacement cardiaque haute performance. +1 sur les jets d\'endurance ou d\'effort physique intense.',
+        optionHint:  null,
+        tags: [
+            { text: '+endurant', variant: 'positive' },
+            { text: '+récupération', variant: 'positive' },
+        ],
+    },
+    {
+        name:        'Poumons Synthétiques (O2 Boost)',
+        category:    'Survie',
+        description: 'Traitement de l\'oxygène optimisé. Permet de retenir sa respiration 10min et donne +1 sur les jets de sprint.',
+        optionHint:  null,
+        tags: [
+            { text: '+endurant', variant: 'positive' },
+            { text: '+athlétique', variant: 'positive' },
+        ],
+    },
+    {
+        name:        'Détoxificateur Métabolique',
+        category:    'Survie',
+        description: 'Immunise contre les gaz toxiques et les drogues de rue. Purge le foie instantanément.',
+        optionHint:  null,
+        tags: [
+            { text: '+immunité toxines', variant: 'positive' },
+            { text: '+résistance gaz', variant: 'positive' },
+        ],
+    },
+
+    // --- MEMBRES & PHYSIQUE ---
+    {
+        name:        'Cyberbras (Cyberarm)',
+        category:    'Membres',
+        description: 'Membre de remplacement allant de la prothèse industrielle à l\'outil de précision.',
+        optionHint:  'Actionneur hydraulique · Main-outil · Boîtier de rangement',
+        tags: [
+            { text: '+force augmentée',  variant: 'neutral' },
+            { text: '+robuste',  variant: 'positive' },
+            { text: '+outils intégrés',  variant: 'neutral' },
+        ],
+    },
+    {
+        name:        'Cyberjambes (Cyberlegs)',
+        category:    'Membres',
+        description: 'Membres inférieurs optimisés. +1 sur Agir sous pression si les jambes peuvent aider.',
+        optionHint:  'Saut assisté · Pieds magnétiques · Propulseurs de cheville',
+        tags: [
+            { text: '+agile',   variant: 'positive' },
+            { text: '+double saut',   variant: 'positive' },
+            { text: '+vitesse sprint',   variant: 'positive' },
+        ],
+    },
+    {
+        name:        'Greffe Musculaire (Internal)',
+        category:    'Physique',
+        description: 'Renforcement des tissus par biopolymères. Permet de lancer 2d10+Synth au lieu de Chair pour Employer la manière forte.',
+        optionHint:  null,
+        tags: [
+            { text: '+puissant',          variant: 'positive' },
+            { text: '+1 dégât mêlée',     variant: 'positive' },
+        ],
+    },
+    {
+        name:        'Articulations Silencieuses',
+        category:    'Infiltration',
+        description: 'Revêtement en polymère souple sur les pivots mécaniques. +1 sur les jets de discrétion par mouvement.',
+        optionHint:  null,
+        tags: [
+            { text: '+silencieux', variant: 'positive' },
+        ],
+    },
+
+    // --- SENSORIEL & SOCIAL ---
+    {
+        name:        'Cyberoptiques (Kiroshi)',
+        category:    'Sensoriel',
+        description: 'Yeux de remplacement avec capteurs multispectraux. Permet de lancer 2d10+Synth pour Évaluer.',
+        optionHint:  '+thermique · +vision nocturne · +zoom · +anti-flash · +analyseur de trajectoire',
+        tags: [
+            { text: '+zoom',  variant: 'positive' },
+            { text: '+anti-flash',  variant: 'positive' },
+            { text: '+enregistrement',  variant: 'positive' },
+        ],
+    },
+    {
+        name:        'Cyberaudition',
+        category:    'Sensoriel',
+        description: 'Système auditif filtrant les fréquences. Permet de lancer 2d10+Synth pour Évaluer.',
+        optionHint:  '+atténuateur · +sonar · +enregistrement · +cryptage',
+        tags: [
+            { text: '+atténuation',  variant: 'positive' },
+            { text: '+sonar',  variant: 'positive' },
+            { text: '+enregistrement',  variant: 'positive' },
+        ],
+    },
+    {
+        name:        'Face-plate (Cale de visage)',
+        category:    'Infiltration',
+        description: 'Plaques faciales mobiles permettant de changer de traits. +1 pour Usurper une identité ou passer Incognito.',
+        optionHint:  null,
+        tags: [
+            { text: '+incognito', variant: 'positive' },
+            { text: '+transformation', variant: 'neutral' },
+        ],
+    },
+    {
+        name:        'Synthétiseur Vocal (Audio-masque)',
+        category:    'Social',
+        description: 'Modulateur de cordes vocales. Peut imiter n\'importe quelle voix enregistrée.',
+        optionHint:  null,
+        tags: [
+            { text: '+imitation', variant: 'positive' },
+        ],
+    },
+    {
+        name:        'Peau Synthétique (Chemskin)',
+        category:    'Social',
+        description: 'Peau capable de changer de couleur ou de texture. +1 sur les jets de Style ou de Séduction.',
+        optionHint:  '+camouflage · +motifs lumineux · +chrome',
+        tags: [
+            { text: '+style', variant: 'positive' },
+            { text: '+charisme', variant: 'positive' },
+        ],
+    },
+
+    // --- UTILITAIRE & TECH ---
+    {
+        name:        'Neuralink & Comms',
+        category:    'Neural',
+        description: 'Lien neuronal direct avec les réseaux. Permet de lancer 2d10+Synth pour Évaluer en situation tactique.',
+        optionHint:  '+brouillage · +relais satellite · +cryptage · +partition cachée',
+        tags: [
+            { text: '+brouillage',  variant: 'positive' },
+            { text: '+crypté',  variant: 'positive' },
+            { text: '+enregistrement',  variant: 'positive' },
+        ],
+    },
+    {
+        name:        'Cyberconsole intégrée (Deck)',
+        category:    'Netrunning',
+        description: 'Console de piratage greffée dans le crâne. +Furtivité, impossible à confisquer.',
+        optionHint:  '+vitesse RAM · +crypté · +slots mémoire · +furtif',
+        tags: [
+            { text: '+furtif',   variant: 'positive' },
+            { text: '+vitesse RAM',   variant: 'positive' },
+        ],
+    },
+    {
+        name:        'Prise de Chipware (Socket)',
+        category:    'Neural',
+        description: 'Processeur cérébral pour puces Mnemonic. Démarre avec 2 puces, 2 ports disponibles.',
+        optionHint:  'Ex : Karaté · Piratage · Pilotage · Armes de poing',
+        tags: [
+            { text: '+polyvalent',  variant: 'positive'  },
+            { text: '+1 continu puce active', variant: 'positive' },
+        ],
+    },
+    {
+        name:        'Lien de Pilotage (Interface)',
+        category:    'Technique',
+        description: 'Prises neurales pour véhicules et drones. Permet de "devenir" la machine (Seconde Peau).',
+        optionHint:  null,
+        tags: [
+            { text: '+connecté', variant: 'positive' },
+            { text: '+1 Pilotage', variant: 'positive' },
+        ],
+    },
+    {
+        name:        'Poche de Rangement (Cargo)',
+        category:    'Infiltration',
+        description: 'Espace de stockage dissimulé dans un membre. Indétectable aux scanners corporels.',
+        optionHint:  null,
+        tags: [
+            { text: '+indétectable', variant: 'positive' },
+            { text: '+inventaire', variant: 'neutral' },
+        ],
+    },
+    {
+        name:        'Enregistreur de Braindance',
+        category:    'Sensoriel',
+        description: 'Capteur sensoriel total. Déclare que tu enregistres → gagne automatiquement [info] exploitable.',
+        optionHint:  null,
+        tags: [
+            { text: '+enregistrement BD', variant: 'neutral' },
+        ],
     },
 ];
 
@@ -435,7 +822,104 @@ export const ITEMS_ALL = [
         ],
     },
 
+    {
+        name:     'Sniffer Wi-Fi (Dongle)',
+        category: 'equipement',
+        tags: [
+            { text: '+discret',          variant: 'positive' },
+            { text: '+détection réseau', variant: 'neutral'  },
+        ],
+    },
+    {
+        name:     'Injecteur de Virus physique',
+        category: 'equipement',
+        tags: [
+            { text: '+usage unique',     variant: 'neutral'  },
+            { text: '+1 continu piratage', variant: 'positive' },
+            { text: '+furtif',           variant: 'positive' },
+        ],
+    },
+    {
+        name:     'Brouilleur de signal (Screamer)',
+        category: 'equipement',
+        tags: [
+            { text: '+zone',             variant: 'neutral'  },
+            { text: '+disruptif',        variant: 'positive' },
+            { text: '+bruyant',          variant: 'negative' },
+        ],
+    },
+    {
+        name:     'Générateur de White Noise',
+        category: 'equipement',
+        tags: [
+            { text: '+discret',          variant: 'positive' },
+            { text: '+anti-espionnage',  variant: 'positive' },
+        ],
+    },
+
+    // ── Matériel d'Infiltration & Entrée ─────────────────────────────────────
+    {
+        name:     'Pistolet à grappin magnétique',
+        category: 'equipement',
+        tags: [
+            { text: '+rapide',           variant: 'positive' },
+            { text: '+utilitaire',       variant: 'neutral'  },
+        ],
+    },
+    {
+        name:     'Découpeur thermique (Stylo)',
+        category: 'equipement',
+        tags: [
+            { text: '+perforant',        variant: 'positive' },
+            { text: '+silencieux',       variant: 'positive' },
+            { text: '+consommable',      variant: 'negative' },
+        ],
+    },
+    {
+        name:     'Scanner biométrique de poche',
+        category: 'equipement',
+        tags: [
+            { text: '+1 continu usurpation', variant: 'positive' },
+        ],
+    },
+    {
+        name:     'Balise traçante micro-adhésive',
+        category: 'equipement',
+        tags: [
+            { text: '+discret',          variant: 'positive' },
+            { text: '+tracé',            variant: 'neutral'  },
+        ],
+    },
+
+    // ── Médical & Survie Avancée ──────────────────────────────────────────────
+    {
+        name:     'Airhypo (Injecteur rapide)',
+        category: 'equipement',
+        tags: [
+            { text: '+rapide',           variant: 'positive' },
+            { text: '+juiced',           variant: 'neutral'  },
+        ],
+    },
+    {
+        name:     'Masque à gaz filtrant',
+        category: 'equipement',
+        tags: [
+            { text: '+protection gaz',   variant: 'positive' },
+            { text: '+discret',          variant: 'positive' },
+        ],
+    },
+    {
+        name:     'Sac à cadavre "Cryo"',
+        category: 'equipement',
+        tags: [
+            { text: '+encombrant',       variant: 'negative' },
+            { text: '+convalescent',     variant: 'neutral'  },
+            { text: '+préservation',     variant: 'positive' },
+        ],
+    },
+
     // ── Équipement ───────────────────────────────────────────────────────────
+
     {
         name:     'Kit d\'escalade',
         category: 'equipement',
@@ -454,7 +938,7 @@ export const ITEMS_ALL = [
         ],
     },
     {
-        name:     'Kit médical d\'urgence',
+        name:     'Traumapatch',
         category: 'equipement',
         tags: [
             { text: '+premiers soins', variant: 'positive' },
@@ -503,14 +987,14 @@ export const ITEMS_ALL = [
         name:     'Silencieux',
         category: 'equipement',
         tags: [
-            { text: 'retire +bruyant', variant: 'positive' },
+            { text: 'retire +bruyant et ajoute +silencieux sur une arme à feu (vous pouvez supprimer l\'item après)', variant: 'positive' },
         ],
     },
     {
         name:     'Combinaison furtive',
         category: 'equipement',
         tags: [
-            { text: '+1 continu discrétion', variant: 'positive' },
+            { text: '+discrétion', variant: 'positive' },
         ],
     },
     {
@@ -534,6 +1018,30 @@ export const ITEMS_ALL = [
         category: 'equipement',
         tags: [
             { text: '+premiers soins urgence', variant: 'positive' },
+        ],
+    },
+    {
+        name:     'Kit médical d\'urgence',
+        category: 'equipement',
+        tags: [
+            { text: '+premiers soins',   variant: 'positive' },
+        ],
+    },
+    {
+        name:     'Exosquelette gyroscopique',
+        category: 'equipement',
+        tags: [
+            { text: '+stabilisation arme lourde', variant: 'positive' },
+            { text: '+encombrant',       variant: 'negative' },
+        ],
+    },
+    {
+        name:     'Salle de chirurgie portable',
+        category: 'equipement',
+        tags: [
+            { text: '+blessures mortelles',  variant: 'positive' },
+            { text: '+implantation cyberware', variant: 'positive' },
+            { text: '+encombrant',           variant: 'negative' },
         ],
     },
     {
@@ -910,20 +1418,24 @@ export const PLAYBOOKS = [
             'Greffe musculaire', 'Interface neurale + logiciel de visée',
             'Réflexes câblés', 'Sandevistan', 'Slice \'N Dice', 'Yeux cybernétiques',
         ],
-        defaultPicks: 2, // l'Assassin démarre avec 2 implants
+        defaultPicks: 1,
     },
 ];
 
 export const TAG_SUGGESTIONS_BY_TYPE = {
     character: [
         { text: '+blessé',       variant: 'negative' },
+        { text: '+amoché',       variant: 'negative' },
+        { text: '+hémorragie',   variant: 'negative' },
+        { text: '+flatline imminent', variant: 'negative' },
         { text: '+sonné',        variant: 'negative' },
-        { text: '+grillé',       variant: 'negative' },
-        { text: '+repéré',       variant: 'negative' },
         { text: '+endetté',      variant: 'negative' },
         { text: '+épuisé',       variant: 'negative' },
         { text: '+traumatisé',   variant: 'negative' },
-        { text: '+en fuite',     variant: 'negative' },
+        { text: '+convalescent', variant: 'neutral' },
+        { text: '+juiced',       variant: 'neutral' },
+        { text: '+paranoïaque',     variant: 'negative' },
+        { text: '+dissocié',        variant: 'negative' },
     ],
     cyberware: [
         { text: '+défaillant',   variant: 'negative' },
@@ -944,6 +1456,7 @@ export const TAG_SUGGESTIONS_BY_TYPE = {
         { text: '+allié',        variant: 'positive' },
         { text: '+redevable',    variant: 'positive' },
         { text: '+suspect',      variant: 'neutral'  },
+        { text: '+flatlined',    variant: 'negative'  },
     ],
     item: [
         { text: '+défaillant',   variant: 'negative' },
@@ -954,6 +1467,9 @@ export const TAG_SUGGESTIONS_BY_TYPE = {
         { text: '+rare',         variant: 'positive' },
         { text: '+militaire',    variant: 'neutral'  },
         { text: '+illégal',      variant: 'negative' },
+        { text: '+biométrique',  variant: 'neutral' },
+        { text: '+smartlink',    variant: 'neutral' },
+        { text: '+jetable',      variant: 'neutral' },
     ],
 };
 

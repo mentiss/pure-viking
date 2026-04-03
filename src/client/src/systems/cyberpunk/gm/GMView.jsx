@@ -70,13 +70,6 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
 
     // Compte des moves en attente (badge sur l'onglet)
     const [pendingMovesCount, setPendingMovesCount] = useState(0);
-    useEffect(() => {
-        if (!apiBase) return;
-        fetchWithAuth(`${apiBase}/moves`)
-            .then(r => r.ok ? r.json() : [])
-            .then(data => setPendingMovesCount((data ?? []).filter(m => m.type === 'custom' && !m.isApproved).length))
-            .catch(() => {});
-    }, [apiBase, activeTab]); // refresh quand on revient sur cet onglet
 
     const handleLogout = async () => {
         setShowMenu(false);
@@ -250,6 +243,7 @@ const GMView = ({ activeSession, onSessionChange, onlineCharacters, darkMode, on
                     <TabMoves
                         fetchWithAuth={fetchWithAuth}
                         apiBase={apiBase}
+                        onPendingCount={setPendingMovesCount}
                     />
                 )}
 

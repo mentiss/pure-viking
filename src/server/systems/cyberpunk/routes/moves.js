@@ -20,7 +20,7 @@ const { authenticate, requireGM } = require('../../../middlewares/auth');
 
 router.get('/', authenticate, (req, res) => {
     try {
-        const isGM = req.user?.role === 'gm';
+        const isGM = req.user?.isGM === true;
 
         // GM voit tout (y compris les customs en attente)
         // Joueurs ne voient que les approuvés
@@ -60,7 +60,7 @@ router.get('/playbook/:pb', (req, res) => {
 router.post('/', authenticate, (req, res) => {
     try {
         const { name, stat, description, playbook } = req.body;
-        const isGM = req.user?.role === 'gm';
+        const isGM = req.user?.isGM === true;
 
         if (!name || !description) {
             return res.status(400).json({ error: 'name et description sont requis' });
@@ -115,7 +115,7 @@ router.put('/:id', authenticate, (req, res) => {
     try {
         const { name, stat, description, playbook } = req.body;
         const id   = req.params.id;
-        const isGM = req.user?.role === 'gm';
+        const isGM = req.user?.isGM === true;
 
         const move = req.db.prepare('SELECT * FROM moves WHERE id = ?').get(id);
         if (!move) return res.status(404).json({ error: 'Move introuvable' });

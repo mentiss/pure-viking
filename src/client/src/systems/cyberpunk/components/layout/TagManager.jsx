@@ -2,7 +2,7 @@
 // Tag narratif + TagAdder avec suggestions contextuelles par entityType.
 
 import React, {useCallback, useEffect, useState} from 'react';
-import {TAG_SUGGESTIONS_BY_TYPE} from "../../config.jsx";
+import {TAG_SUGGESTIONS_BY_TYPE, TAG_VARIANT_CLASS} from "../../config.jsx";
 import {useParams} from "react-router-dom";
 import {useAuth} from "../../../../context/AuthContext.jsx";
 import {useSocket} from "../../../../context/SocketContext.jsx";
@@ -10,12 +10,6 @@ import {useFetch} from "../../../../hooks/useFetch.js";
 import {useSession} from "../../../../context/SessionContext.jsx";
 
 // ── Suggestions par entité ────────────────────────────────────────────────────
-
-const TAG_VARIANT_CLASS = {
-    positive: 'cp-tag-positive',
-    negative: 'cp-tag-negative',
-    neutral:  'cp-tag-neutral',
-};
 
 // ── Tag ───────────────────────────────────────────────────────────────────────
 
@@ -90,7 +84,7 @@ export const TagAdder = ({ onAdd, compact = false, existingTags = [], entityType
         <div className="flex flex-col gap-1.5 relative">
             <div className="flex items-center gap-1.5">
                 {/* Sélecteur variant */}
-                <div className="flex gap-1 flex-shrink-0">
+                <div className="flex gap-1 shrink-0">
                     {Object.entries({ positive: '✦', negative: '✕', neutral: '◈' }).map(([v, icon]) => (
                         <button
                             key={v}

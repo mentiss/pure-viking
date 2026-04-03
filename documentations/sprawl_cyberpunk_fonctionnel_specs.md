@@ -74,25 +74,30 @@ Un job raté, une réputation entachée, une dette non honorée — la Cred peut
 
 ---
 
-## 4. [info] et [matos]
+## 4. [info], [matos] et Retenues
 
-Ce sont des **ressources narratives** obtenues en cours de jeu et converties en avantages concrets via le move **Plan B**.
+Le système comporte trois types de ressources distinctes. Il est important de ne pas les confondre.
 
 ### 4.1 [info]
 Une information concrète et exploitable sur l'opposition, l'environnement ou la mission — routine d'une cible, point faible d'un système de sécurité, identité d'un contact, contenu d'un fichier.
 
-On gagne de l'[info] via : Effectuer une recherche, Évaluer, certains moves de Playbook (Investigator, Media...) ou toute situation fictionnelle où un personnage découvre quelque chose d'utile.
+On gagne de l'[info] via : **Évaluer**, **Effectuer une recherche**, certains moves de Playbook (Investigator, Media...) ou toute situation fictionnelle où un personnage découvre quelque chose d'utile.
 
-Dépenser de l'[info] via Plan B convertit cette connaissance en avantage concret — le joueur décrit comment l'information lui permet d'agir différemment. Pas de jet supplémentaire, pas de Cred.
+Dépenser de l'[info] via **Plan B** convertit cette connaissance en avantage concret — le joueur décrit comment l'information lui permet d'agir différemment. Pas de jet supplémentaire, pas de Cred.
 
 ### 4.2 [matos]
 Un équipement spécifique acquis ou préparé — outil, arme, dispositif électronique, véhicule de substitution, kit médical.
 
 On gagne du [matos] via : certains moves de Playbook (Techie/Bric-à-brac, Investigator/Sous tous les angles, Solo/Haute voltige...) ou toute situation fictionnelle où un personnage met la main sur du matériel utile.
 
-Dépenser du [matos] via Plan B introduit cet équipement dans la scène. Le joueur décrit comment il l'avait prévu ou comment il l'a sur lui. Pas de jet supplémentaire, pas de Cred.
+Dépenser du [matos] via **Plan B** introduit cet équipement dans la scène. Le joueur décrit comment il l'avait prévu ou comment il l'a sur lui. Pas de jet supplémentaire, pas de Cred.
 
-> [info] et [matos] ne sont pas des jauges précises — on ne compte pas les unités. C'est une indication narrative : "tu as du matos disponible" ou "tu n'en as pas". Le MC valide toujours la cohérence de ce qui est introduit avec ce que le personnage a réellement pu obtenir.
+### 4.3 Retenues
+Les Retenues sont une currency **différente** de [info] et [matos]. Elles sont générées par certains moves de Playbook spécifiques — Entrée subreptice, Pénétrer un système, Visionnaire, Regard de dur, Un putain d'as du volant, Mais c'est bien sûr !... — et se dépensent pour des **effets précis définis dans ce move**.
+
+Contrairement à [info] et [matos] qui sont des ressources narratives libres, les Retenues représentent une capacité d'action concrète et délimitée. Elles sont sauvegardables entre les scènes — un Netrunner qui garde une Retenue d'une connexion précédente peut la dépenser lors d'une connexion ultérieure.
+
+> [info] et [matos] ne sont pas des jauges précises — on ne compte pas les unités. C'est une indication narrative : "tu as du matos disponible" ou "tu n'en as pas". Les Retenues en revanche sont comptées précisément puisqu'elles correspondent à des effets définis.
 
 ---
 
@@ -216,22 +221,16 @@ Sur un 10-14 : l'info est obtenue mais crée une obligation ou une dette.
 **Évaluer** *(Pro)*
 Observer et analyser une situation pour en extraire des informations exploitables.
 
-Le joueur gagne des points de **Retenue** :
-- 15+ → 3 points de Retenue
-- 10-14 → 1 point de Retenue
+Le joueur gagne des **[info]** :
+- 15+ → 3 [info]
+- 10-14 → 1 [info]
 - 9- → le MC agit, la situation se détériore pendant l'évaluation
 
-Chaque point de Retenue permet de poser **une question** au MC, qui doit répondre honnêtement :
-- De quelle potentielle complication devrais-je me méfier ?
-- Qu'est-ce que je remarque en dépit de l'effort fait pour le cacher ?
-- En quoi [X] m'est-il vulnérable ?
-- Comment puis-je éviter les ennuis ou me cacher ici ?
-- Quelle est la meilleure façon de m'infiltrer / m'exfiltrer / traverser ?
-- Où puis-je obtenir le meilleur avantage ?
-- Quelle est la plus grande menace dans cette situation ?
-- Qui est ou qu'est-ce qui est aux commandes ici ?
+Chaque [info] permet de poser **une question** au MC, qui doit répondre honnêtement. Les [info] peuvent être dépensées immédiatement ou conservées pour plus tard via **Plan B**.
 
-Les points de Retenue peuvent être dépensés immédiatement ou conservés pour plus tard dans la scène.
+> **Distinction clé entre Retenues et [info] :**
+> Les **Retenues** sont générées par certains moves de Playbook (Entrée subreptice, Pénétrer un système, Visionnaire, Regard de dur...) et se dépensent pour des **effets précis définis dans ce move**. Elles sont sauvegardables entre les scènes.
+> Les **[info]** sont une ressource narrative plus libre représentant une connaissance concrète — elles se dépensent via Plan B pour un avantage contextuel ou directement pour poser une question au MC.
 
 ---
 

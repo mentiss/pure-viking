@@ -40,9 +40,10 @@ import {StatCard} from "./components/layout/StatCard.jsx";
 import {XPPanel} from "./components/modals/XPPanel.jsx";
 import {MoveCard} from "./components/layout/MoveCard.jsx";
 import {ResourceCounter} from "./components/layout/ResourceCounter.jsx";
-import cyberpunkConfig from "./config.jsx";
+import cyberpunkConfig, {CYBERWARE_ALL, ITEMS_ALL} from "./config.jsx";
 import DiceEntryHistory from "./components/layout/DiceEntryHistory.jsx";
 import BoltFarm from "./components/ui/BoltFarm.jsx";
+import BrowseModal from "./components/modals/BrowseModal.jsx";
 
 // ── Onglets ───────────────────────────────────────────────────────────────────
 
@@ -114,11 +115,17 @@ const Sheet = ({
     const [showAvatar,     setShowAvatar]     = useState(false);
     const [showXPPanel,    setShowXPPanel]    = useState(false);
 
+    const [tagAdderToggleRelation, setTagAdderToggleRelation] = useState(false);
+    const [tagAdderToggleCyberware, setTagAdderToggleCyberware] = useState(false);
+    const [tagAdderToggleItems, setTagAdderToggleItems] = useState(false);
+    const [tagAdderToggleCharacter, setTagAdderToggleCharacter] = useState(false);
+
     // Moves
     const [movesTab,       setMovesTab]       = useState('playbook'); // 'base' | 'playbook'
     const [allMoves,       setAllMoves]       = useState([]);
     const [movesLoading,   setMovesLoading]   = useState(false);
     const [moveModal,      setMoveModal]      = useState(null); // { mode, move?, statKey? }
+    const [browseModal, setBrowseModal] = useState(null);
 
     // Tags en édition
     const [newTagText,    setNewTagText]    = useState('');
@@ -548,7 +555,18 @@ const Sheet = ({
                                         </Card>
 
                                         {/* ── TAGS PERSONNAGE ──────────────────────── */}
-                                        <Card title="États narratifs">
+                                        <Card
+                                            title="États narratifs"
+                                            action={
+                                                <button
+                                                    onClick={() => setTagAdderToggleCharacter(v => !v)}
+                                                    className={`text-xs px-2 py-0.5 rounded bg-none border-none cursor-pointer ${tagAdderToggleCharacter ? 'text-secondary' : 'text-primary'}`}
+                                                    title="Editer les tags"
+                                                >
+                                                    ⎚
+                                                </button>
+                                            }
+                                        >
                                             {(char?.tags ?? []).length > 0 ? (
                                                 <div className="flex flex-wrap gap-2">
                                                     {(char?.tags ?? []).map((tag, i) => (
@@ -564,7 +582,7 @@ const Sheet = ({
                                             ) : (
                                                 <p className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>Aucun état actif.</p>
                                             )}
-                                            <TagAdder
+                                            {tagAdderToggleCharacter && <TagAdder
                                                 existingTags={char?.tags ?? []}
                                                 onAdd={(text, variant) => {
                                                     setEditableChar(prev => ({
@@ -580,7 +598,7 @@ const Sheet = ({
                                                     }
                                                 }}
                                                 entityType="character"
-                                            />
+                                            />}
                                         </Card>
                                     </div>
 
@@ -596,27 +614,60 @@ const Sheet = ({
 
                                 <div className="grid grid-cols-2 gap-2">
                                     {/* ── CYBERWARE ────────────────────────────── */}
-                                    <Card title="Cyberware">
+                                    <Card
+                                        title="Cyberware"
+                                        action={
+                                            <div className="flex items-center gap-0.5">
+                                                <button
+                                                    onClick={() => setTagAdderToggleCyberware(v => !v)}
+                                                    className={`text-xs px-2 py-0.5 rounded bg-none border-none cursor-pointer ${tagAdderToggleCyberware ? 'text-secondary' : 'text-primary'}`}
+                                                    title="Editer les tags"
+                                                >
+                                                    ⎚
+                                                </button>
+                                                <button
+                                                    onClick={() => setBrowseModal('cyberware')}
+                                                    className="text-xs px-2 py-0.5 rounded text-primary bg-none border-none cursor-pointer"
+                                                    title="Parcourir le cyberware"
+                                                >
+                                                    ⊞
+                                                </button>
+                                            </div>
+                                        }
+                                    >
                                         {(char?.cyberware ?? []).length === 0 && !editMode && (
                                             <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Aucun implant.</p>
                                         )}
-                                        {(char?.cyberware ?? []).map((c, i) => (
+                                        {(editMode ? editableChar : char)?.cyberware?.map((c, idx) => (
                                             <CyberwareRow
-                                                key={c.id ?? i}
-                                                item={c}
+                                                key={c.id ?? `new_${idx}`}
+                                                item={editMode ? (editableChar?.cyberware?.[idx] ?? c) : c}
                                                 editMode={editMode}
                                                 onChange={(updated) => {
-                                                    setEditableChar(prev => ({
-                                                        ...prev,
-                                                        cyberware: prev.cyberware.map(x => x.id === c.id ? { ...x, ...updated } : x),
-                                                    }));
+                                                    const base = editMode ? editableChar : char;
+                                                    const next = {
+                                                        ...base,
+                                                        cyberware: base.cyberware.map((x, i) =>
+                                                            (c.id ? x.id === c.id : i === idx)
+                                                                ? { ...x, ...updated }
+                                                                : x
+                                                        ),
+                                                    };
+                                                    setEditableChar(next);
                                                 }}
-                                                onRemove={() => setEditableChar(prev => ({
-                                                    ...prev,
-                                                    cyberware: prev.cyberware.filter(x => x.id !== c.id),
-                                                }))}
+                                                onRemove={() => {
+                                                    const base = editMode ? editableChar : char;
+                                                    const next = {
+                                                        ...base,
+                                                        cyberware: base.cyberware.filter((x, i) =>
+                                                            c.id ? x.id !== c.id : i !== idx
+                                                        ),
+                                                    };
+                                                    setEditableChar(next);
+                                                }}
                                                 onRemoveTag={(tagIdx) => removeTag('cyberware', c.id, tagIdx)}
-                                                onAddTag={(text, variant) => addTag('cyberware', r.id, text, variant)}
+                                                onAddTag={(text, variant) => addTag('cyberware', c.id, text, variant)}
+                                                toggleTagAdder={tagAdderToggleCyberware}
                                             />
                                         ))}
                                         {editMode && (
@@ -638,7 +689,27 @@ const Sheet = ({
                                     </Card>
 
                                     {/* ── INVENTAIRE ───────────────────────────── */}
-                                    <Card title="Matos">
+                                    <Card
+                                        title="Matos"
+                                        action={
+                                            <div className="flex items-center gap-0.5">
+                                                <button
+                                                    onClick={() => setTagAdderToggleItems(v => !v)}
+                                                    className={`text-xs px-2 py-0.5 rounded bg-none border-none cursor-pointer ${tagAdderToggleItems ? 'text-secondary' : 'text-primary'}`}
+                                                    title="Editer les tags"
+                                                >
+                                                    ⎚
+                                                </button>
+                                                <button
+                                                    onClick={() => setBrowseModal('items')}
+                                                    className="text-xs px-2 py-0.5 rounded text-primary bg-none border-none cursor-pointer"
+                                                    title="Parcourir l'inventaire"
+                                                >
+                                                    ⊞
+                                                </button>
+                                            </div>
+                                        }
+                                    >
                                         {(char?.items ?? []).length === 0 && !editMode && (
                                             <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Inventaire vide.</p>
                                         )}
@@ -669,6 +740,7 @@ const Sheet = ({
                                                 }}
                                                 onRemoveTag={(tagIdx) => removeTag('item', item.id, tagIdx)}
                                                 onAddTag={(text, variant) => addTag('item', item.id, text, variant)}
+                                                toggleTagAdder={tagAdderToggleItems}
                                             />
                                         ))}
 
@@ -764,7 +836,18 @@ const Sheet = ({
                                     </Card>
 
                                     {/* ── RELATIONS ────────────────────────────── */}
-                                    <Card title="Relations">
+                                    <Card
+                                        title="Relations"
+                                        action={
+                                            <button
+                                                onClick={() => setTagAdderToggleRelation(v => !v)}
+                                                className={`text-xs px-2 py-0.5 rounded bg-none border-none cursor-pointer ${tagAdderToggleRelation ? 'text-secondary' : 'text-primary'}`}
+                                                title="Editer les tags"
+                                            >
+                                                ⎚
+                                            </button>
+                                        }
+                                    >
                                         {(char?.relations ?? []).map((r, i) => (
                                             <RelationRow
                                                 key={r.id ?? i}
@@ -782,6 +865,7 @@ const Sheet = ({
                                                     ...prev,
                                                     relations: prev.relations.filter(x => (x.id ?? x) !== (r.id ?? r)),
                                                 }))}
+                                                toggleTagAdder={tagAdderToggleRelation}
                                             />
                                         ))}
                                         {editMode && (
@@ -985,6 +1069,51 @@ const Sheet = ({
                         setEditableChar(prev => ({ ...prev, avatar: newAvatar }));
                     }}
                     onClose={() => setShowAvatar(false)}
+                />
+            )}
+            {browseModal === 'cyberware' && (
+                <BrowseModal
+                    title="Cyberware"
+                    items={CYBERWARE_ALL}
+                    groupKey="category"
+                    onAdd={(cw) => {
+                        const base = editMode ? editableChar : char;
+                        const next = {
+                            ...base,
+                            cyberware: [...(base.cyberware ?? []), {
+                                name:        cw.name,
+                                option_text: '',
+                                notes:       '',
+                                tags:        cw.tags.map(t => ({ tag_text: t.text, tag_variant: t.variant })),
+                            }],
+                        };
+                        setEditableChar(next);
+                        if (!editMode) onCharacterUpdate(next);
+                    }}
+                    onClose={() => setBrowseModal(null)}
+                />
+            )}
+
+            {browseModal === 'items' && (
+                <BrowseModal
+                    title="Inventaire"
+                    items={ITEMS_ALL}
+                    groupKey="category"
+                    onAdd={(it) => {
+                        const base = editMode ? editableChar : char;
+                        const next = {
+                            ...base,
+                            items: [...(base.items ?? []), {
+                                name:        it.name,
+                                description: '',
+                                quantity:    1,
+                                tags:        it.tags.map(t => ({ tag_text: t.text, tag_variant: t.variant })),
+                            }],
+                        };
+                        setEditableChar(next);
+                        if (!editMode) onCharacterUpdate(next);
+                    }}
+                    onClose={() => setBrowseModal(null)}
                 />
             )}
         </div>

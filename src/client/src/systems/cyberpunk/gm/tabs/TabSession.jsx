@@ -36,12 +36,13 @@ import {
     ItemRow,
 } from '../../components/layout/Rows.jsx';
 
-import { STAT_LABELS } from '../../config.jsx';
+import {CYBERWARE_ALL, ITEMS_ALL, STAT_LABELS} from '../../config.jsx';
 import useSystem from "../../../../hooks/useSystem.js";
 import {useFetch} from "../../../../hooks/useFetch.js";
 import {useSocket} from "../../../../context/SocketContext.jsx";
 import GMSendModal from "../../../../components/gm/modals/GMSendModal.jsx";
 import {useParams} from "react-router-dom";
+import BrowseModal from "../../components/modals/BrowseModal.jsx";
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
@@ -87,6 +88,10 @@ const TabSession = ({ activeSession, onlineCharacters, onSessionChange }) => {
     const [selectedId,   setSelectedId]   = useState(null);
     const [loading,      setLoading]      = useState(false);
     const [saving,       setSaving]       = useState(false);
+    const [tagAdderToggleRelation, setTagAdderToggleRelation] = useState(false);
+    const [tagAdderToggleCyberware, setTagAdderToggleCyberware] = useState(false);
+    const [tagAdderToggleItems, setTagAdderToggleItems] = useState(false);
+    const [tagAdderToggleCharacter, setTagAdderToggleCharacter] = useState(false);
 
     // Édition locale du perso sélectionné
     const [localChar,    setLocalChar]    = useState(null);
@@ -102,6 +107,8 @@ const TabSession = ({ activeSession, onlineCharacters, onSessionChange }) => {
     const [sendItemForm, setSendItemForm] = useState({ name: '', description: '', quantity: 1 });
     const [sendItemMsg,  setSendItemMsg]  = useState(null);
     const [copied, setCopied] = useState(false);
+    const [browseModal, setBrowseModal] = useState(null);
+    const [confirmDelete, setConfirmDelete] = useState(null);
 
     const onlineIds = new Set((onlineCharacters ?? []).map(c => c.characterId));
 
@@ -285,6 +292,20 @@ const TabSession = ({ activeSession, onlineCharacters, onSessionChange }) => {
                     ? { ...c, tags: (c.tags ?? []).filter((_, i) => i !== tagIdx) }
                     : c
             ),
+        });
+    };
+
+    const removeCyberware = (cyberwareItem) => {
+        if (!char) return;
+        patchChar(char.id, {
+            cyberware: (char.cyberware ?? []).filter(c => c !== cyberwareItem),
+        });
+    };
+
+    const removeItem = (item) => {
+        if (!char) return;
+        patchChar(char.id, {
+            items: (char.items ?? []).filter(it => it !== item),
         });
     };
 
@@ -540,7 +561,18 @@ const TabSession = ({ activeSession, onlineCharacters, onSessionChange }) => {
                                 <IdentityCard char={char} editMode={false} set={() => {}} showAvatar={false} setShowAvatar={() => {}} />
 
                                 {/* ── États narratifs (tags) ────────────────────────── */}
-                                <Card title="États narratifs">
+                                <Card
+                                    title="États narratifs"
+                                    action={
+                                        <button
+                                            onClick={() => setTagAdderToggleCharacter(v => !v)}
+                                            className={`text-xs px-2 py-0.5 rounded bg-none border-none cursor-pointer ${tagAdderToggleCharacter ? 'text-secondary' : 'text-primary'}`}
+                                            title="Editer les tags"
+                                        >
+                                            ⎚
+                                        </button>
+                                    }
+                                >
                                     {(char.tags ?? []).length > 0 ? (
                                         <div className="flex flex-wrap gap-2">
                                             {(char.tags ?? []).map((tag, i) => (
@@ -553,8 +585,8 @@ const TabSession = ({ activeSession, onlineCharacters, onSessionChange }) => {
                                             Aucun état actif.
                                         </p>
                                     )}
-                                    <TagAdder entityType="character" existingTags={char.tags ?? []}
-                                              onAdd={addCharTag} />
+                                    {tagAdderToggleCharacter && <TagAdder entityType="character" existingTags={char.tags ?? []}
+                                              onAdd={addCharTag} />}
                                 </Card>
                             </div>
 
@@ -595,48 +627,100 @@ const TabSession = ({ activeSession, onlineCharacters, onSessionChange }) => {
 
                     <div className="grid grid-cols-2 gap-4">
                         {/* ── Cyberware ────────────────────────────────────── */}
-                        <Card title="Cyberware">
+                        <Card
+                            title="Cyberware"
+                            action={
+                                <div className="flex items-center gap-0.5">
+                                    <button
+                                        onClick={() => setTagAdderToggleCyberware(v => !v)}
+                                        className={`text-xs px-2 py-0.5 rounded bg-none border-none cursor-pointer ${tagAdderToggleCyberware ? 'text-secondary' : 'text-primary'}`}
+                                        title="Editer les tags"
+                                    >
+                                        ⎚
+                                    </button>
+                                    <button
+                                        onClick={() => setBrowseModal('cyberware')}
+                                        className="text-xs px-2 py-0.5 rounded text-primary bg-none border-none cursor-pointer"
+                                        title="Parcourir le cyberware"
+                                    >
+                                        ⊞
+                                    </button>
+                                </div>
+                            }
+                        >
                             {(char.cyberware ?? []).length === 0 && (
                                 <p className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>Aucun implant.</p>
                             )}
                             {(char.cyberware ?? []).map((c, i) => (
-                                <CyberwareRow key={c.id ?? i} item={c}
-                                              editMode={false}
-                                              onChange={() => {}}
-                                              onRemove={() => {}}
-                                              onRemoveTag={(tagIdx) => removeCyberTag(c, tagIdx)}
-                                              onAddTag={(text, variant) => addCyberTag(c, text, variant)} />
+                                <CyberwareRow
+                                    key={c.id ?? i}
+                                    item={c}
+                                    editMode={false}
+                                    tagsEditable={true}
+                                    removable={true}
+                                    onChange={() => {}}
+                                    onRemove={() => setConfirmDelete({ type: 'cyberware', item: c })}
+                                    onRemoveTag={(tagIdx) => removeCyberTag(c, tagIdx)}
+                                    onAddTag={(text, variant) => addCyberTag(c, text, variant)}
+                                    toggleTagAdder={tagAdderToggleCyberware}
+                                />
                             ))}
                         </Card>
 
                         {/* ── Inventaire ───────────────────────────────────────────────── */}
-                        <Card title="Inventaire">
+                        <Card
+                            title="Matos"
+                            action={
+                                <div className="flex items-center gap-0.5">
+                                    <button
+                                        onClick={() => setTagAdderToggleItems(v => !v)}
+                                        className={`text-xs px-2 py-0.5 rounded bg-none border-none cursor-pointer ${tagAdderToggleItems ? 'text-secondary' : 'text-primary'}`}
+                                        title="Editer les tags"
+                                    >
+                                        ⎚
+                                    </button>
+                                    <button
+                                        onClick={() => setBrowseModal('items')}
+                                        className="text-xs px-2 py-0.5 rounded text-primary bg-none border-none cursor-pointer"
+                                        title="Parcourir le matos"
+                                    >
+                                        ⊞
+                                    </button>
+                                </div>
+                            }
+                        >
                             {(char.items ?? []).length === 0 && (
                                 <p className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>Inventaire vide.</p>
                             )}
                             {(char.items ?? []).map((item, i) => (
-                                <ItemRow key={item.id ?? i} item={item}
-                                         editMode={false}
-                                         onChange={() => {}}
-                                         onRemove={() => {}}
-                                         onRemoveTag={(tagIdx) => {
-                                             patchChar(char.id, {
-                                                 items: (char.items ?? []).map(it =>
-                                                     it === item
-                                                         ? { ...it, tags: (it.tags ?? []).filter((_, idx) => idx !== tagIdx) }
-                                                         : it
-                                                 ),
-                                             });
-                                         }}
-                                         onAddTag={(text, variant) => {
-                                             patchChar(char.id, {
-                                                 items: (char.items ?? []).map(it =>
-                                                     it === item
-                                                         ? { ...it, tags: [...(it.tags ?? []), { tag_text: text, tag_variant: variant }] }
-                                                         : it
-                                                 ),
-                                             });
-                                         }} />
+                                <ItemRow
+                                    key={item.id ?? i}
+                                    item={item}
+                                    editMode={false}
+                                    tagsEditable={true}
+                                    removable={true}
+                                    onChange={() => {}}
+                                    onRemove={() => removeItem(item)}
+                                    onRemoveTag={(tagIdx) => {
+                                        patchChar(char.id, {
+                                            items: (char.items ?? []).map(it =>
+                                                it === item
+                                                    ? { ...it, tags: (it.tags ?? []).filter((_, idx) => idx !== tagIdx) }
+                                                    : it
+                                            ),
+                                        });
+                                    }}
+                                    onAddTag={(text, variant) => {
+                                        patchChar(char.id, {
+                                            items: (char.items ?? []).map(it =>
+                                                it === item
+                                                    ? { ...it, tags: [...(it.tags ?? []), { tag_text: text, tag_variant: variant }] }
+                                                    : it
+                                            ),
+                                        });
+                                    }}
+                                    toggleTagAdder={tagAdderToggleItems}
+                                />
                             ))}
                         </Card>
                     </div>
@@ -670,7 +754,18 @@ const TabSession = ({ activeSession, onlineCharacters, onSessionChange }) => {
                         </Card>
 
                         {/* ── Relations ────────────────────────────────────── */}
-                        <Card title="Relations">
+                        <Card
+                            title="Relations"
+                            action={
+                                <button
+                                    onClick={() => setTagAdderToggleRelation(v => !v)}
+                                    className={`text-xs px-2 py-0.5 rounded bg-none border-none cursor-pointer ${tagAdderToggleRelation ? 'text-secondary' : 'text-primary'}`}
+                                    title="Editer les tags"
+                                >
+                                    ⎚
+                                </button>
+                            }
+                        >
                             {(char.relations ?? []).length === 0 && (
                                 <p className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>Aucune relation.</p>
                             )}
@@ -680,7 +775,9 @@ const TabSession = ({ activeSession, onlineCharacters, onSessionChange }) => {
                                              onChange={() => {}}
                                              onRemove={() => {}}
                                              onRemoveTag={(tagIdx) => removeRelationTag(r, tagIdx)}
-                                             onAddTag={(text, variant) => addRelationTag(r, text, variant)} />
+                                             onAddTag={(text, variant) => addRelationTag(r, text, variant)}
+                                             toggleTagAdder={tagAdderToggleRelation}
+                                />
                             ))}
                         </Card>
                     </div>
@@ -747,6 +844,88 @@ const TabSession = ({ activeSession, onlineCharacters, onSessionChange }) => {
                     sessionCharacters={sessionCharacters}
                     preSelectedCharId={selectedId}
                 />
+            )}
+            {browseModal === 'cyberware' && char && (
+                <BrowseModal
+                    title="Cyberware"
+                    items={CYBERWARE_ALL}
+                    groupKey="category"
+                    onAdd={(cw) => {
+                        patchChar(char.id, {
+                            cyberware: [...(char.cyberware ?? []), {
+                                name:        cw.name,
+                                option_text: '',
+                                notes:       '',
+                                tags:        cw.tags.map(t => ({ tag_text: t.text, tag_variant: t.variant })),
+                            }],
+                        });
+                    }}
+                    onClose={() => setBrowseModal(null)}
+                />
+            )}
+
+            {browseModal === 'items' && char && (
+                <BrowseModal
+                    title="Inventaire"
+                    items={ITEMS_ALL}
+                    groupKey="category"
+                    onAdd={(it) => {
+                        patchChar(char.id, {
+                            items: [...(char.items ?? []), {
+                                name:        it.name,
+                                description: '',
+                                quantity:    1,
+                                tags:        it.tags.map(t => ({ tag_text: t.text, tag_variant: t.variant })),
+                            }],
+                        });
+                    }}
+                    onClose={() => setBrowseModal(null)}
+                />
+            )}
+            {confirmDelete && (
+                <>
+                    <div
+                        className="fixed inset-0 z-40"
+                        style={{ background: 'rgba(0,0,0,0.7)' }}
+                        onClick={() => setConfirmDelete(null)}
+                    />
+                    <div
+                        className="fixed z-50 rounded-xl p-5 flex flex-col gap-4 shadow-2xl"
+                        style={{
+                            background: 'var(--color-surface)',
+                            border:     '1px solid var(--color-border)',
+                            top:        '50%',
+                            left:       '50%',
+                            transform:  'translate(-50%, -50%)',
+                            minWidth:   '280px',
+                            maxWidth:   '360px',
+                        }}
+                    >
+                        <div>
+                            <p className="text-sm font-bold cp-font-ui uppercase tracking-wide mb-1"
+                               style={{ color: 'var(--color-danger)' }}>
+                                Supprimer l'implant
+                            </p>
+                            <p className="text-sm" style={{ color: 'var(--color-text)' }}>
+                                Retirer <strong>{confirmDelete.item.name}</strong> du personnage ?
+                            </p>
+                            <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                                Cette action est immédiate et irréversible.
+                            </p>
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                            <Btn small variant="ghost" onClick={() => setConfirmDelete(null)}>
+                                Annuler
+                            </Btn>
+                            <Btn small variant="danger" onClick={() => {
+                                removeCyberware(confirmDelete.item);
+                                setConfirmDelete(null);
+                            }}>
+                                Supprimer
+                            </Btn>
+                        </div>
+                    </div>
+                </>
             )}
         </div>
     );
