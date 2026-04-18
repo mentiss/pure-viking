@@ -1,6 +1,6 @@
 {
-  "name": "pure-vikings-app",
-  "version": "4.0.0",
+  "name": "vtt-light-app",
+  "version": "4.4.0",
   "description": "App VTT multi-JDR",
   "main": "src/server/server.js",
   "scripts": {
@@ -17,7 +17,7 @@
     "rpg",
     "saga"
   ],
-  "author": "",
+  "author": "mentiss",
   "license": "MIT",
   "dependencies": {
     "better-sqlite3": "^9.2.2",

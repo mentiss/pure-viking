@@ -250,7 +250,7 @@ CREATE TABLE IF NOT EXISTS game_sessions (
 ```
 src/server/systems/tecumah/
   config.js
-  characterController.js
+  CharacterController.js
   routes/
     characters.js          ← CRUD personnage + backgrounds + items
   socket/
@@ -269,7 +269,7 @@ module.exports = {
 };
 ```
 
-### 3.3 `characterController.js`
+### 3.3 `CharacterController.js`
 
 `loadFullCharacter` retourne :
 
@@ -1142,7 +1142,7 @@ Le pattern est identique à Vikings/Dune :
 
 | Phase | Contenu | Priorité | Dépendances |
 |---|---|---|---|
-| **A** | `tecumah-schema.sql` · `config.js` · `characterController.js` · `routes/characters.js` | 🔴 Bloquant | — |
+| **A** | `tecumah-schema.sql` · `config.js` · `CharacterController.js` · `routes/characters.js` | 🔴 Bloquant | — |
 | **B** | `socket/complications.js` — 5 événements temps réel (complications + PD/PP/blessure) | 🔴 Bloquant | A |
 | **C** | `utils/` (diceUtils, skills, xpCosts, backgrounds) · `config.jsx` · `theme.css` | 🔴 Core | A |
 | **D** | `Sheet.jsx` + composants (AttributeRow, SkillRow, HealthTrack, BackgroundList, ResourcesBar, DefensePanel, InventoryTab) | 🔴 Core | A + C |
@@ -1162,7 +1162,7 @@ Le pattern est identique à Vikings/Dune :
 - [ ] `game_sessions` — colonne `complications INTEGER DEFAULT 0`
 - [ ] `character_backgrounds` — table créée
 - [ ] `character_items` — colonnes `damage_pips`, `range_short/medium/long`, `skill_key`
-- [ ] `characterController.js` — `loadFullCharacter` (backgrounds + items) / `saveFullCharacter`
+- [ ] `CharacterController.js` — `loadFullCharacter` (backgrounds + items) / `saveFullCharacter`
 - [ ] `routes/characters.js` — POST public · GET/PUT authentifiés
 - [ ] `socket/complications.js` — 5 événements + broadcasts
 

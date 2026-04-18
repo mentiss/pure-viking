@@ -44,7 +44,7 @@
 │   │   │   ├── Loader.js              # Auto-scan + registre des systèmes
 │   │   │   └── vikings/               # Système Pure Vikings
 │   │   │       ├── config.jsx          # { slug, label, dbPath, schemaPath }
-│   │   │       ├── characterController.js
+│   │   │       ├── CharacterController.js
 │   │   │       └── routes/
 │   │   │           ├── characters.js  # Routes spécifiques personnages
 │   │   │           └── combat.js      # Routes spécifiques combat
@@ -264,7 +264,7 @@ Les rooms sont isolées par système et session : `${system}_session_${sessionId
 ### Ajouter un nouveau système
 
 1. Créer `src/server/systems/:slug/config.jsx`
-2. Créer `src/server/systems/:slug/characterController.js`
+2. Créer `src/server/systems/:slug/CharacterController.js`
 3. Créer `src/server/systems/:slug/routes/characters.js`
 4. Créer `src/server/systems/:slug/routes/combat.js`
 5. Créer `database-template/:slug-schema.sql`

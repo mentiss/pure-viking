@@ -163,7 +163,6 @@ const PlayerPage = () => {
 
     // ── Vérification composants système ─────────────────────────────────────
     const sheetKey    = `../systems/${system}/Sheet.jsx`;
-    const creationKey = `../systems/${system}/Creation.jsx`;
 
     if (!SHEETS[sheetKey]) {
         return (

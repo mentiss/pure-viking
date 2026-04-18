@@ -1,6 +1,6 @@
 const LoadingScreen = () => (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-2xl text-white animate-pulse">Chargement...</div>
+    <div className="min-h-screen bg-default flex items-center justify-center">
+        <div className="text-2xl text-primary animate-pulse">Chargement...</div>
     </div>
 );
 

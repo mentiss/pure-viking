@@ -20,7 +20,7 @@ const CodeModal = ({ isOpen, onClose, character, onSuccess }) => {
         setLoading(true);
 
         try {
-            const loggedCharacter = await login(code, character.accessUrl);
+            const loggedCharacter = await login(code, character.accessUrl ?? character.access_url);
             onSuccess(loggedCharacter);
             setCode('');
             onClose();
@@ -95,7 +95,7 @@ const CodeModal = ({ isOpen, onClose, character, onSuccess }) => {
                         <button
                             type="submit"
                             disabled={loading || !code}
-                            className="flex-1 px-4 py-2 bg-primary text-bg rounded-lg font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 px-4 py-2 bg-primary text-accent rounded-lg font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? 'Vérification...' : 'Valider'}
                         </button>

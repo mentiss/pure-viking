@@ -1,0 +1,36 @@
+:root {
+    /* --- MODE SOLIS (Or, Cuivre et Lumière) --- */
+    --color-primary:     #a67c00; /* Or riche (plus saturé) */
+    --color-secondary:   #8c5e35; /* Cuivre chaud */
+    --color-accent:      #d9a066; /* Ambre */
+    --color-danger:      #b22222;
+    --color-success:     #406640;
+
+    /* On remplace le gris terne par un crème doré lumineux */
+    --color-bg:          #faf6ed; /* Éclat de soie / Ivoire */
+    --color-surface:     #ffffff; /* Lumière pure */
+    --color-surface-alt: #f0e6d2; /* Ombre dorée */
+
+    --color-default:     #3d3021; /* Brun sépia très foncé (plus doux que le noir) */
+    --color-text:        #4a3b2a;
+    --color-text-muted:  #8c7b65;
+    --color-border:      #d1c0a8; /* Laiton clair */
+}
+
+[data-theme="dark"] {
+    /* --- MODE NOCTIS (Obsidienne et Magie) --- */
+    --color-primary:     #ffc800; /* Or incandescent */
+    --color-secondary:   #d4af37;
+    --color-accent:      #ffdb70;
+    --color-danger:      #ff4d4d;
+    --color-success:     #00ffbb;
+
+    --color-bg:          #050508; /* Noir profond façon vide spatial */
+    --color-surface:     #121218; /* Acier de minuit */
+    --color-surface-alt: #1a1b26;
+
+    --color-default:     #f4eedd; /* Blanc cassé antique */
+    --color-text:        #e6dfcc;
+    --color-text-muted:  #7a7d8c;
+    --color-border:      #303240;
+}

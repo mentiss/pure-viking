@@ -8,7 +8,7 @@
 //   presets  : string[] optionnel (liste d'emojis)
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useRef } from 'react';
+import React, {useRef, useState} from 'react';
 import AlertModal from "../../../components/modals/AlertModal.jsx";
 
 const DEFAULT_THREAT_PRESETS = ['⚠','💀','🏢','🤖','🔫','🧬','👁','🐍','💣','🕷','🌆','🔥','⚡','🩸','🎭'];

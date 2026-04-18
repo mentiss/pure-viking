@@ -51,6 +51,7 @@ const DEFAULT_HOOKS = {
         allDice: raw.allDice,
         groups:  raw.groups,
         flags:   raw.flags,
+        persistHistory: true,
     }),
 
     /**

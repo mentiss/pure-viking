@@ -120,7 +120,7 @@ const CharacterListModal = ({ isOpen, currentCharId, onClose, onSelect }) => {
                 <div className="p-4 border-t-2 border-default bg-surface-alt">
                     <button
                         onClick={onClose}
-                        className="w-full px-4 py-2 bg-primary text-bg rounded font-semibold hover:opacity-90 transition-colors"
+                        className="w-full px-4 py-2 bg-primary text-accent rounded font-semibold hover:opacity-90 transition-colors"
                     >
                         Fermer
                     </button>

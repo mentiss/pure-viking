@@ -1,0 +1,399 @@
+/* src/client/src/systems/deltagreen/theme.css */
+/* ─────────────────────────────────────────────────────────────────────────────
+   Thème Delta Green — Document fédéral américain classifié (années 90-2000)
+   Mode jour  : papier administratif crème, encre noire, rouge fédéral
+   Mode nuit  : papier sombre, encre claire, rouge atténué
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* ── Mode JOUR (par défaut) ─────────────────────────────────────────────── */
+:root {
+    /* Couleurs plateforme — adaptées à l'esthétique administrative */
+    --color-primary:        #1a1a1a;   /* Encre noire — titres, labels */
+    --color-secondary:      #3a3a3a;   /* Gris anthracite — sous-titres */
+    --color-accent:         #8b0000;   /* Rouge fédéral — alertes, tampons */
+    --color-danger:         #c0392b;   /* Rouge alarme */
+    --color-success:        #1a5e2a;   /* Vert administration */
+
+    /* Surfaces — papier administratif */
+    --color-bg:             #f5f0e8;   /* Papier crème légèrement texturé */
+    --color-surface:        #ede8dc;   /* Formulaire légèrement plus sombre */
+    --color-surface-alt:    #e4ddd0;   /* Sections alternées */
+
+    /* Texte */
+    --color-text:           #1a1a1a;   /* Encre noire */
+    --color-text-muted:     #5a5a5a;   /* Gris fonctionnaire */
+
+    /* Bordure — lignes fines de formulaire */
+    --color-border:         #999080;   /* Gris chaud — bordures formulaire */
+
+    /* ── Variables slug-spécifiques ─────────────────────────────────────── */
+
+    /* Tampons & annotations */
+    --dg-stamp-red:         #8b0000;
+    --dg-stamp-blue:        #003080;
+    --dg-stamp-opacity:     0.85;
+
+    /* En-tête Delta Green */
+    --dg-header-bg:         #1a1a1a;
+    --dg-header-text:       #ffffff;
+
+    /* Champs de formulaire */
+    --dg-field-bg:          #ffffff;
+    --dg-field-border:      #999080;
+    --dg-field-label:       #1a1a1a;
+
+    /* Section SAN — légèrement teintée */
+    --dg-san-surface:       #f0eae0;
+    --dg-san-border:        #8b0000;
+
+    /* Bonds */
+    --dg-bond-surface:      #eee8da;
+    --dg-bond-damaged:      #8b0000;
+
+    /* Compétences */
+    --dg-skill-hover:       #ddd7c8;
+    --dg-skill-checked:     #3a1a1a;  /* Couleur case cochée (échec) */
+
+    /* Séparateurs horizontaux de section */
+    --dg-divider:           #999080;
+
+    /* Pied de page */
+    --dg-footer-text:       #5a5a5a;
+    --dg-footer-bg:         #e4ddd0;
+
+    /* ── Dégradation — paliers visuels ──────────────────────────────────── */
+    /* Palier 0 : aucun effet (défaut) */
+    --dg-degrade-opacity:       1;
+    --dg-degrade-blur:          0px;
+    --dg-degrade-saturate:      1;
+    --dg-degrade-noise:         0;
+
+    /* Transitions */
+    --dg-degrade-transition:    all 2.5s ease;
+
+    --dg-censure-color: var(--color-primary);
+    --dg-paper-noise: rgba(0, 0, 0, 0.03);
+}
+
+/* ── Mode NUIT ──────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+    --color-primary:        #d4cfc5;   /* Encre claire sur fond sombre */
+    --color-secondary:      #a09890;   /* Gris papier usé */
+    --color-accent:         #cc2020;   /* Rouge atténué mais lisible */
+    --color-danger:         #e05040;
+    --color-success:        #4a9a5a;
+
+    /* Surfaces — papier noirci, archives nocturnes */
+    --color-bg:             #1c1a16;   /* Parchemin brûlé */
+    --color-surface:        #252218;   /* Formulaire légèrement plus clair */
+    --color-surface-alt:    #2e2a20;
+
+    /* Texte */
+    --color-text:           #d4cfc5;   /* Encre blanchie */
+    --color-text-muted:     #7a7368;   /* Texte secondaire effacé */
+
+    /* Bordure */
+    --color-border:         #4a4438;
+
+    /* ── Variables slug-spécifiques — mode nuit ─────────────────────────── */
+    --dg-stamp-red:         #cc2020;
+    --dg-stamp-blue:        #2060a0;
+
+    --dg-header-bg:         #0e0d0b;
+    --dg-header-text:       #d4cfc5;
+
+    --dg-field-bg:          #201e18;
+    --dg-field-border:      #4a4438;
+    --dg-field-label:       #d4cfc5;
+
+    --dg-san-surface:       #241e18;
+    --dg-san-border:        #cc2020;
+
+    --dg-bond-surface:      #221e18;
+    --dg-bond-damaged:      #cc2020;
+
+    --dg-skill-hover:       #2e2a20;
+    --dg-skill-checked:     #e0b090;
+
+    --dg-divider:           #4a4438;
+
+    --dg-footer-text:       #7a7368;
+    --dg-footer-bg:         #171510;
+
+    --dg-censure-color: #000000;
+    --dg-paper-noise: rgba(255, 255, 255, 0.02);
+}
+
+.dg-censured {
+    background: var(--dg-censure-color) !important;
+    color: transparent !important;
+    position: relative;
+    display: inline-block;
+    padding: 0 4px;
+    clip-path: polygon(0% 12%, 100% 0%, 98% 88%, 3% 100%); /* Look marqueur */
+    user-select: none;
+    pointer-events: none;
+}
+
+/* On ajoute un grain de papier/encre par dessus */
+.dg-censured::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.15;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)'/%3E%3C/svg%3E");
+    pointer-events: none;
+}
+
+/*!* ══════════════════════════════════════════════════════════════════════════*/
+/*   DÉGRADATION VISUELLE — Paliers 0 → 4*/
+/*   Appliqués via data-palier="N" sur le wrapper de la fiche.*/
+/*   En mode édition (editMode=true), aucune classe de dégradation n'est rendue.*/
+/*   ══════════════════════════════════════════════════════════════════════════ *!*/
+
+
+/* ── Palier 1 — L'Inconfort (Dissonance Cognitive) ──────────────────── */
+
+/* Flou focal pulsé sur toute la page */
+[data-palier="1"] .dg-sheet-wrapper,
+[data-palier="2"] .dg-sheet-wrapper {
+    animation: dg-eye-strain 12s infinite alternate ease-in-out;
+}
+
+@keyframes dg-eye-strain {
+    0%, 20%  { filter: blur(0px); }
+    50%      { filter: blur(0.7px) saturate(0.9); }
+    80%, 100%{ filter: blur(0px); }
+}
+
+[data-palier="1"] .dg-header h1 {
+    text-shadow: 1px 0 0 rgba(139, 0, 0, 0.4);
+    animation: dg-flicker 10s infinite;
+}
+
+/* ── Palier 2 — La Paranoïa (Instabilité systémique) ─────────────────── */
+
+[data-palier="2"] .dg-sheet-wrapper {
+    filter: saturate(0.5) contrast(1.05);
+}
+
+/* Les étiquettes et labels vibrent (anxiété) */
+[data-palier="2"] .dg-section-label,
+[data-palier="2"] .dg-field-label {
+    animation: dg-tremble-micro 5s infinite;
+}
+
+/* L'en-tête devient instable */
+[data-palier="2"] .dg-header span {
+    font-family: 'Courier New', monospace;
+    filter: blur(0.5px);
+    letter-spacing: -0.5px;
+    animation: dg-flicker 4s infinite;
+}
+
+/* Tampon dynamique */
+[data-palier="2"] .dg-header::after {
+    animation: dg-pulse-red 4s infinite;
+}
+
+/* ── Palier 3 — La Fracture (Effondrement du Réel) ───────────────────── */
+
+[data-palier="3"] .dg-sheet-wrapper {
+    transform: rotate(0.5deg);
+    filter: saturate(0.2) contrast(1.2) sepia(0.2);
+    /* Ajout d'un vignetage sombre sur les bords */
+    box-shadow: inset 0 0 100px rgba(0,0,0,0.2);
+}
+
+/* Glitch chromatique agressif sur les zones de SAN et Bonds */
+[data-palier="3"] .dg-san-section,
+[data-palier="3"] .dg-bonds-section,
+[data-palier="3"] .dg-header h1 {
+    animation: dg-chromatic-glitch 4s infinite step-end;
+}
+
+/* Les boutons de navigation commencent à se décaler */
+[data-palier="3"] nav button {
+    animation: dg-tremble-micro 2s infinite reverse;
+}
+
+/* ── Palier 4 — Le Vide (Archive Compromise) ─────────────────────────── */
+
+[data-palier="4"] .dg-sheet-wrapper {
+    /* On ne met plus le grayscale ici ! On garde juste le figeage */
+    pointer-events: none;
+    position: relative;
+}
+
+/* On applique le grayscale à TOUT sauf au tampon */
+[data-palier="4"] .dg-sheet-wrapper > *:not(.dg-stamp-red) {
+    filter: grayscale(1) contrast(1.5) brightness(0.9);
+    transition: var(--dg-degrade-transition);
+}
+
+/* Le Stamp de fin du monde - Lui reste en couleur */
+[data-palier="4"] .dg-stamp-red {
+    font-size: 2.2rem;
+    margin: 3rem auto;
+    display: block;
+    width: fit-content;
+    z-index: 110; /* Au-dessus des scanlines */
+
+    /* On force le rouge pour ignorer les filtres parents potentiels */
+    background: #8b0000 !important;
+    color: #f5f0e8 !important; /* Couleur papier crème pour le texte */
+
+    transform: rotate(-4deg);
+    padding: 0.5rem 1.5rem;
+    box-shadow: 0 0 0 6px #8b0000, 5px 10px 20px rgba(0,0,0,0.4);
+    animation: dg-stamp-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Les scanlines (Overlay) - On baisse l'opacité pour ne pas ternir le rouge */
+[data-palier="4"] .dg-sheet-wrapper::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.05) 3px);
+    background-size: 100% 3px;
+    z-index: 105;
+    pointer-events: none;
+}
+/* ── Nouvelles Animations ─────────────────────────────────────────────── */
+
+@keyframes dg-tremble-micro {
+    0%, 94% { transform: translate(0, 0); }
+    95% { transform: translate(0.8px, 0.4px); }
+    96% { transform: translate(-0.8px, -0.2px); }
+    97% { transform: translate(0, 0); }
+}
+
+@keyframes dg-chromatic-glitch {
+    0%, 92% { text-shadow: none; transform: scale(1); }
+    93% { text-shadow: 2px 0 red, -2px 0 cyan; transform: scale(1.01); }
+    95% { text-shadow: -2px 0 red, 2px 0 cyan; transform: scale(0.99); }
+    97% { text-shadow: none; transform: scale(1); }
+}
+
+@keyframes dg-eye-strain {
+    0%, 30%  { filter: blur(0px) saturate(1); }
+    50%      { filter: blur(0.8px) saturate(0.8); }
+    70%, 100%{ filter: blur(0px) saturate(1); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TYPOGRAPHIE SLUG-SPÉCIFIQUE
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Police principale — document administratif */
+.dg-font-admin {
+    font-family: 'Special Elite', 'Courier New', 'Courier', monospace;
+}
+
+.dg-font-delta {
+    font-family: 'DeltaGreen', 'Special Elite', 'Courier New', 'Courier', monospace;
+}
+
+.dg-font-signature {
+    font-family: 'Signature', serif;
+}
+
+/* Référence dans les variables pour les tampons (utilisé dans les pseudo-éléments) */
+:root {
+    --dg-font-stamp: 'Special Elite', 'Courier New', 'Courier', monospace;
+    --dg-font-body:  'Courier New', 'Courier', monospace;
+}
+
+/* Labels de section — style formulaire fédéral */
+.dg-section-label {
+    font-family: var(--dg-font-body);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text);
+}
+
+/* En-tête Delta Green */
+.dg-header {
+    background: var(--dg-header-bg);
+    color: var(--dg-header-text);
+    font-family: var(--dg-font-stamp);
+    letter-spacing: 0.08em;
+    position: relative;
+}
+
+/* Tampons */
+.dg-stamp {
+    font-family: var(--dg-font-stamp);
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    border: 2px solid currentColor;
+    padding: 0.1em 0.5em;
+    display: inline-block;
+}
+
+.dg-stamp-red  { color: var(--dg-stamp-red);  border-color: var(--dg-stamp-red);  }
+.dg-stamp-blue { color: var(--dg-stamp-blue); border-color: var(--dg-stamp-blue); }
+
+/* Ligne de formulaire — bordure inférieure fine */
+.dg-form-line {
+    border-bottom: 1px solid var(--dg-field-border);
+    background: transparent;
+}
+
+/* Champs éditables en mode édition */
+.dg-field-input {
+    background: var(--dg-field-bg);
+    border: 1px solid var(--dg-field-border);
+    color: var(--color-text);
+    font-family: var(--dg-font-body);
+    font-size: 0.85rem;
+}
+
+/* Pied de page formulaire */
+.dg-footer {
+    background: var(--dg-footer-bg);
+    color: var(--dg-footer-text);
+    font-family: var(--dg-font-body);
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    border-top: 2px solid var(--dg-divider);
+}
+
+/* Case à cocher — style formulaire */
+.dg-checkbox {
+    accent-color: var(--color-primary);
+    width: 0.9rem;
+    height: 0.9rem;
+}
+
+/* Badge tag GM */
+.dg-tag {
+    font-family: var(--dg-font-body);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.1em 0.5em;
+    border-radius: 2px;
+}
+
+/* Séparateur de section */
+.dg-divider {
+    border: none;
+    border-top: 1px solid var(--dg-divider);
+    margin: 0.5rem 0;
+}
+
+/* Compétence — ligne hover */
+.dg-skill-row:hover {
+    background: var(--dg-skill-hover);
+}
+
+/* Case d'échec cochée */
+.dg-skill-row.dg-failed .dg-skill-label {
+    color: var(--dg-skill-checked);
+    font-weight: 700;
+}

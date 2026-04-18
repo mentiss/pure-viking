@@ -129,7 +129,7 @@ const TableCharactersModal = ({ isOpen, onClose, session, onSessionUpdated }) =>
                             <>
                                 <button
                                     onClick={() => setShowAddModal(true)}
-                                    className="w-full mb-4 px-4 py-3 bg-primary text-bg rounded-lg font-semibold hover:opacity-90"
+                                    className="w-full mb-4 px-4 py-3 bg-primary text-accent rounded-lg font-semibold hover:opacity-90"
                                 >
                                     ➕ Ajouter un personnage
                                 </button>
@@ -157,7 +157,7 @@ const TableCharactersModal = ({ isOpen, onClose, session, onSessionUpdated }) =>
                     <div className="p-4 border-t-2 border-default bg-surface-alt flex-shrink-0">
                         <button
                             onClick={onClose}
-                            className="w-full px-4 py-2 bg-primary text-bg rounded-lg font-semibold hover:opacity-90"
+                            className="w-full px-4 py-2 bg-primary text-accent rounded-lg font-semibold hover:opacity-90"
                         >
                             Fermer
                         </button>

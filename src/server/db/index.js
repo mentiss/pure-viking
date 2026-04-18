@@ -68,6 +68,7 @@ function closeAllDatabases() {
 // ─── Privé ──────────────────────────────────────────────────────────────────
 
 function _openDatabase(slug, dbPath, schemaPath) {
+    console.log(`[${slug}] Try to open or create database for slug`);
     const dbExists = fs.existsSync(dbPath);
 
     const dbDir = path.dirname(dbPath);

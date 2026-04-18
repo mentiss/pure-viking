@@ -98,3 +98,17 @@
     font-weight: 700;
     font-style: normal;
 }
+
+@font-face {
+    font-family: 'DeltaGreen';
+    src: url('TRUSTO__.TTF') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Signature';
+    src: url('Karstar.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}

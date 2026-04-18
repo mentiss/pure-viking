@@ -11,7 +11,7 @@ export const SectionTitle = ({ children }) => (
 
 const VARIANT_CLASSES = {
     default: 'bg-surface-alt text-base border border-base hover:bg-surface hover:border-accent hover:cp-neon-glow-el',
-    primary: 'bg-primary text-bg border-none cp-glow-cyan',
+    primary: 'bg-primary text-accent border-none cp-glow-cyan',
     danger:  'bg-danger text-white border-none',
     success: 'bg-success text-bg border-none',
     ghost:   'bg-transparent text-muted border border-base hover:border-accent',

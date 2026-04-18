@@ -7,7 +7,7 @@
  * vers l'API exacte de @3d-dice/dice-box-threejs.
  */
 
-import { useState, useCallback } from 'react';
+import {useState, useCallback, useRef, useEffect} from 'react';
 import useSystem from "./useSystem.js";
 import useSlugConfig from "./useSlugConfig.js";
 
@@ -214,7 +214,14 @@ const useDiceConfig = () => {
     const slugConfig   = useSlugConfig();
     const slugDefaults = slugConfig?.diceConfigDefault ?? {};
 
-    const [config, setConfig] = useState(() => readDiceConfig(slug, slugDefaults));
+    // ← null tant que slugConfig n'est pas chargé
+    const [config, setConfig] = useState(null);
+
+    // ← se déclenche dès que slugConfig arrive
+    useEffect(() => {
+        if (!slugConfig) return;
+        setConfig(readDiceConfig(slug, slugDefaults));
+    }, [slug, slugConfig]);
 
     const updateConfig = useCallback((updates) => {
         setConfig(prev => {

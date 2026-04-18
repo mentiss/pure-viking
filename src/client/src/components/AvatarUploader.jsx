@@ -184,7 +184,7 @@ const AvatarUploader = ({ currentAvatar, onAvatarChange, onClose }) => {
                             <button
                                 onClick={createCroppedImage}
                                 disabled={loading}
-                                className="flex-1 px-4 py-2 bg-primary text-bg rounded-lg font-semibold hover:opacity-90 disabled:opacity-50"
+                                className="flex-1 px-4 py-2 bg-primary text-accent rounded-lg font-semibold hover:opacity-90 disabled:opacity-50"
                             >
                                 {loading ? 'Traitement...' : '✓ Valider'}
                             </button>

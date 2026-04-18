@@ -74,7 +74,7 @@ const DiceAnimationOverlay = () => {
     // containerRef est toujours dans le DOM (composant ne retourne jamais null)
     // donc cet effet peut s'exécuter correctement dès le mount.
     useEffect(() => {
-        if (!containerRef.current) return;
+        if (!containerRef.current || !config) return;
 
         const el          = containerRef.current;
         const containerId = `dice-overlay-singleton`;
@@ -111,7 +111,7 @@ const DiceAnimationOverlay = () => {
             try { diceBoxRef.current?.clearDice?.(); } catch (_) {}
             diceBoxRef.current = null;
         };
-    }, []);
+    }, [config]);
 
     // ── Lancer l'animation dès qu'une séquence arrive ET que le box est prêt ──
     useEffect(() => {
@@ -191,8 +191,12 @@ const DiceAnimationOverlay = () => {
         return new Promise(resolve => box.roll(descriptors).then(resolve));
     };
 
-    const buildBoxNotation = (diceValues, diceType) =>
-        `${diceValues.length}${diceType}@${diceValues.join(',')}`;
+    const buildBoxNotation = (diceValues, diceType) => {
+        if (diceType.includes('+') || /^\d+d/.test(diceType)) {
+            return `${diceType}@${diceValues.join(',')}`;
+        }
+        return `${diceValues.length}${diceType}@${diceValues.join(',')}`;
+    }
 
     const rollAndWait = (box, notation) =>
         new Promise(resolve => box.roll(notation).then(resolve));

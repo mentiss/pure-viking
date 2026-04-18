@@ -193,7 +193,7 @@ Copiées à l'identique depuis `database-template/schema.sql` :
 ```
 src/server/systems/dune/
   config.js
-  characterController.js
+  CharacterController.js
   routes/
     characters.js
     combat.js          ← stub vide requis par le loader
@@ -214,7 +214,7 @@ module.exports = {
 
 ---
 
-### 3.3 `characterController.js` — Contrat
+### 3.3 `CharacterController.js` — Contrat
 
 | Fonction | Description |
 |---|---|
@@ -576,7 +576,7 @@ Fonctionnement **identique au système Vikings** — pas de développement spéc
 
 | Phase | Contenu | Priorité | Dépendances |
 |---|---|---|---|
-| **A** | `dune-schema.sql` · `config.js` · `characterController.js` · `routes/characters.js` (POST public) · `routes/combat.js` (stub) | 🔴 Bloquant | — |
+| **A** | `dune-schema.sql` · `config.js` · `CharacterController.js` · `routes/characters.js` (POST public) · `routes/combat.js` (stub) | 🔴 Bloquant | — |
 | **B** | `session-resources.js` (REST + socket) · `session-maison.js` | 🔴 Bloquant | A |
 | **C** | `Sheet.jsx` · `theme.css` · composants (`SkillRow`, `PrincipleRow`, `TalentsList`, `AtoutsList`, `DeterminationTracker`, `SessionResourcesBar`) | 🔴 Core | A |
 | **D** | `DuneDiceModal.jsx` — 4 étapes, calcul, socket | 🔴 Core | A + B |
@@ -592,8 +592,8 @@ Fonctionnement **identique au système Vikings** — pas de développement spéc
 
 - [ ] `src/server/systems/dune/config.js` — `slug`, `label`, `dbPath`, `schemaPath`
 - [ ] `database-template/dune-schema.sql` — toutes les tables + INSERT GM id=-1
-- [ ] `characterController.js` — `loadFullCharacter` : reshape colonnes → tableaux skills/principles
-- [ ] `characterController.js` — `saveFullCharacter` : reshape inverse + validation rang principes ≤ 8
+- [ ] `CharacterController.js` — `loadFullCharacter` : reshape colonnes → tableaux skills/principles
+- [ ] `CharacterController.js` — `saveFullCharacter` : reshape inverse + validation rang principes ≤ 8
 - [ ] `routes/characters.js` — POST `/` sans authentification
 - [ ] `routes/characters.js` — PUT `/:id` accessible Owner ou GM
 - [ ] `routes/combat.js` — stub vide

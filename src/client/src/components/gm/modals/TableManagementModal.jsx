@@ -125,7 +125,7 @@ const TableManagementModal = ({ isOpen, onClose, onSelectTable, activeSessionId 
                             />
                             <button
                                 onClick={() => setShowCreateModal(true)}
-                                className="w-full px-4 py-3 bg-primary text-bg rounded-lg font-semibold hover:opacity-90"
+                                className="w-full px-4 py-3 bg-primary text-accent rounded-lg font-semibold hover:opacity-90"
                             >
                                 ✨ Créer une nouvelle table
                             </button>
@@ -160,7 +160,7 @@ const TableManagementModal = ({ isOpen, onClose, onSelectTable, activeSessionId 
                                                             {session.name}
                                                         </div>
                                                         {isActive && (
-                                                            <span className="px-2 py-0.5 bg-primary text-bg text-xs font-bold rounded">
+                                                            <span className="px-2 py-0.5 bg-primary text-accent text-xs font-bold rounded">
                                                                 ACTIVE
                                                             </span>
                                                         )}
@@ -312,7 +312,7 @@ const SessionFormModal = ({ isOpen, onClose, onSubmit, initialData = null, title
                         </button>
                         <button
                             type="submit"
-                            className="flex-1 px-4 py-2 bg-primary text-bg rounded-lg font-semibold hover:opacity-90"
+                            className="flex-1 px-4 py-2 bg-primary text-accent rounded-lg font-semibold hover:opacity-90"
                         >
                             {initialData ? 'Modifier' : 'Créer'}
                         </button>

@@ -41,7 +41,7 @@ Ex. Vikings : `character_skills`, `character_traits`, `character_runes`, `charac
 ```
 src/server/systems/:slug/
   config.jsx              ← { slug, label, dbPath, schemaPath }
-  characterController.js ← loadFullCharacter(db, id) / saveFullCharacter(db, id, data)
+  CharacterController.js ← loadFullCharacter(db, id) / saveFullCharacter(db, id, data)
   routes/
     characters.js        ← router Express spécifique (toute la logique personnage)
     combat.js            ← router Express spécifique (mécanique de combat du système)
@@ -97,7 +97,7 @@ src/server/
     loader.js                    ← auto-scan + registre
     vikings/
       config.jsx
-      characterController.js
+      CharacterController.js
       routes/
         characters.js            ← spécifique Vikings
         combat.js                ← spécifique Vikings
@@ -200,7 +200,7 @@ Inchangée. JWT + refresh token cookie httpOnly.
 ## 9. Ajouter un nouveau système (checklist)
 
 1. Créer `src/server/systems/:slug/config.jsx`
-2. Créer `src/server/systems/:slug/characterController.js`
+2. Créer `src/server/systems/:slug/CharacterController.js`
 3. Créer `src/server/systems/:slug/routes/characters.js`
 4. Créer `src/server/systems/:slug/routes/combat.js`
 5. Créer `database-template/:slug-schema.sql`

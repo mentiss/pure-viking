@@ -78,7 +78,7 @@ Créer `database-template/:slug-schema.sql` en deux parties :
 1. Tables transversales (section 3.2) — **verbatim, ne pas modifier**
 2. Tables spécifiques au système
 
-> ⚠️ Ne pas partir de `database-template/schema.sql` (Vikings). Il contient des colonnes Vikings dans `characters`. Utiliser les templates ci-dessous.
+> ⚠️ Ne pas partir de `database-template/schema.sql` (Vikings). Il contient des colonnes Vikings dans `characters`. Utiliser les templates du fichier base.sql. 
 
 ---
 
@@ -231,10 +231,10 @@ module.exports = {
 };
 ```
 
-### 4.2 `characterController.js`
+### 4.2 `CharacterController.js`
 
 ```js
-// src/server/systems/:slug/characterController.js
+// src/server/systems/:slug/CharacterController.js
 const loadFullCharacter = async (db, id) => {
     const char = await db.get('SELECT * FROM characters WHERE id = ?', [id]);
     if (!char) return null;
@@ -1137,7 +1137,7 @@ const MyModal = () => {
 
 - [ ] `src/server/systems/:slug/config.js` — `slug`, `label`, `dbPath`, `schemaPath`
 - [ ] `database-template/:slug-schema.sql` — toutes les tables + INSERT GM id=-1
-- [ ] `characterController.js` — `loadFullCharacter` / `saveFullCharacter`
+- [ ] `CharacterController.js` — `loadFullCharacter` / `saveFullCharacter`
 - [ ] `routes/characters.js` — POST public, GET et PUT authentifiés
 - [ ] Routes supplémentaires si nécessaire (auto-montées)
 - [ ] Sockets slug-spécifiques si nécessaire (auto-découverts)
@@ -1176,7 +1176,7 @@ src/
 │   └── systems/
 │       └── :slug/
 │           ├── config.js                    ← slug, label, dbPath, schemaPath
-│           ├── characterController.js
+│           ├── CharacterController.js
 │           ├── routes/
 │           │   ├── characters.js            ← seul fichier obligatoire
 │           │   ├── [extra-route].js         ← auto-monté sur /api/:slug/[extra-route]

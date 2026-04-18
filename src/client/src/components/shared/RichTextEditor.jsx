@@ -18,7 +18,7 @@ const ToolbarButton = ({ onClick, active, title, children }) => (
         onMouseDown={(e) => { e.preventDefault(); onClick(); }}
         className={`px-1.5 py-1 rounded text-xs font-semibold transition-colors ${
             active
-                ? 'bg-primary text-bg'
+                ? 'bg-primary text-accent'
                 : 'text-muted hover:bg-primary/20'
         }`}
         title={title}

@@ -1519,7 +1519,7 @@ const cyberpunkConfig = {
     slug:  'cyberpunk',
     label: 'Cyberpunk',
     dice,
-    diceDefaults: {
+    diceConfigDefault: {
         mode:   'custom',
         custom: {
             foreground: '#00e5ff',

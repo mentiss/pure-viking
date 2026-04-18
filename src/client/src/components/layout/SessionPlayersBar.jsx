@@ -8,7 +8,7 @@ import { useSocket }         from '../../context/SocketContext.jsx';
 import { toSystemUrl, useFetch } from '../../hooks/useFetch.js';
 import useSystem from "../../hooks/useSystem.js";
 
-const SessionPlayersBar = ({ character, sessionId, sessionName, headerHeight = null, noWidthWhenCollapsed = false }) => {
+const SessionPlayersBar = ({ character, sessionId, sessionName, headerHeight = null, bottomHeight = null, noWidthWhenCollapsed = false }) => {
     const [sessionCharacters, setSessionCharacters] = useState([]);
     const [onlineCharacters,  setOnlineCharacters]  = useState([]);
     const [isListFixed,       setIsListFixed]        = useState(false);
@@ -19,11 +19,12 @@ const SessionPlayersBar = ({ character, sessionId, sessionName, headerHeight = n
     const {slug} = useSystem();
     const STORAGE_KEY = `${slug}_player_session_bar`;
 
-    const [isCollapsed,       setIsCollapsed]        = useState(localStorage.getItem(STORAGE_KEY));
+    const [isCollapsed,       setIsCollapsed]        = useState(localStorage.getItem(STORAGE_KEY) === '1');
 
     // Détecter le scroll pour fixer la liste
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY, isCollapsed ? '1' : '0');
+        if(bottomHeight !== null && isCollapsed) return;
         const handleScroll = () => {
             setIsListFixed(window.scrollY > 100 && !isCollapsed);
             setIsButtonScrolled(window.scrollY > 100 && isCollapsed);
@@ -219,6 +220,7 @@ const SessionPlayersBar = ({ character, sessionId, sessionName, headerHeight = n
                     className={`fixed left-2 z-40 w-8 h-8 rounded-full shadow-lg flex items-center justify-center ${!headerHeight && isButtonScrolled ? 'top-0' : ''}`}
                     style={{
                         top:        headerHeight !== null ? `${headerHeight + 8}px` : undefined,
+                        bottom:     bottomHeight !== null ? `${bottomHeight + 8}px` : undefined,
                         background: 'var(--color-primary)',
                         color:      'var(--color-primary-dark, #fff)',
                         border:     '2px solid var(--color-border)',
