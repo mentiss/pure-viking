@@ -191,7 +191,7 @@
 
 /* === Resize handles natifs TipTap v3 === */
 .tiptap [data-resize-container] {
-    display: inline-flex;
+    display: flex;
     position: relative;
     margin: 0.75rem 0;
     max-width: 100%;

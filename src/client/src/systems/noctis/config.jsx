@@ -3,10 +3,10 @@ import { RollError } from '../../tools/diceEngine.js';
 // ── Constantes système ────────────────────────────────────────────────────────
 
 export const DOMAINES = {
-    physique:  { label: 'Physique',   color: 'danger',   stats: ['force', 'sante', 'athletisme'] },
-    technique: { label: 'Technique',  color: 'primary',  stats: ['agilite', 'precision', 'technique'] },
-    mental:    { label: 'Mental',     color: 'secondary', stats: ['connaissance', 'perception', 'volonte'] },
-    social:    { label: 'Social',     color: 'success',  stats: ['persuasion', 'psychologie', 'entregent'] },
+    physique: { label: 'Physique', color: 'danger',    stats: ['force', 'sante', 'athletisme'] },
+    manuel:   { label: 'Manuel',   color: 'primary',   stats: ['agilite', 'precision', 'technique'] },
+    mental:   { label: 'Mental',   color: 'secondary', stats: ['connaissance', 'perception', 'volonte'] },
+    social:   { label: 'Social',   color: 'success',   stats: ['persuasion', 'psychologie', 'entregent'] },
 };
 
 export const STAT_LABELS = {
@@ -38,11 +38,11 @@ export const SPECIALTY_NIVEAUX = {
 };
 
 export const OMBRE_TYPES = {
-    dette:       'Dette ou Obligation',
-    recherche:   'Recherché',
-    addiction:   'Addiction',
-    sequelle:    'Séquelle Physique',
-    traumatisme: 'Traumatisme',
+    dette:       { label: 'Dette ou Obligation', effect: "La faction créditrice peut exiger remboursement à tout moment." },
+    recherche:   { label: 'Recherché',           effect: "Toute exposition publique peut déclencher une complication." },
+    addiction:   { label: 'Addiction',           effect: "Sans satisfaction quotidienne : −1D à la réserve de Sang-Froid au réveil." },
+    sequelle:    { label: 'Séquelle Physique',   effect: "−1D aux jets de Santé lors d'efforts prolongés." },
+    traumatisme: { label: 'Traumatisme',         effect: "Face au déclencheur : jet de Volonté requis ou paralysie/panique." },
 };
 
 // Liste de référence des spécialités (suggestions dans le wizard)
@@ -180,6 +180,56 @@ const noctisConfig = {
                     })),
                 }],
             };
+        },
+
+        renderHistoryEntry: (entry) => {
+            const result = entry.roll_result ?? {};
+            const values = result.values ?? [];
+            const successes = result.successes ?? 0;
+            const pool = result.pool ?? values.length;
+
+            const dieColor = (v) => {
+                if (v >= 10) return { bg: 'var(--color-primary)',  color: 'var(--color-bg)' };
+                if (v >= 7)  return { bg: 'var(--color-success)',  color: 'var(--color-bg)' };
+                return           { bg: 'var(--color-surface-alt)', color: 'var(--color-muted)' };
+            };
+
+            return (
+                <div className="px-3 py-2 space-y-2">
+                    <div className="flex items-center justify-between">
+                <span className="text-default text-xs font-semibold"
+                      style={{ fontFamily: 'var(--ns-font-title)', letterSpacing: '0.05em' }}>
+                    {entry.roll_type ?? 'Jet'}
+                </span>
+                        <span className="text-xs font-bold font-mono"
+                              style={{ color: successes > 0 ? 'var(--color-success)' : 'var(--color-muted)' }}>
+                    {successes} succès
+                </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                        {values.map((v, i) => {
+                            const { bg, color } = dieColor(v);
+                            return (
+                                <span key={i}
+                                      className="w-7 h-7 rounded-sm flex items-center justify-center text-xs font-bold font-mono"
+                                      style={{ background: bg, color }}>
+                            {v}
+                        </span>
+                            );
+                        })}
+                    </div>
+                    {result.threshold != null && (
+                        <p className="text-muted text-xs">
+                            Seuil {result.threshold}
+                            {result.margin != null && (
+                                <span className={result.margin >= 0 ? 'text-success' : 'text-danger'}>
+                            {' '}({result.margin >= 0 ? '+' : ''}{result.margin})
+                        </span>
+                            )}
+                        </p>
+                    )}
+                </div>
+            );
         },
     },
 

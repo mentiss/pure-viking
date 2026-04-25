@@ -1,36 +1,555 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=IM+Fell+English:ital@0;1&display=swap');
+
+/* ── Mode JOUR — Archives de Selvarine ─────────────────────────────────────── */
 :root {
-    /* --- MODE SOLIS (Or, Cuivre et Lumière) --- */
-    --color-primary:     #a67c00; /* Or riche (plus saturé) */
-    --color-secondary:   #8c5e35; /* Cuivre chaud */
-    --color-accent:      #d9a066; /* Ambre */
-    --color-danger:      #b22222;
-    --color-success:     #406640;
+    /* Couleurs plateforme */
+    --color-primary:        #b87333;   /* Cuivre — interactions principales */
+    --color-secondary:      #8a6020;   /* Laiton foncé — secondaire */
+    --color-accent:         #3a9e96;   /* Étherum froid — highlights */
+    --color-danger:         #8b1a1a;   /* Maladie Noire — alertes, blessures graves */
+    --color-success:        #4a7a3a;   /* Vert mousse — confirmation, récupération */
 
-    /* On remplace le gris terne par un crème doré lumineux */
-    --color-bg:          #faf6ed; /* Éclat de soie / Ivoire */
-    --color-surface:     #ffffff; /* Lumière pure */
-    --color-surface-alt: #f0e6d2; /* Ombre dorée */
+    /* Surfaces — papier d'archives vieilli */
+    --color-bg:             #f2ead8;   /* Parchemin crème — fond principal */
+    --color-surface:        #e8dfc8;   /* Légèrement plus sombre — cartes, panneaux */
+    --color-surface-alt:    #ddd3b8;   /* Sections alternées, en-têtes de bloc */
 
-    --color-default:     #3d3021; /* Brun sépia très foncé (plus doux que le noir) */
-    --color-text:        #4a3b2a;
-    --color-text-muted:  #8c7b65;
-    --color-border:      #d1c0a8; /* Laiton clair */
+    /* Texte — encre sépia */
+    --color-default:        #2a2018;   /* Encre foncée — texte principal */
+    --color-muted:          #6a5a40;   /* Sépia moyen — labels, texte secondaire */
+
+    /* Bordures — lignes d'un carnet de terrain */
+    --color-border:         #b0a080;   /* Ocre vieilli */
+
+    /* ── Variables slug-spécifiques ─────────────────────────────────────── */
+
+    /* Éclats — représentés en or du Culte du Zénith */
+    --ns-eclat:             #c9a84c;
+    --ns-eclat-empty:       #9a8060;
+
+    /* Ombres — fardeau narratif, légèrement rouge sombre */
+    --ns-ombre:             #6b2020;
+
+    /* Réserve d'Effort — chaleur physique, cuivre */
+    --ns-effort:            #b87333;
+
+    /* Réserve de Sang-Froid — bleu-gris froid, calme sous pression */
+    --ns-sangfroid:         #5a7a8a;
+
+    /* Réserve de groupe — Étherum, ressource cosmique partagée */
+    --ns-reserve-groupe:    #3a9e96;
+
+    /* Blessures */
+    --ns-wound-touche:      #c07820;   /* Ambre chaud — blessure légère */
+    --ns-wound-blesse:      #8b3a1a;   /* Rouge brique — blessure sérieuse */
+    --ns-wound-tue:         #5a0a0a;   /* Rouge presque noir — mortel */
+
+    /* Spécialités de Fracture — teinte Étherum mais plus froide */
+    --ns-fracture:          #2a7a75;
+    --ns-fracture-dormant:  #4a5a5a;
+
+    /* Ornements — filets, séparateurs métalliques */
+    --ns-ornament:          #c9a84c;
+
+    /* Tailwind v4 — bordure par défaut */
+    --default-border-color: var(--color-border);
+
+    /* Typographie slug */
+    --ns-font-title: 'Cinzel', Georgia, serif;
+    --ns-font-body:  'IM Fell English', Georgia, serif;
 }
 
+/* ── Mode NUIT — L'Éclipse sans fin ────────────────────────────────────────── */
 [data-theme="dark"] {
-    /* --- MODE NOCTIS (Obsidienne et Magie) --- */
-    --color-primary:     #ffc800; /* Or incandescent */
-    --color-secondary:   #d4af37;
-    --color-accent:      #ffdb70;
-    --color-danger:      #ff4d4d;
-    --color-success:     #00ffbb;
+    /* Couleurs plateforme */
+    --color-primary:        #c9a84c;   /* Lampe à gaz — l'or vieillit, reste chaud */
+    --color-secondary:      #8a7040;   /* Laiton terne sous l'éclipse */
+    --color-accent:         #4db8b0;   /* Étherum — plus lumineux dans le noir */
+    --color-danger:         #a02020;   /* Maladie Noire — plus visible sur fond sombre */
+    --color-success:        #3a6a2a;   /* Vert survie — rare, précieux */
 
-    --color-bg:          #050508; /* Noir profond façon vide spatial */
-    --color-surface:     #121218; /* Acier de minuit */
-    --color-surface-alt: #1a1b26;
+    /* Surfaces — nuit permanente, suie et pierre froide */
+    --color-bg:             #0f0e0c;   /* Quasi-noir avec sous-ton suie */
+    --color-surface:        #1c1a16;   /* Pierre sombre, bois de charbon */
+    --color-surface-alt:    #28251e;   /* Légèrement plus clair — délimitation */
 
-    --color-default:     #f4eedd; /* Blanc cassé antique */
-    --color-text:        #e6dfcc;
-    --color-text-muted:  #7a7d8c;
-    --color-border:      #303240;
+    /* Texte — parchemin pâle à la lueur des lampes */
+    --color-default:        #e8dfc8;   /* Crème vieilli — lisible sans agresser */
+    --color-muted:          #8a8070;   /* Gris chaud — texte discret */
+
+    /* Bordures — métal noirci, rouille */
+    --color-border:         #3a3428;
+
+    /* ── Variables slug-spécifiques ─────────────────────────────────────── */
+
+    --ns-eclat:             #d4b050;
+    --ns-eclat-empty:       #4a4030;
+
+    --ns-ombre:             #8b2020;
+
+    --ns-effort:            #c9a84c;   /* Lampe à gaz — même registre que primary */
+    --ns-sangfroid:         #4a6a7a;
+
+    --ns-reserve-groupe:    #4db8b0;   /* L'Étherum brille davantage dans l'obscurité */
+
+    --ns-wound-touche:      #b06820;
+    --ns-wound-blesse:      #8b2a10;
+    --ns-wound-tue:         #6a0808;
+
+    --ns-fracture:          #3a9e96;
+    --ns-fracture-dormant:  #3a3a3a;
+
+    --ns-ornament:          #8a7040;
+
+    --default-border-color: var(--color-border);
 }
+
+
+/* ── Classes utilitaires slug-spécifiques ────────────────────────────────── */
+
+/* ── Classes couleurs réserves ───────────────────────────────────────────── */
+
+.text-ns-effort      { color:            var(--ns-effort); }
+.text-ns-sangfroid   { color:            var(--ns-sangfroid); }
+.bg-ns-effort        { background-color: var(--ns-effort); }
+.bg-ns-sangfroid     { background-color: var(--ns-sangfroid); }
+.border-ns-effort    { border-color:     var(--ns-effort); }
+.border-ns-sangfroid { border-color:     var(--ns-sangfroid); }
+
+/* ── Cartes — cadre de laiton ────────────────────────────────────────────── */
+/* Toutes les cartes Noctis ont une barre supérieure en cuivre/ornement.     */
+
+.ns-card {
+    background:    var(--color-surface);
+    border:        1px solid var(--color-border);
+    border-top:    2px solid var(--ns-ornament);
+    border-radius: 0.375rem;
+    padding:       0.75rem;
+}
+
+/* ── Séparateurs métalliques ─────────────────────────────────────────────── */
+
+/* Filet simple — dégradé laiton */
+.ns-divider {
+    border:     none;
+    height:     1px;
+    background: linear-gradient(
+            to right,
+            transparent 0%,
+            var(--ns-ornament) 20%,
+            var(--ns-ornament) 80%,
+            transparent 100%
+    );
+    opacity: 0.55;
+    margin:  0.5rem 0;
+}
+
+/* Filet avec losange central — séparateur de section fort */
+.ns-divider-ornate {
+    border:   none;
+    position: relative;
+    height:   1px;
+    background: linear-gradient(
+            to right,
+            transparent 0%,
+            var(--ns-ornament) 15%,
+            var(--ns-ornament) 85%,
+            transparent 100%
+    );
+    opacity: 0.55;
+    margin:  0.75rem 0;
+}
+.ns-divider-ornate::before {
+    content:    '◆';
+    position:   absolute;
+    left:       50%;
+    top:        50%;
+    transform:  translate(-50%, -50%);
+    color:      var(--ns-ornament);
+    font-size:  0.5rem;
+    background: var(--color-surface);
+    padding:    0 0.4rem;
+    line-height: 1;
+}
+
+/* ── En-têtes de domaine — style gravure ─────────────────────────────────── */
+
+.ns-domain-header {
+    font-size:       0.625rem;
+    font-weight:     700;
+    letter-spacing:  0.2em;
+    text-transform:  uppercase;
+    padding-bottom:  0.25rem;
+    border-bottom:   1px solid currentColor;
+    opacity:         0.9;
+}
+
+/* ── Manomètre — barre de réserve avec graduations ──────────────────────── */
+
+.ns-gauge-track {
+    position:      relative;
+    height:        0.5rem;
+    background:    var(--color-surface-alt);
+    border:        1px solid var(--color-border);
+    border-radius: 2px;
+    overflow:      hidden;
+}
+
+/* Graduations via repeating-linear-gradient */
+.ns-gauge-track::before {
+    content:  '';
+    position: absolute;
+    inset:    0;
+    background: repeating-linear-gradient(
+            to right,
+            transparent                                              0px,
+            transparent                                              9px,
+            color-mix(in srgb, var(--color-default) 12%, transparent) 9px,
+            color-mix(in srgb, var(--color-default) 12%, transparent) 10px
+    );
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Remplissage de la barre */
+.ns-gauge-fill {
+    height:        100%;
+    border-radius: 1px;
+    transition:    width 0.3s ease;
+    position:      relative;
+}
+
+/* Reflet métallique sur la barre */
+.ns-gauge-fill::after {
+    content:  '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height:     40%;
+    background: linear-gradient(
+            to bottom,
+            color-mix(in srgb, white 25%, transparent),
+            transparent
+    );
+    border-radius: inherit;
+}
+
+/* ── Tokens Éclats — style médaille/pièce ────────────────────────────────── */
+
+.ns-eclat-token {
+    width:         1.75rem;
+    height:        1.75rem;
+    border-radius: 50%;
+    background: radial-gradient(
+            circle at 35% 35%,
+            color-mix(in srgb, var(--ns-eclat) 95%, white),
+            var(--ns-eclat)                              55%,
+            color-mix(in srgb, var(--ns-eclat) 65%, black)
+    );
+    border:     1px solid color-mix(in srgb, var(--ns-eclat) 70%, black);
+    box-shadow:
+            inset 0 1px 1px color-mix(in srgb, white 35%, transparent),
+            0 1px 3px       color-mix(in srgb, black 40%, transparent);
+    transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.ns-eclat-token-empty {
+    width:         1.75rem;
+    height:        1.75rem;
+    border-radius: 50%;
+    background:    var(--color-surface-alt);
+    border:        1px solid var(--ns-eclat-empty);
+    opacity:       0.45;
+}
+
+/* ── Cases de blessure — style poinçon ───────────────────────────────────── */
+
+.ns-wound-box {
+    width:         1.375rem;
+    height:        1.375rem;
+    border-radius: 2px;
+    border:        1.5px solid var(--color-border);
+    background:    var(--color-surface-alt);
+    cursor:        pointer;
+    transition:    all 0.12s ease;
+}
+
+.ns-wound-box:hover {
+    border-color: var(--color-muted);
+}
+
+.ns-wound-box.active-touche {
+    background:  var(--ns-wound-touche);
+    border-color: var(--ns-wound-touche);
+    box-shadow:  0 0 5px color-mix(in srgb, var(--ns-wound-touche) 45%, transparent);
+}
+
+.ns-wound-box.active-blesse {
+    background:  var(--ns-wound-blesse);
+    border-color: var(--ns-wound-blesse);
+    box-shadow:  0 0 5px color-mix(in srgb, var(--ns-wound-blesse) 50%, transparent);
+}
+
+.ns-wound-box.active-tue {
+    background:  var(--ns-wound-tue);
+    border-color: var(--ns-wound-tue);
+    box-shadow:  0 0 8px color-mix(in srgb, var(--ns-wound-tue) 60%, transparent);
+}
+
+/* ── Fracture & Failles ──────────────────────────────────────────────────── */
+
+/* Badge Fracture — spécialité active */
+.ns-fracture-badge {
+    display:       inline-block;
+    color:         var(--ns-fracture);
+    border:        1px solid var(--ns-fracture);
+    font-size:     0.55rem;
+    font-weight:   700;
+    letter-spacing: 0.1em;
+    padding:       0.05rem 0.3rem;
+    border-radius: 2px;
+    text-transform: uppercase;
+    box-shadow:    0 0 4px color-mix(in srgb, var(--ns-fracture) 30%, transparent);
+}
+
+/* Badge Fracture — spécialité dormante */
+.ns-fracture-badge-dormant {
+    display:       inline-block;
+    color:         var(--ns-fracture-dormant);
+    border:        1px dashed var(--ns-fracture-dormant);
+    font-size:     0.55rem;
+    font-weight:   700;
+    letter-spacing: 0.1em;
+    padding:       0.05rem 0.3rem;
+    border-radius: 2px;
+    text-transform: uppercase;
+    opacity:       0.65;
+}
+
+/* Faille — craquelure en bordure supérieure pour les éléments corrompus */
+.ns-faille {
+    position: relative;
+}
+.ns-faille::before {
+    content:  '';
+    position: absolute;
+    top: -1px; left: 0; right: 0;
+    height:   2px;
+    background: linear-gradient(
+            to right,
+            transparent 0%,
+            var(--ns-fracture) 8%,
+            var(--ns-fracture) 22%,
+            transparent        27%,
+            transparent        38%,
+            var(--ns-fracture) 43%,
+            var(--ns-fracture) 91%,
+            transparent        100%
+    );
+    clip-path: polygon(
+            0% 0%,   26% 0%,   28% 100%, 30% 0%,
+            68% 0%,  70% 100%, 72% 0%,   100% 0%,
+            100% 100%, 0% 100%
+    );
+    opacity: 0.75;
+}
+
+/* Lueur Étherum — réserve de groupe, éléments Fracturés */
+.ns-etherum-glow {
+    box-shadow:
+            0 0 10px color-mix(in srgb, var(--color-accent) 25%, transparent),
+            0 0 2px  color-mix(in srgb, var(--color-accent) 50%, transparent),
+            inset 0 0 8px color-mix(in srgb, var(--color-accent) 8%, transparent);
+}
+
+/* ── Texture — grain papier/suie ─────────────────────────────────────────── */
+
+.ns-paper {
+    position: relative;
+}
+.ns-paper::after {
+    content:       '';
+    position:      absolute;
+    inset:         0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity:       0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+}
+
+/* ── Typographie ─────────────────────────────────────────────────────────── */
+.ns-font-title { font-family: var(--ns-font-title); }
+.ns-font-body  { font-family: var(--ns-font-body);  }
+
+/* ── Page — fond texturé ─────────────────────────────────────────────────── */
+/* Appliqué sur le wrapper racine du Sheet                                    */
+.ns-page {
+    min-height: 100vh;
+    font-family: var(--ns-font-body);
+    background-color: var(--color-bg);
+    background-image:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-size: 300px 300px;
+}
+
+/* Mode nuit — texture suie plus dense */
+[data-theme="dark"] .ns-page {
+    background-image:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E");
+}
+
+/* ── Header — plaque de laiton gravée ────────────────────────────────────── */
+.ns-header {
+    position:   sticky;
+    top:        0;
+    z-index:    40;
+    background: color-mix(in srgb, var(--color-default) 92%, var(--ns-ornament));
+    border-bottom: 2px solid var(--ns-ornament);
+    box-shadow:
+            0 2px 8px rgba(0,0,0,0.4),
+            inset 0 -1px 0 color-mix(in srgb, var(--ns-ornament) 40%, transparent);
+}
+
+[data-theme="dark"] .ns-header {
+    background: color-mix(in srgb, #0a0906 95%, var(--ns-ornament));
+}
+
+/* Filet décoratif sous le header */
+.ns-header::after {
+    content:  '';
+    display:  block;
+    height:   1px;
+    background: linear-gradient(
+            to right,
+            transparent 0%,
+            var(--ns-ornament) 15%,
+            var(--ns-ornament) 85%,
+            transparent 100%
+    );
+    opacity: 0.4;
+}
+
+/* ── Tab bar — séparateurs de carnet de terrain ──────────────────────────── */
+.ns-tabbar {
+    display:      flex;
+    align-items:  stretch;
+    border-bottom: 1px solid var(--color-border);
+    background:   var(--color-surface);
+    padding:      0 1rem;
+    gap:          0.25rem;
+    position:     relative;
+}
+
+/* Filet laiton en bas de la tabbar */
+.ns-tabbar::after {
+    content:  '';
+    position: absolute;
+    bottom:   0; left: 0; right: 0;
+    height:   1px;
+    background: linear-gradient(
+            to right,
+            transparent 0%,
+            color-mix(in srgb, var(--ns-ornament) 35%, transparent) 20%,
+            color-mix(in srgb, var(--ns-ornament) 35%, transparent) 80%,
+            transparent 100%
+    );
+    pointer-events: none;
+}
+
+.ns-tab {
+    position:       relative;
+    padding:        0.5rem 0.875rem;
+    font-family:    var(--ns-font-title);
+    font-size:      0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color:          var(--color-muted);
+    border:         none;
+    background:     transparent;
+    cursor:         pointer;
+    transition:     color 0.15s ease;
+    border-bottom:  2px solid transparent;
+    margin-bottom:  -1px;
+}
+
+.ns-tab:hover { color: var(--color-default); }
+
+.ns-tab.active {
+    color:         var(--ns-ornament);
+    border-bottom: 2px solid var(--ns-ornament);
+}
+
+/* Badge journal */
+.ns-tab-badge {
+    position:         absolute;
+    top:              0.2rem;
+    right:            0.1rem;
+    width:            0.875rem;
+    height:           0.875rem;
+    border-radius:    50%;
+    background:       var(--color-danger);
+    color:            var(--color-bg);
+    font-size:        0.5rem;
+    font-family:      sans-serif;
+    display:          flex;
+    align-items:      center;
+    justify-content:  center;
+    font-weight:      700;
+}
+
+/* ── Update ns-domain-header — utilise Cinzel ────────────────────────────── */
+/* Remplace la règle existante */
+.ns-domain-header {
+    font-family:    var(--ns-font-title);
+    font-size:      0.6rem;
+    font-weight:    600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding-bottom: 0.25rem;
+    border-bottom:  1px solid currentColor;
+    opacity:        0.9;
+}
+
+/* ── ns-card — applique la font body ─────────────────────────────────────── */
+.ns-card {
+    background:    var(--color-surface);
+    border:        1px solid var(--color-border);
+    border-top:    2px solid var(--ns-ornament);
+    border-radius: 0.375rem;
+    padding:       0.75rem;
+    font-family:   var(--ns-font-body);
+}
+
+/* ── Bouton action — style cachet métallique ─────────────────────────────── */
+.ns-btn-primary {
+    font-family:    var(--ns-font-title);
+    font-size:      0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding:        0.375rem 0.875rem;
+    border-radius:  2px;
+    background:     var(--color-primary);
+    color:          var(--color-bg);
+    border:         1px solid color-mix(in srgb, var(--color-primary) 70%, black);
+    box-shadow:     inset 0 1px 0 color-mix(in srgb, white 20%, transparent);
+    cursor:         pointer;
+    transition:     opacity 0.15s;
+}
+.ns-btn-primary:hover   { opacity: 0.85; }
+.ns-btn-primary:disabled { opacity: 0.3; cursor: default; }
+
+.ns-btn-ghost {
+    font-family:    var(--ns-font-title);
+    font-size:      0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding:        0.375rem 0.875rem;
+    border-radius:  2px;
+    background:     transparent;
+    color:          var(--color-muted);
+    border:         1px solid var(--color-border);
+    cursor:         pointer;
+    transition:     color 0.15s, border-color 0.15s;
+}
+.ns-btn-ghost:hover { color: var(--color-default); border-color: var(--color-muted); }

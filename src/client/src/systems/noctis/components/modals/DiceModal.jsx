@@ -4,13 +4,21 @@ import { roll, RollError }   from '../../../../tools/diceEngine.js';
 import noctisConfig, { DOMAINES, STAT_LABELS, SPECIALTY_NIVEAUX, computeMalusBlessure } from '../../config.jsx';
 import {useFetch} from "../../../../hooks/useFetch.js";
 
-const DiceModal = ({ character, activeSession, onClose }) => {
+const DiceModal = ({ character, activeSession, preset = null, onClose }) => {
     const { apiBase }   = useSystem();
     const { fetchWithAuth } = useFetch();
 
     // Pool construction
-    const [selectedStat,      setSelectedStat]      = useState('force');
-    const [selectedSpecialty, setSelectedSpecialty] = useState(null);  // index dans character.specialties
+    const [selectedStat, setSelectedStat] = useState(
+        preset?.stat ?? 'force'
+    );
+    const [selectedSpecialty, setSelectedSpecialty] = useState(() => {
+        if (!preset?.specialty) return null;
+        const idx = (character.specialties ?? []).findIndex(
+            s => s.name === preset.specialty.name
+        );
+        return idx >= 0 ? idx : null;
+    });
     const [reserveSpent,      setReserveSpent]      = useState(0);
     const [threshold,         setThreshold]         = useState('');   // optionnel, post-roll
     const [label,             setLabel]             = useState('');
@@ -27,6 +35,8 @@ const DiceModal = ({ character, activeSession, onClose }) => {
     const reserveMax  = specialty ? SPECIALTY_NIVEAUX[specialty.niveau]?.reserveMax ?? 1 : 1;
 
     const pool = Math.max(1, statValue + specBonus + reserveSpent + malus);
+
+
 
     const handleRoll = async () => {
         setRolling(true);
@@ -111,21 +121,65 @@ const DiceModal = ({ character, activeSession, onClose }) => {
                 {/* Sélection spécialité */}
                 <div>
                     <label className="text-muted text-xs uppercase">Spécialité</label>
-                    <select
-                        className="w-full bg-surface-alt border border-default rounded px-2 py-1.5 text-sm text-default mt-1"
-                        value={selectedSpecialty ?? ''}
-                        onChange={e => {
-                            setSelectedSpecialty(e.target.value === '' ? null : +e.target.value);
-                            setReserveSpent(0);
-                        }}
-                    >
-                        <option value="">— Aucune —</option>
-                        {(character.specialties ?? []).map((s, i) => (
-                            <option key={i} value={i}>
-                                {s.name} (+{SPECIALTY_NIVEAUX[s.niveau]?.bonus}D, réserve max {SPECIALTY_NIVEAUX[s.niveau]?.reserveMax}D)
-                            </option>
-                        ))}
-                    </select>
+                    {/* Spécialités actives — chips */}
+                    {(() => {
+                        const activeSpecs = (character.specialties ?? [])
+                            .map((s, i) => ({ ...s, _idx: i }))
+                            .filter(s => !(s.type === 'fracture' && s.is_dormant));
+
+                        if (activeSpecs.length === 0) return null;
+
+                        return (
+                            <div>
+                                <label className="text-muted text-xs uppercase tracking-widest">
+                                    Spécialité
+                                </label>
+                                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                    {/* Chip "Aucune" */}
+                                    <button
+                                        onClick={() => { setSelectedSpecialty(null); setReserveSpent(0); }}
+                                        className={`px-2 py-1 text-xs rounded-sm border transition-colors
+                        ${selectedSpecialty === null
+                                            ? 'border-default text-default bg-surface-alt'
+                                            : 'border-default text-muted hover:text-default'}`}
+                                    >
+                                        Aucune
+                                    </button>
+                                    {activeSpecs.map(s => {
+                                        const bonus = SPECIALTY_NIVEAUX[s.niveau]?.bonus ?? 0;
+                                        const isSelected = selectedSpecialty === s._idx;
+                                        const isFracture = s.type === 'fracture';
+                                        return (
+                                            <button
+                                                key={s._idx}
+                                                onClick={() => {
+                                                    setSelectedSpecialty(isSelected ? null : s._idx);
+                                                    setReserveSpent(0);
+                                                }}
+                                                className="px-2 py-1 text-xs rounded-sm border transition-colors"
+                                                style={{
+                                                    borderColor: isSelected
+                                                        ? (isFracture ? 'var(--ns-fracture)' : 'var(--color-primary)')
+                                                        : 'var(--color-border)',
+                                                    background: isSelected
+                                                        ? (isFracture
+                                                            ? 'color-mix(in srgb, var(--ns-fracture) 15%, transparent)'
+                                                            : 'color-mix(in srgb, var(--color-primary) 15%, transparent)')
+                                                        : 'transparent',
+                                                    color: isSelected
+                                                        ? (isFracture ? 'var(--ns-fracture)' : 'var(--color-primary)')
+                                                        : 'var(--color-muted)',
+                                                }}
+                                            >
+                                                {s.name}
+                                                <span className="ml-1 opacity-70">+{bonus}D</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })()}
                 </div>
 
                 {/* Dépense de réserve */}

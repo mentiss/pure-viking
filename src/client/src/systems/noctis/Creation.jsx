@@ -651,7 +651,7 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
                                                     : 'bg-surface-alt border-default text-muted hover:text-default'
                                             }`}
                                         >
-                                            {v}
+                                            {v.label}
                                         </button>
                                     ))}
                                 </div>
@@ -740,7 +740,7 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
                             <p className="text-accent font-bold">{'✦'.repeat(eclatsMax)} {eclatsMax} Éclat{eclatsMax > 1 ? 's' : ''}</p>
                             {ombres.map((o, i) => (
                                 <p key={i} className="text-sm">
-                                    <span className="text-secondary font-semibold">{OMBRE_TYPES[o.type]}</span>
+                                    <span className="text-secondary font-semibold">{OMBRE_TYPES[o.type].label}</span>
                                     {o.description && <span className="text-muted"> — {o.description}</span>}
                                 </p>
                             ))}

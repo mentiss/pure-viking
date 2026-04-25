@@ -230,7 +230,7 @@ const TabSession = ({ activeSession, onlineCharacters }) => {
                                 <div className="pt-2 border-t border-default space-y-1">
                                     {char.ombres.map((o, i) => (
                                         <p key={i} className="text-xs">
-                                            <span className="text-secondary font-semibold">{OMBRE_TYPES[o.type]}</span>
+                                            <span className="text-secondary font-semibold">{OMBRE_TYPES[o.type].label}</span>
                                             {o.description && <span className="text-muted"> — {o.description}</span>}
                                         </p>
                                     ))}

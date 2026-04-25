@@ -1,45 +1,85 @@
-module.exports = {
-    register(io, socket) {
+/**
+ * Handler socket pour la réserve de groupe Noctis.
+ * Gère les mises à jour temps réel sessionnées via session_group_reserve.
+ *
+ * Événements entrants :
+ *   noctis:group-reserve-get   { sessionId }  → émet l'état courant au demandeur
+ *   noctis:group-reserve-patch { sessionId, delta?, current? } → broadcast à la room
+ *
+ * Événement sortant :
+ *   noctis:group-reserve-update { ...groupReserve } → broadcasté à noctis_session_${sessionId}
+ */
+module.exports = function register(io, socket) {
 
-        socket.on('noctis:group-reserve-patch', ({ delta, current, cap } = {}) => {
+        // ── Demande de l'état courant ─────────────────────────────────────────
+        socket.on('noctis:group-reserve-get', ({ sessionId } = {}) => {
+            if (!sessionId) return;
             const db = socket.db;
             if (!db) return;
 
-            const reserve = db.prepare('SELECT * FROM group_reserve WHERE id = 1').get()
-                ?? { current: 0, cap: 12 };
+            const raw = db.prepare(
+                'SELECT * FROM session_group_reserve WHERE session_id = ?'
+            ).get(sessionId);
 
-            let newCurrent = reserve.current;
-            let newCap     = reserve.cap;
-
-            if (typeof delta   === 'number') newCurrent = Math.max(0, Math.min(newCap, reserve.current + delta));
-            if (typeof current === 'number') newCurrent = Math.max(0, Math.min(newCap, current));
-
-            if (typeof cap === 'number') {
-                if (!socket.user?.isGM) {
-                    socket.emit('noctis:error', { message: 'Cap réservé au GM.' });
-                    return;
-                }
-                newCap     = Math.max(0, cap);
-                newCurrent = Math.min(newCurrent, newCap);
+            if (!raw) {
+                // Session sans fiche groupe — on renvoie les valeurs par défaut
+                socket.emit('noctis:group-reserve-update', {
+                    session_id:  sessionId,
+                    current:     0,
+                    principes:   [],
+                    interdits:   [],
+                    regle_acces: 'libre',
+                    notes:       '',
+                });
+                return;
             }
 
-            db.prepare(`
-                UPDATE group_reserve SET current = ?, cap = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1
-            `).run(newCurrent, newCap);
-
-            io.emit('noctis:group-reserve-update', {
-                current:   newCurrent,
-                cap:       newCap,
-                updatedBy: socket.user?.id ?? null,
-            });
+            socket.emit('noctis:group-reserve-update', _parse(raw));
         });
 
-        socket.on('noctis:group-reserve-get', () => {
+        // ── Patch de la valeur courante ───────────────────────────────────────
+        // Utilisé pour les dépenses directes (1D par jet, règle inchangée)
+        socket.on('noctis:group-reserve-patch', ({ sessionId, delta, current } = {}) => {
+            if (!sessionId) return;
             const db = socket.db;
             if (!db) return;
-            const reserve = db.prepare('SELECT * FROM group_reserve WHERE id = 1').get()
-                ?? { current: 0, cap: 12 };
-            socket.emit('noctis:group-reserve-update', { current: reserve.current, cap: reserve.cap, updatedBy: null });
+
+            const raw = db.prepare(
+                'SELECT * FROM session_group_reserve WHERE session_id = ?'
+            ).get(sessionId);
+
+            if (!raw) return; // session inconnue — rien à faire
+
+            let newCurrent = raw.current;
+            if (typeof delta   === 'number') newCurrent = Math.max(0, raw.current + delta);
+            if (typeof current === 'number') newCurrent = Math.max(0, current);
+
+            db.prepare(`
+                UPDATE session_group_reserve
+                SET current = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE session_id = ?
+            `).run(newCurrent, sessionId);
+
+            const updated = _parse(
+                db.prepare('SELECT * FROM session_group_reserve WHERE session_id = ?').get(sessionId)
+            );
+
+            // Broadcast à toute la room de session
+            io.to(`noctis_session_${sessionId}`)
+                .emit('noctis:group-reserve-update', updated);
         });
-    },
 };
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function _parse(raw) {
+    return {
+        ...raw,
+        principes: _parseJSON(raw.principes, []),
+        interdits: _parseJSON(raw.interdits, []),
+    };
+}
+
+function _parseJSON(str, fallback) {
+    try { return JSON.parse(str); } catch { return fallback; }
+}

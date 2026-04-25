@@ -69,15 +69,53 @@ select:disabled {
 
 /* Toast : bordure dorée scintillante */
 @keyframes toast-glitter {
-  0% { transform: translateX(100%); opacity: 0; box-shadow: 0 0 0 rgba(234, 179, 8, 0); }
-  25% { transform: translateX(0); opacity: 1; }
-  40% { box-shadow: 0 0 12px rgba(234, 179, 8, 0.6), inset 0 0 8px rgba(234, 179, 8, 0.1); }
-  60% { box-shadow: 0 0 4px rgba(234, 179, 8, 0.2); }
-  80% { box-shadow: 0 0 10px rgba(234, 179, 8, 0.5), inset 0 0 6px rgba(234, 179, 8, 0.1); }
-  100% { box-shadow: 0 0 6px rgba(234, 179, 8, 0.3); }
+  0% {
+    transform: translateX(110%);
+    opacity: 0;
+  }
+  15% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  /* Les pics de "glitter" : on joue sur le contrast et la luminosité */
+  25%, 45%, 65%, 85% {
+    filter: brightness(1.8) saturate(1.2);
+    box-shadow: 0 0 15px rgba(234, 179, 8, 0.6);
+  }
+  35%, 55%, 75% {
+    filter: brightness(1) saturate(1);
+    box-shadow: 0 0 5px rgba(234, 179, 8, 0.2);
+  }
+  100% {
+    filter: brightness(1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); /* Ombre standard de fin */
+  }
 }
+
 .animate-toast-glitter {
-  animation: toast-glitter 1s ease-out forwards;
+  /* Animation un peu plus rapide pour le côté "nerveux" du scintillement */
+  animation: toast-glitter 0.7s ease-out forwards;
+}
+
+.animate-toast-glitter::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+          120deg,
+          transparent,
+          rgba(255, 255, 255, 0.4),
+          transparent
+  );
+  animation: toast-shine 0.6s 0.2s ease-in-out forwards;
+}
+
+@keyframes toast-shine {
+  0% { left: -100%; }
+  100% { left: 150%; }
 }
 
 /* ── Health (niveaux de blessure 0–5) ────────────────────────────────────── */

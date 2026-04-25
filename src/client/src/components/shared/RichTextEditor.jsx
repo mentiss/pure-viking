@@ -61,7 +61,7 @@ const RichTextEditor = ({
                 multicolor: false,
             }),
             Image.configure({
-                inline: true,
+                inline: false,
                 allowBase64: true,
                 resize: {
                     enabled: true,

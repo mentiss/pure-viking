@@ -1,14 +1,130 @@
 import { useState } from 'react';
-import { SPECIALTY_TYPES, SPECIALTY_NIVEAUX, SPECIALTIES_REFERENCE } from '../../config.jsx';
+import {
+    SPECIALTY_TYPES,
+    SPECIALTY_NIVEAUX,
+    SPECIALTIES_REFERENCE,
+} from '../../config.jsx';
 
+const TYPE_OPTIONS  = Object.entries(SPECIALTY_TYPES);
 const NIVEAU_OPTIONS = Object.entries(SPECIALTY_NIVEAUX);
-const TYPE_OPTIONS   = Object.entries(SPECIALTY_TYPES);
 
-const SpecialtiesCard = ({ character, editMode, onChange }) => {
+// ── Ligne spécialité ──────────────────────────────────────────────────────────
+const SpecialtyRow = ({ spec, editMode, onRemove, onChangeNiveau, onToggleDormant, onRoll }) => {
+    const [showNotes, setShowNotes] = useState(false);
+    const niveauData    = SPECIALTY_NIVEAUX[spec.niveau];
+    const isFractureType = spec.type === 'fracture';
+    const isDormant      = isFractureType && spec.is_dormant;
+
+    return (
+        <li className={`space-y-1 ${isFractureType ? 'ns-faille' : ''}`}>
+            <div className="flex items-center gap-2 py-1 group">
+
+                {/* Badge type */}
+                {isFractureType ? (
+                    isDormant
+                        ? <span className="ns-fracture-badge-dormant shrink-0">DORMANT</span>
+                        : <span className="ns-fracture-badge shrink-0">FRACTURE</span>
+                ) : spec.type !== 'normale' ? (
+                    <span className="shrink-0 text-muted text-xs font-bold opacity-60">
+                        [{SPECIALTY_TYPES[spec.type]?.badge}]
+                    </span>
+                ) : null}
+
+                {/* Nom */}
+                <span className={`flex-1 text-sm leading-snug
+                    ${isDormant      ? 'text-muted italic'
+                    : isFractureType ? ''
+                        :                  'text-default'}`}
+                      style={isFractureType && !isDormant
+                          ? { color: 'var(--ns-fracture)' }
+                          : undefined}
+                >
+                    {spec.name}
+                </span>
+
+                {/* Niveau */}
+                <span className="text-muted text-xs shrink-0">
+                    {niveauData?.label}{' '}
+                    <span className="text-primary font-bold">+{niveauData?.bonus ?? 0}D</span>
+                </span>
+
+                {/* Notes toggle */}
+                {spec.notes && (
+                    <button
+                        onClick={() => setShowNotes(v => !v)}
+                        className="text-muted hover:text-default text-xs shrink-0 transition-colors"
+                    >
+                        {showNotes ? '▴' : '▾'}
+                    </button>
+                )}
+
+                {/* Bouton dés — visible, sauf dormante */}
+                {!editMode && !isDormant && onRoll && (
+                    <button
+                        onClick={() => onRoll(spec)}
+                        className="text-xs px-1.5 py-0.5 rounded-sm border shrink-0 transition-colors"
+                        style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+                        title={`Lancer avec ${spec.name}`}
+                    >
+                        ⬡
+                    </button>
+                )}
+
+                {/* Actions édition */}
+                {editMode && (
+                    <div className="flex gap-1 shrink-0">
+                        <button
+                            onClick={() => {
+                                const ordre = ['debutant', 'confirme', 'expert'];
+                                const next  = ordre[(ordre.indexOf(spec.niveau) + 1) % ordre.length];
+                                onChangeNiveau(next);
+                            }}
+                            className="text-xs px-1.5 py-0.5 rounded border border-default text-muted
+                                       hover:text-default hover:border-muted transition-colors"
+                        >
+                            ⇅
+                        </button>
+                        {isFractureType && (
+                            <button
+                                onClick={onToggleDormant}
+                                className="text-xs px-1.5 py-0.5 rounded border transition-colors"
+                                style={{
+                                    borderColor: isDormant ? 'var(--ns-fracture)' : 'var(--ns-fracture-dormant)',
+                                    color:       isDormant ? 'var(--ns-fracture)' : 'var(--ns-fracture-dormant)',
+                                }}
+                            >
+                                {isDormant ? '⚡' : '◌'}
+                            </button>
+                        )}
+                        <button
+                            onClick={onRemove}
+                            className="text-xs px-1.5 py-0.5 rounded border border-default text-muted
+                                       hover:text-danger hover:border-danger transition-colors"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {showNotes && spec.notes && (
+                <p className="text-muted text-xs italic pl-2 pb-1 leading-snug border-l-2"
+                   style={{ borderColor: 'var(--ns-ornament)', opacity: 0.7 }}>
+                    {spec.notes}
+                </p>
+            )}
+        </li>
+    );
+};
+
+// ── Composant principal ───────────────────────────────────────────────────────
+const SpecialtiesCard = ({ character, editMode, onChange, onRoll }) => {
     const specialties      = character.specialties ?? [];
     const [adding, setAdding] = useState(false);
     const [search, setSearch] = useState('');
-    const [draft,  setDraft]  = useState({ name: '', type: 'normale', niveau: 'debutant', notes: '' });
+    const [draft,  setDraft]  = useState({
+        name: '', type: 'normale', niveau: 'debutant', is_dormant: 0, notes: '',
+    });
 
     const fractureCount    = specialties.filter(s => s.type === 'fracture').length;
     const limiteCorruption = (character.volonte ?? 1) + (character.sante ?? 1);
@@ -16,16 +132,24 @@ const SpecialtiesCard = ({ character, editMode, onChange }) => {
     const handleAdd = () => {
         if (!draft.name.trim()) return;
         if (draft.type === 'fracture' && fractureCount >= limiteCorruption) return;
-        onChange([...specialties, { ...draft, name: draft.name.trim() }]);
-        setDraft({ name: '', type: 'normale', niveau: 'debutant', notes: '' });
+        const newSpec = {
+            ...draft,
+            name:       draft.name.trim(),
+            is_dormant: draft.type === 'fracture' ? 1 : 0, // Fracture = dormante par défaut
+        };
+        onChange([...specialties, newSpec]);
+        setDraft({ name: '', type: 'normale', niveau: 'debutant', is_dormant: 0, notes: '' });
         setAdding(false);
         setSearch('');
     };
 
-    const handleRemove = (idx) => onChange(specialties.filter((_, i) => i !== idx));
-
-    const handleNiveauChange = (idx, niveau) =>
+    const handleRemove       = (idx) => onChange(specialties.filter((_, i) => i !== idx));
+    const handleChangeNiveau = (idx, niveau) =>
         onChange(specialties.map((s, i) => i === idx ? { ...s, niveau } : s));
+    const handleToggleDormant = (idx) =>
+        onChange(specialties.map((s, i) =>
+            i === idx ? { ...s, is_dormant: s.is_dormant ? 0 : 1 } : s
+        ));
 
     const suggestions = search.length >= 2
         ? SPECIALTIES_REFERENCE.filter(s =>
@@ -34,63 +158,139 @@ const SpecialtiesCard = ({ character, editMode, onChange }) => {
         ).slice(0, 6)
         : [];
 
+    // Séparer normales et fracture pour l'affichage
+    const normalSpecs   = specialties.filter(s => s.type !== 'fracture');
+    const fractureSpecs = specialties.filter(s => s.type === 'fracture');
+
     return (
-        <div className="bg-surface border border-default rounded-lg p-4 space-y-3">
+        <div className="ns-card ns-paper space-y-3">
+
+            {/* ── En-tête ────────────────────────────────────────────────── */}
             <div className="flex items-center justify-between">
-                <h2 className="text-primary font-bold text-sm uppercase tracking-wide">
-                    Spécialités
-                    {character.is_fracture ? (
-                        <span className="ml-2 text-xs text-muted font-normal">
-                            Fracture : {fractureCount}/{limiteCorruption}
+                <h3 className="ns-domain-header text-primary">Spécialités</h3>
+                <div className="flex items-center gap-3">
+                    {character.is_fracture && (
+                        <span className="text-xs"
+                              style={{ color: 'var(--ns-fracture)', opacity: 0.85 }}>
+                            Fracture {fractureCount}/{limiteCorruption}
                         </span>
-                    ) : null}
-                </h2>
-                {editMode && (
-                    <button
-                        onClick={() => setAdding(a => !a)}
-                        className="text-xs px-2 py-1 rounded border border-primary text-primary"
-                    >
-                        {adding ? 'Annuler' : '+ Ajouter'}
-                    </button>
-                )}
+                    )}
+                    {editMode && (
+                        <button
+                            onClick={() => setAdding(a => !a)}
+                            className="text-xs px-2 py-0.5 rounded border border-primary text-primary
+                                       hover:bg-primary/10 transition-colors"
+                        >
+                            {adding ? '✕ Annuler' : '+ Ajouter'}
+                        </button>
+                    )}
+                </div>
             </div>
 
-            {/* Formulaire d'ajout — editMode seulement */}
-            {editMode && adding && (
-                <div className="bg-surface-alt rounded p-3 space-y-2 border border-default">
+            {/* ── Spécialités normales ───────────────────────────────────── */}
+            {normalSpecs.length > 0 && (
+                <ul className="space-y-0.5 divide-y divide-default/30">
+                    {specialties
+                        .map((s, i) => ({ s, i }))
+                        .filter(({ s }) => s.type !== 'fracture')
+                        .map(({ s, i }) => (
+                            <SpecialtyRow
+                                key={i}
+                                spec={s}
+                                editMode={editMode}
+                                onRemove={() => handleRemove(i)}
+                                onChangeNiveau={n => handleChangeNiveau(i, n)}
+                                onToggleDormant={() => handleToggleDormant(i)}
+                                onRoll={onRoll}
+                            />
+                        ))}
+                </ul>
+            )}
+
+            {/* ── Séparateur + spécialités Fracture ─────────────────────── */}
+            {fractureSpecs.length > 0 && (
+                <>
+                    {normalSpecs.length > 0 && <hr className="ns-divider" />}
+                    <div>
+                        <p className="text-xs uppercase tracking-widest mb-2 font-bold"
+                           style={{ color: 'var(--ns-fracture)', letterSpacing: '0.15em' }}>
+                            ⬡ Pouvoirs des Anciens
+                        </p>
+                        <ul className="space-y-1">
+                            {specialties
+                                .map((s, i) => ({ s, i }))
+                                .filter(({ s }) => s.type === 'fracture')
+                                .map(({ s, i }) => (
+                                    <SpecialtyRow
+                                        key={i}
+                                        spec={s}
+                                        editMode={editMode}
+                                        onRemove={() => handleRemove(i)}
+                                        onChangeNiveau={n => handleChangeNiveau(i, n)}
+                                        onToggleDormant={() => handleToggleDormant(i)}
+                                        isFracture
+                                    />
+                                ))}
+                        </ul>
+                    </div>
+                </>
+            )}
+
+            {/* ── État vide ─────────────────────────────────────────────── */}
+            {specialties.length === 0 && !adding && (
+                <p className="text-muted text-xs italic text-center py-2">
+                    Aucune spécialité.
+                </p>
+            )}
+
+            {/* ── Formulaire d'ajout ────────────────────────────────────── */}
+            {adding && (
+                <div className="space-y-2 pt-2 border-t border-default">
+
+                    {/* Recherche avec suggestions */}
                     <div className="relative">
                         <input
+                            type="text"
                             placeholder="Nom de la spécialité…"
-                            className="w-full bg-surface border border-default rounded px-2 py-1 text-default text-sm"
+                            className="w-full bg-surface-alt border border-default rounded px-2 py-1.5
+                                       text-default text-sm"
                             value={search || draft.name}
                             onChange={e => {
                                 setSearch(e.target.value);
                                 setDraft(d => ({ ...d, name: e.target.value }));
                             }}
+                            autoFocus
                         />
                         {suggestions.length > 0 && (
-                            <ul className="absolute z-10 w-full bg-surface border border-default rounded mt-1 shadow-lg">
+                            <ul className="absolute top-full left-0 right-0 z-10 bg-surface border border-default
+                                           rounded shadow-lg mt-0.5 divide-y divide-default/30">
                                 {suggestions.map(s => (
-                                    <li
-                                        key={s.name}
-                                        onClick={() => {
-                                            setDraft(d => ({ ...d, name: s.name, type: s.type }));
-                                            setSearch('');
-                                        }}
-                                        className="px-3 py-1 text-sm text-default hover:bg-surface-alt cursor-pointer flex justify-between"
-                                    >
-                                        <span>{s.name}</span>
-                                        <span className="text-muted text-xs">
-                                            {SPECIALTY_TYPES[s.type]?.badge}
-                                        </span>
+                                    <li key={s.name}>
+                                        <button
+                                            onClick={() => {
+                                                setDraft(d => ({ ...d, name: s.name, type: s.type }));
+                                                setSearch('');
+                                            }}
+                                            className="w-full text-left px-3 py-1.5 text-sm text-default
+                                                       hover:bg-surface-alt transition-colors flex items-center justify-between"
+                                        >
+                                            <span>{s.name}</span>
+                                            {s.type !== 'normale' && (
+                                                <span className="text-xs text-muted">
+                                                    [{SPECIALTY_TYPES[s.type]?.badge}]
+                                                </span>
+                                            )}
+                                        </button>
                                     </li>
                                 ))}
                             </ul>
                         )}
                     </div>
+
                     <div className="grid grid-cols-2 gap-2">
                         <select
-                            className="bg-surface border border-default rounded px-2 py-1 text-default text-sm"
+                            className="bg-surface-alt border border-default rounded px-2 py-1
+                                       text-default text-sm"
                             value={draft.type}
                             onChange={e => setDraft(d => ({ ...d, type: e.target.value }))}
                         >
@@ -98,11 +298,11 @@ const SpecialtiesCard = ({ character, editMode, onChange }) => {
                                 .filter(([k]) => k !== 'fracture' || character.is_fracture)
                                 .map(([k, v]) => (
                                     <option key={k} value={k}>{v.label}</option>
-                                ))
-                            }
+                                ))}
                         </select>
                         <select
-                            className="bg-surface border border-default rounded px-2 py-1 text-default text-sm"
+                            className="bg-surface-alt border border-default rounded px-2 py-1
+                                       text-default text-sm"
                             value={draft.niveau}
                             onChange={e => setDraft(d => ({ ...d, niveau: e.target.value }))}
                         >
@@ -111,66 +311,34 @@ const SpecialtiesCard = ({ character, editMode, onChange }) => {
                             ))}
                         </select>
                     </div>
+
                     <input
+                        type="text"
                         placeholder="Notes (optionnel)"
-                        className="w-full bg-surface border border-default rounded px-2 py-1 text-default text-sm"
+                        className="w-full bg-surface-alt border border-default rounded px-2 py-1
+                                   text-default text-sm"
                         value={draft.notes}
                         onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))}
                     />
+
+                    {/* Avertissement limite corruption */}
+                    {draft.type === 'fracture' && fractureCount >= limiteCorruption && (
+                        <p className="text-danger text-xs">
+                            Limite de corruption atteinte ({limiteCorruption}).
+                        </p>
+                    )}
+
                     <button
                         onClick={handleAdd}
-                        disabled={!draft.name.trim()}
-                        className="w-full py-1 text-sm rounded bg-primary text-accent font-bold disabled:opacity-40"
+                        disabled={!draft.name.trim() ||
+                            (draft.type === 'fracture' && fractureCount >= limiteCorruption)}
+                        className="w-full py-1.5 text-sm rounded bg-primary text-bg font-bold
+                                   disabled:opacity-30 transition-opacity"
                     >
                         Ajouter
                     </button>
                 </div>
             )}
-
-            {/* Liste */}
-            <div className="space-y-1">
-                {specialties.length === 0 && (
-                    <p className="text-muted text-xs italic">Aucune spécialité.</p>
-                )}
-                {specialties.map((s, i) => (
-                    <div key={i} className="flex items-center gap-2 py-1 border-b border-default last:border-0">
-                        <div className="flex-1">
-                            <span className="text-default text-sm">{s.name}</span>
-                            {SPECIALTY_TYPES[s.type]?.badge && (
-                                <span className="ml-1 text-xs text-accent">
-                                    ({SPECIALTY_TYPES[s.type].badge})
-                                </span>
-                            )}
-                            {s.notes && (
-                                <span className="ml-1 text-muted text-xs">— {s.notes}</span>
-                            )}
-                        </div>
-                        {editMode ? (
-                            <>
-                                <select
-                                    className="bg-surface-alt border border-default rounded px-1 py-0.5 text-xs text-default"
-                                    value={s.niveau}
-                                    onChange={e => handleNiveauChange(i, e.target.value)}
-                                >
-                                    {NIVEAU_OPTIONS.map(([k, v]) => (
-                                        <option key={k} value={k}>
-                                            {v.label} (+{v.bonus}D)
-                                        </option>
-                                    ))}
-                                </select>
-                                <button
-                                    onClick={() => handleRemove(i)}
-                                    className="text-danger text-xs px-1"
-                                >✕</button>
-                            </>
-                        ) : (
-                            <span className="text-muted text-xs">
-                                {SPECIALTY_NIVEAUX[s.niveau]?.label} (+{SPECIALTY_NIVEAUX[s.niveau]?.bonus}D)
-                            </span>
-                        )}
-                    </div>
-                ))}
-            </div>
         </div>
     );
 };

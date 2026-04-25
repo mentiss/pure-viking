@@ -1,154 +1,275 @@
-import { useState, useEffect } from 'react';
-import { useFetch }  from '../../../../hooks/useFetch.js';
-import { useSystem } from '../../../../hooks/useSystem.js';
+import { useState } from 'react';
+import { useGroupReserve } from '../../hooks/useGroupReserve.js';
 
-const TabReserveGroupe = ({ socket }) => {
-    const { apiBase }       = useSystem();
-    const fetchWithAuth = useFetch();
+const REGLE_OPTIONS = [
+    { value: 'libre',     label: 'Libre — tout joueur peut puiser à tout moment' },
+    { value: 'majorite',  label: 'Majorité — décision collective simple' },
+    { value: 'unanimite', label: 'Unanimité — accord de tous requis' },
+];
 
-    const [reserve,  setReserve]  = useState({ current: 0, cap: 12 });
-    const [loading,  setLoading]  = useState(false);
-    const [editCap,  setEditCap]  = useState(false);
-    const [capDraft, setCapDraft] = useState(12);
+const TabReserveGroupe = () => {
+    const { groupReserve, hasSession, loading, updateGroupReserve, applyFluctuation } = useGroupReserve();
 
-    // ── Chargement initial ────────────────────────────────────────────────────
+    const [principeDraft, setPrincipeDraft] = useState('');
+    const [interditDraft, setInterditDraft] = useState('');
 
-    useEffect(() => {
-        fetchWithAuth(`${apiBase}/group-reserve`)
-            .then(r => r.ok ? r.json() : null)
-            .then(d => {
-                if (d) { setReserve(d); setCapDraft(d.cap); }
-            });
+    const current   = groupReserve.current ?? 0;
+    const principes = groupReserve.principes ?? [];
+    const interdits = groupReserve.interdits ?? [];
 
-        if (!socket) return;
-        socket.emit('noctis:group-reserve-get');
+    const gaugeMax = Math.max(current, 12);
+    const pct      = gaugeMax > 0 ? Math.min(100, (current / gaugeMax) * 100) : 0;
 
-        const handler = (data) => setReserve(prev => ({ ...prev, ...data }));
-        socket.on('noctis:group-reserve-update', handler);
-        return () => socket.off('noctis:group-reserve-update', handler);
-    }, [socket, apiBase]); // fetchWithAuth absent
-
-    // ── Patch ─────────────────────────────────────────────────────────────────
-
-    const patch = async (payload) => {
-        setLoading(true);
-        try {
-            await fetchWithAuth(`${apiBase}/group-reserve`, {
-                method:  'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify(payload),
-            });
-        } finally {
-            setLoading(false);
-        }
+    const addPrincipe = () => {
+        if (!principeDraft.trim()) return;
+        updateGroupReserve({ principes: [...principes, principeDraft.trim()] });
+        setPrincipeDraft('');
     };
 
-    const handleSaveCap = () => {
-        patch({ cap: capDraft });
-        setEditCap(false);
+    const removePrincipe = (i) =>
+        updateGroupReserve({ principes: principes.filter((_, idx) => idx !== i) });
+
+    const addInterdit = () => {
+        if (!interditDraft.trim()) return;
+        updateGroupReserve({ interdits: [...interdits, interditDraft.trim()] });
+        setInterditDraft('');
     };
 
-    const pct = reserve.cap > 0 ? Math.min(100, (reserve.current / reserve.cap) * 100) : 0;
+    const removeInterdit = (i) =>
+        updateGroupReserve({ interdits: interdits.filter((_, idx) => idx !== i) });
+
+    if (!hasSession) {
+        return (
+            <div className="flex items-center justify-center h-48 text-muted text-sm">
+                Aucune session active.
+            </div>
+        );
+    }
 
     return (
-        <div className="max-w-2xl mx-auto p-4 space-y-6">
-            <h2 className="text-primary font-bold text-lg uppercase tracking-wide">
-                Réserve de Groupe
-            </h2>
+        <div className="max-w-3xl mx-auto p-4 space-y-6">
 
-            {/* ── Jauge ──────────────────────────────────────────────────── */}
-            <div className="bg-surface border border-default rounded-lg p-6 space-y-4">
-                <div className="flex justify-between items-end">
+            {/* ── Jauge principale ─────────────────────────────────────── */}
+            <div className={`ns-card ns-paper space-y-4 transition-shadow
+                ${current > 0 ? 'ns-etherum-glow' : ''}`}>
+                <div className="flex items-end justify-between">
                     <div>
-                        <p className="text-muted text-xs uppercase">Dés disponibles</p>
-                        <p className="text-primary font-bold text-5xl">{reserve.current}</p>
+                        <h3 className="ns-domain-header text-accent">Réserve de Compagnie</h3>
+                        <p className="text-muted text-xs mt-1">Étherum partagé — dépenses définitives</p>
                     </div>
-                    <p className="text-muted text-sm">/ {reserve.cap}</p>
+                    <span className="font-bold text-5xl font-mono"
+                          style={{ color: current > 0 ? 'var(--color-accent)' : 'var(--color-muted)',
+                              textShadow: current > 0
+                                  ? '0 0 16px color-mix(in srgb, var(--color-accent) 50%, transparent)'
+                                  : 'none' }}>
+                        {current}
+                    </span>
                 </div>
 
-                <div className="h-5 bg-surface-alt rounded-full overflow-hidden border border-default">
+                <div className="ns-gauge-track" style={{ borderColor: 'var(--color-accent)' }}>
                     <div
-                        className="h-full bg-secondary transition-all duration-500 rounded-full"
-                        style={{ width: `${pct}%` }}
+                        className="ns-gauge-fill"
+                        style={{
+                            width:      `${pct}%`,
+                            background: `linear-gradient(to right,
+                                color-mix(in srgb, var(--color-accent) 60%, black),
+                                var(--color-accent))`,
+                        }}
                     />
                 </div>
 
-                {/* Contrôles */}
-                <div className="flex gap-3">
+                {/* Contrôles dépense / ajout direct */}
+                <div className="flex gap-2 flex-wrap">
                     <button
-                        onClick={() => patch({ delta: -1 })}
-                        disabled={reserve.current <= 0 || loading}
-                        className="flex-1 py-2 rounded border border-danger text-danger text-sm font-semibold disabled:opacity-30"
+                        onClick={() => applyFluctuation(-1, 'Dépense GM')}
+                        disabled={current <= 0 || loading}
+                        className="py-1.5 px-3 text-xs rounded-sm border border-danger text-danger
+                                   hover:bg-danger/10 disabled:opacity-30 transition-colors"
                     >
-                        −1 Utiliser
+                        −1D
                     </button>
                     <button
-                        onClick={() => patch({ delta: 1 })}
-                        disabled={reserve.current >= reserve.cap || loading}
-                        className="flex-1 py-2 rounded border border-success text-success text-sm font-semibold disabled:opacity-30"
+                        onClick={() => applyFluctuation(1, 'Ajout GM')}
+                        disabled={loading}
+                        className="py-1.5 px-3 text-xs rounded-sm border border-accent text-accent
+                                   hover:bg-accent/10 disabled:opacity-30 transition-colors"
                     >
-                        +1 Ajouter
+                        +1D
                     </button>
                     <button
-                        onClick={() => patch({ current: 0 })}
-                        disabled={reserve.current === 0 || loading}
-                        className="px-4 py-2 rounded border border-default text-muted text-sm disabled:opacity-30"
+                        onClick={() => applyFluctuation(0 - current, 'Remise à zéro')}
+                        disabled={current === 0 || loading}
+                        className="py-1.5 px-3 text-xs rounded-sm border border-default text-muted
+                                   hover:text-default disabled:opacity-30 transition-colors"
                     >
                         Vider
                     </button>
                 </div>
-            </div>
 
-            {/* ── Limite haute ───────────────────────────────────────────── */}
-            <div className="bg-surface border border-default rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                    <h3 className="text-primary font-semibold text-sm uppercase">Limite haute</h3>
-                    {!editCap ? (
+                {/* Fluctuations narratives */}
+                <div>
+                    <p className="text-muted text-xs uppercase tracking-widest mb-2">Fluctuations narratives</p>
+                    <div className="grid grid-cols-2 gap-2">
                         <button
-                            onClick={() => { setEditCap(true); setCapDraft(reserve.cap); }}
-                            className="text-xs text-muted border border-default rounded px-2 py-1"
+                            onClick={() => applyFluctuation(+3, 'Principe accompli — 1 membre')}
+                            className="py-1.5 text-xs rounded-sm border border-accent/50 text-accent
+                                       hover:bg-accent/10 transition-colors"
                         >
-                            Modifier
+                            ⚓ +3D  principe (1 membre)
                         </button>
-                    ) : (
-                        <div className="flex gap-2 items-center">
-                            <input
-                                type="number" min="0" max="50"
-                                className="w-20 bg-surface-alt border border-default rounded px-2 py-1 text-default text-sm"
-                                value={capDraft}
-                                onChange={e => setCapDraft(+e.target.value)}
-                            />
-                            <button
-                                onClick={handleSaveCap}
-                                className="text-xs bg-primary text-accent rounded px-2 py-1 font-bold"
-                            >
-                                ✓
-                            </button>
-                            <button
-                                onClick={() => setEditCap(false)}
-                                className="text-xs text-muted"
-                            >
-                                ✕
-                            </button>
-                        </div>
-                    )}
+                        <button
+                            onClick={() => applyFluctuation(+5, 'Principe accompli — groupe')}
+                            className="py-1.5 text-xs rounded-sm border border-accent text-accent
+                                       hover:bg-accent/10 transition-colors font-bold"
+                        >
+                            ⚓ +5D  principe (groupe)
+                        </button>
+                        <button
+                            onClick={() => applyFluctuation(-3, 'Interdit transgressé — 1 membre')}
+                            className="py-1.5 text-xs rounded-sm border border-danger/50 text-danger
+                                       hover:bg-danger/10 transition-colors"
+                        >
+                            ✕ −3D  interdit (1 membre)
+                        </button>
+                        <button
+                            onClick={() => applyFluctuation(-5, 'Interdit transgressé — groupe')}
+                            className="py-1.5 text-xs rounded-sm border border-danger text-danger
+                                       hover:bg-danger/10 transition-colors font-bold"
+                        >
+                            ✕ −5D  interdit (groupe)
+                        </button>
+                    </div>
                 </div>
-                <p className="text-muted text-xs">
-                    La limite haute est fixée en début d'aventure par le groupe.
-                    En général 3D par joueur (ex : 4 joueurs = 12D).
-                </p>
             </div>
 
-            {/* ── Rappel des règles ──────────────────────────────────────── */}
-            <div className="bg-surface border border-default rounded-lg p-4 space-y-2">
-                <h3 className="text-primary font-semibold text-sm uppercase">Rappel des règles</h3>
-                <ul className="text-muted text-xs space-y-1.5">
-                    <li>• Chaque joueur peut sacrifier des dés de ses propres réserves (max personnel réduit définitivement).</li>
-                    <li>• L'utilisation de la réserve coûte 1D — le retrait est définitif quelle que soit l'issue.</li>
-                    <li>• La limite de 1D par jet s'applique toujours, sans bonus de spécialité.</li>
-                    <li>• Le groupe doit s'entendre sur les conditions d'accès (libre, majoritaire, unanime).</li>
-                    <li>• +3D si un principe est accompli par un seul membre, +5D si plusieurs y participent.</li>
-                    <li>• −3D / −5D si un interdit est transgressé (même logique).</li>
+            {/* ── Règle d'accès ─────────────────────────────────────────── */}
+            <div className="ns-card ns-paper space-y-2">
+                <h3 className="ns-domain-header text-primary">Règle d'accès</h3>
+                <div className="space-y-1">
+                    {REGLE_OPTIONS.map(opt => (
+                        <label key={opt.value} className="flex items-start gap-2 cursor-pointer">
+                            <input
+                                type="radio"
+                                name="regle_acces"
+                                value={opt.value}
+                                checked={groupReserve.regle_acces === opt.value}
+                                onChange={() => updateGroupReserve({ regle_acces: opt.value })}
+                                className="mt-0.5 accent-primary"
+                            />
+                            <span className={`text-sm ${groupReserve.regle_acces === opt.value ? 'text-default' : 'text-muted'}`}>
+                                {opt.label}
+                            </span>
+                        </label>
+                    ))}
+                </div>
+            </div>
+
+            {/* ── Principes & Interdits ─────────────────────────────────── */}
+            <div className="grid grid-cols-2 gap-4">
+
+                {/* Principes */}
+                <div className="ns-card ns-paper space-y-3">
+                    <h3 className="ns-domain-header text-accent">Principes</h3>
+                    <ul className="space-y-1.5">
+                        {principes.map((p, i) => (
+                            <li key={i} className="flex items-start gap-2 group">
+                                <span className="text-accent text-xs mt-0.5 shrink-0">⚓</span>
+                                <span className="text-default text-sm flex-1 leading-snug">{p}</span>
+                                <button
+                                    onClick={() => removePrincipe(i)}
+                                    className="text-muted hover:text-danger text-xs opacity-0 group-hover:opacity-100 shrink-0 transition-opacity"
+                                >
+                                    ✕
+                                </button>
+                            </li>
+                        ))}
+                        {principes.length === 0 && (
+                            <p className="text-muted text-xs italic">Aucun principe défini.</p>
+                        )}
+                    </ul>
+                    <div className="flex gap-1">
+                        <input
+                            type="text"
+                            className="flex-1 bg-surface-alt border border-default rounded px-2 py-1 text-default text-xs"
+                            placeholder="Ajouter un principe…"
+                            value={principeDraft}
+                            onChange={e => setPrincipeDraft(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && addPrincipe()}
+                        />
+                        <button
+                            onClick={addPrincipe}
+                            disabled={!principeDraft.trim()}
+                            className="px-2 py-1 text-xs rounded bg-accent/20 text-accent border border-accent/40
+                                       hover:bg-accent/30 disabled:opacity-30 transition-colors"
+                        >
+                            +
+                        </button>
+                    </div>
+                </div>
+
+                {/* Interdits */}
+                <div className="ns-card ns-paper space-y-3">
+                    <h3 className="ns-domain-header text-danger">Interdits</h3>
+                    <ul className="space-y-1.5">
+                        {interdits.map((p, i) => (
+                            <li key={i} className="flex items-start gap-2 group">
+                                <span className="text-danger text-xs mt-0.5 shrink-0">✕</span>
+                                <span className="text-default text-sm flex-1 leading-snug">{p}</span>
+                                <button
+                                    onClick={() => removeInterdit(i)}
+                                    className="text-muted hover:text-danger text-xs opacity-0 group-hover:opacity-100 shrink-0 transition-opacity"
+                                >
+                                    ✕
+                                </button>
+                            </li>
+                        ))}
+                        {interdits.length === 0 && (
+                            <p className="text-muted text-xs italic">Aucun interdit défini.</p>
+                        )}
+                    </ul>
+                    <div className="flex gap-1">
+                        <input
+                            type="text"
+                            className="flex-1 bg-surface-alt border border-default rounded px-2 py-1 text-default text-xs"
+                            placeholder="Ajouter un interdit…"
+                            value={interditDraft}
+                            onChange={e => setInterditDraft(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && addInterdit()}
+                        />
+                        <button
+                            onClick={addInterdit}
+                            disabled={!interditDraft.trim()}
+                            className="px-2 py-1 text-xs rounded bg-danger/20 text-danger border border-danger/40
+                                       hover:bg-danger/30 disabled:opacity-30 transition-colors"
+                        >
+                            +
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* ── Notes partagées ───────────────────────────────────────── */}
+            <div className="ns-card ns-paper space-y-2">
+                <h3 className="ns-domain-header text-primary">Notes partagées</h3>
+                <textarea
+                    rows={4}
+                    className="w-full bg-surface-alt border border-default rounded px-2 py-1.5
+                               text-default text-sm resize-none"
+                    value={groupReserve.notes ?? ''}
+                    onChange={e => updateGroupReserve({ notes: e.target.value })}
+                    placeholder="Notes visibles de tous les joueurs…"
+                />
+            </div>
+
+            {/* ── Rappel des règles ─────────────────────────────────────── */}
+            <div className="ns-card">
+                <h3 className="ns-domain-header text-muted mb-3">Rappel mécanique</h3>
+                <ul className="text-muted text-xs space-y-1.5 leading-snug">
+                    <li>· Le sacrifice réduit définitivement le maximum de réserve personnelle.</li>
+                    <li>· La dépense en jeu coûte 1D — définitif, quelle que soit l'issue du jet.</li>
+                    <li>· Limite : 1D par jet, sans bonus de spécialité.</li>
+                    <li>· +3D/+5D selon l'accomplissement d'un principe (1 membre / groupe).</li>
+                    <li>· −3D/−5D selon la transgression d'un interdit (même logique).</li>
                 </ul>
             </div>
         </div>

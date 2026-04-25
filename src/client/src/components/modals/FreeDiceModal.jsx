@@ -325,7 +325,7 @@ const FreeDiceModal = ({
                         className="text-sm font-bold uppercase tracking-widest"
                         style={{ color: 'var(--color-primary)' }}
                     >
-                        🎲 Lancer de dés
+                        🎲 Lanceur de dés
                     </h2>
                     <button
                         onClick={onClose}

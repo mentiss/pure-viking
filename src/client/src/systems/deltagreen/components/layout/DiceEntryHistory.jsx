@@ -1,22 +1,6 @@
 // src/client/src/systems/deltagreen/components/layout/DiceEntryHistory.jsx
-// ─────────────────────────────────────────────────────────────────────────────
-// Rendu d'une entrée d'historique de dés pour Delta Green.
-// Injecté via config.dice.renderHistoryEntry.
-//
-// entry.roll_result peut contenir :
-//   dg_skill / dg_carac / dg_san :
-//     { value, targetScore, success, critical, fumble, rollLabel, successes }
-//   dg_damage :
-//     { value, diceType, rollLabel, successes }
-//   dg_san_loss :
-//     { value, diceType, rollLabel, successes }
-//   dg_evolve :
-//     { value, rollLabel, successes }
-// ─────────────────────────────────────────────────────────────────────────────
 
 import React from 'react';
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 const ROLL_TYPE_LABELS = {
     dg_skill:    'Compétence',
@@ -31,10 +15,7 @@ const ROLL_TYPE_LABELS = {
 const isPercentileRoll = (rollType) =>
     ['dg_skill', 'dg_carac', 'dg_language', 'dg_san'].includes(rollType);
 
-// ── Composant ─────────────────────────────────────────────────────────────────
-
 const DiceEntryHistory = ({ roll }) => {
-    // Compatibilité : le composant peut recevoir { roll } ou directement l'entry
     const entry  = roll?.roll ?? roll;
     const result = (() => {
         const raw = entry?.roll_result;
@@ -54,114 +35,120 @@ const DiceEntryHistory = ({ roll }) => {
     const success     = result.success     ?? null;
     const critical    = result.critical    ?? false;
     const fumble      = result.fumble      ?? false;
-    const rollLabel   = result.rollLabel   ?? entry?.notation ?? '';
+    const rollLabel   = result.rollLabel   ?? entry?.notation ?? '—';
+    const modifier    = result.modifier    ?? 0;
+
+    // ── Couleurs et labels selon le résultat ──────────────────────────────────
+    const getResultStyle = () => {
+        if (critical && success) return {
+            bg:      'rgba(180, 140, 0, 0.12)',
+            border:  '#b8860b',
+            color:   '#b8860b',
+            label:   '★ CRITIQUE',
+        };
+        if (fumble) return {
+            bg:      'rgba(139, 0, 0, 0.12)',
+            border:  '#8b0000',
+            color:   '#8b0000',
+            label:   '✕ FUMBLE',
+        };
+        if (success) return {
+            bg:      'rgba(26, 94, 42, 0.08)',
+            border:  'var(--color-success)',
+            color:   'var(--color-success)',
+            label:   'SUCCÈS',
+        };
+        if (success === false) return {
+            bg:      'rgba(192, 57, 43, 0.08)',
+            border:  'var(--color-danger)',
+            color:   'var(--color-danger)',
+            label:   'ÉCHEC',
+        };
+        return null;
+    };
+
+    const resultStyle = isPercent ? getResultStyle() : null;
 
     return (
         <div
-            className="px-3 py-2 space-y-1.5"
-            style={{ fontFamily: 'var(--dg-font-body, "Courier New", monospace)' }}
+            className="px-3 py-2 font-mono"
+            style={{
+                background:   resultStyle?.bg ?? 'transparent',
+                borderLeft:   resultStyle ? `3px solid ${resultStyle.border}` : '3px solid transparent',
+                transition:   'background 0.2s',
+            }}
         >
-            {/* ── En-tête : type + label ───────────────────────────────── */}
-            <div className="flex items-start justify-between gap-2">
-                <div className="flex flex-col gap-0.5 min-w-0">
-                    {/* Type de jet */}
+            {/* Ligne principale */}
+            <div className="flex items-center gap-2 flex-wrap">
+                {/* Type */}
+                <span className="text-[10px] text-muted uppercase tracking-wider shrink-0">
+                    {typeLabel}
+                </span>
+
+                {/* Label du jet */}
+                <span className="text-xs font-bold truncate flex-1">
+                    {rollLabel}
+                </span>
+
+                {/* Valeur du dé */}
+                {value !== null && (
                     <span
-                        className="text-[10px] font-mono uppercase tracking-widest"
-                        style={{ color: 'var(--color-text-muted)' }}
+                        className="text-base font-black tabular-nums shrink-0"
+                        style={{ color: resultStyle?.color ?? 'var(--color-text)' }}
                     >
-                        {typeLabel}
+                        {value}
                     </span>
-                    {/* Label de la compétence / situation */}
-                    {rollLabel && (
-                        <span
-                            className="text-xs font-mono font-bold truncate"
-                            style={{ color: 'var(--color-text)' }}
-                        >
-                            {rollLabel}
+                )}
+
+                {/* Badge résultat */}
+                {resultStyle && (
+                    <span
+                        className="text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 shrink-0"
+                        style={{
+                            color:      resultStyle.color,
+                            border:     `1px solid ${resultStyle.border}`,
+                            background: resultStyle.bg,
+                        }}
+                    >
+                        {resultStyle.label}
+                    </span>
+                )}
+            </div>
+
+            {/* Ligne secondaire — cible + modificateur */}
+            {isPercent && targetScore !== null && (
+                <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] text-muted">
+                        vs <span className="font-bold" style={{ color: 'var(--color-text)' }}>
+                            {targetScore}%
+                        </span>
+                        {modifier !== 0 && (
+                            <span style={{ color: modifier > 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                                {' '}({modifier > 0 ? '+' : ''}{modifier})
+                            </span>
+                        )}
+                    </span>
+
+                    {/* Mention règle pour critique/fumble */}
+                    {critical && success && (
+                        <span className="text-[9px] italic" style={{ color: '#b8860b' }}>
+                            Dégâts ×2 en combat
+                        </span>
+                    )}
+                    {fumble && (
+                        <span className="text-[9px] italic" style={{ color: '#8b0000' }}>
+                            Conséquences catastrophiques
                         </span>
                     )}
                 </div>
+            )}
 
-                {/* Résultat outcome pill */}
-                {isPercent && success !== null && (
-                    <div
-                        className="flex-shrink-0 px-2 py-0.5 text-[10px] font-mono font-black uppercase tracking-wider border"
-                        style={{
-                            borderColor: critical ? 'var(--color-success)'
-                                : fumble    ? 'var(--color-danger)'
-                                    : success   ? 'var(--color-success)'
-                                        :             'var(--color-danger)',
-                            color:       critical ? 'var(--color-success)'
-                                : fumble    ? 'var(--color-danger)'
-                                    : success   ? 'var(--color-success)'
-                                        :             'var(--color-danger)',
-                            background:  critical ? 'color-mix(in srgb, var(--color-success) 10%, transparent)'
-                                : fumble    ? 'color-mix(in srgb, var(--color-danger) 10%, transparent)'
-                                    : success   ? 'color-mix(in srgb, var(--color-success) 8%, transparent)'
-                                        :             'color-mix(in srgb, var(--color-danger) 8%, transparent)',
-                        }}
-                    >
-                        {critical ? 'CRITIQUE'
-                            : fumble  ? 'FUMBLE'
-                                : success ? 'SUCCÈS'
-                                    :           'ÉCHEC'}
-                    </div>
-                )}
-            </div>
-
-            {/* ── Corps : valeur + cible ───────────────────────────────── */}
-            <div className="flex items-center gap-3">
-                {/* Dé affiché */}
-                {value !== null && (
-                    <div
-                        className="inline-flex items-center justify-center min-w-[2.5rem] h-9 px-2 font-mono font-black text-lg border"
-                        style={{
-                            background:  'var(--color-surface-alt)',
-                            borderColor: isPercent && success !== null
-                                ? (success ? 'var(--color-success)' : 'var(--color-danger)')
-                                : 'var(--color-border)',
-                            color:       isPercent && success !== null
-                                ? (success ? 'var(--color-success)' : 'var(--color-danger)')
-                                : 'var(--color-text)',
-                        }}
-                    >
-                        {value}
-                    </div>
-                )}
-
-                {/* Cible pour les jets percentile */}
-                {isPercent && targetScore !== null && (
-                    <span
-                        className="text-xs font-mono"
-                        style={{ color: 'var(--color-text-muted)' }}
-                    >
-                        vs <span
-                        className="font-bold"
-                        style={{ color: 'var(--color-text)' }}
-                    >{targetScore}%</span>
-                    </span>
-                )}
-
-                {/* Dé type pour dommages */}
-                {!isPercent && result.diceType && (
-                    <span
-                        className="text-[10px] font-mono uppercase"
-                        style={{ color: 'var(--color-text-muted)' }}
-                    >
-                        {result.diceType.toUpperCase()}
-                    </span>
-                )}
-
-                {/* Gain d'évolution */}
-                {rollType === 'dg_evolve' && value !== null && (
-                    <span
-                        className="text-xs font-mono"
-                        style={{ color: 'var(--color-success)' }}
-                    >
-                        +{value}%
-                    </span>
-                )}
-            </div>
+            {/* Dommages */}
+            {!isPercent && value !== null && (
+                <div className="text-[10px] text-muted mt-0.5">
+                    {result.diceType?.toUpperCase() ?? ''}
+                </div>
+            )}
         </div>
     );
 };

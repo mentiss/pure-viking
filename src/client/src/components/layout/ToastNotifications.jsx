@@ -17,6 +17,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSocket } from '../../context/SocketContext.jsx';
 import { useAuth }   from '../../context/AuthContext.jsx';
+import {stripHtml} from "../shared/RichTextEditor.jsx";
 
 const TOAST_DICE_TTL    = 5000;
 const TOAST_MESSAGE_TTL = 8000;
@@ -42,10 +43,11 @@ const ToastNotifications = ({
         const onDice = (rollData) => {
             // Filtre session si précisée
             if (sessionId && rollData.session_id !== sessionId) return;
+
             add({
-                id:   Date.now(),
-                type: 'dice',
-                animation: 'default',
+                id:        Date.now(),
+                type:      'dice',
+                animation: rollData.roll_result?.toastAnimation ?? 'default',
                 ...rollData,
             }, TOAST_DICE_TTL);
         };
@@ -114,7 +116,7 @@ const ToastNotifications = ({
                                     </p>
                                     {toast.body && (
                                         <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
-                                            {toast.body}
+                                            {stripHtml(toast.body).slice(0, 120)}{stripHtml(toast.body).length > 120 ? '…' : ''}
                                         </p>
                                     )}
                                     {toast.imageUrl && (

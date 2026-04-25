@@ -940,10 +940,6 @@ const deltgreenConfig = {
             return ctx;
         },
 
-        // 3. afterRoll(raw, ctx) → result
-        //    D100 : succès si résultat ≤ score cible.
-        //    Jets de dommages : retourne le total brut.
-        // config.jsx — afterRoll corrigé
         afterRoll: (raw, ctx) => {
             const { diceType, targetScore, rollLabel, modifier } = ctx.systemData;
             const value = raw.groups[0].total;
@@ -955,19 +951,26 @@ const deltgreenConfig = {
                 const success    = computed <= (targetScore ?? 0);
                 const tensDigit  = Math.floor(computed / 10) % 10;
                 const unitsDigit = computed % 10;
-                const critical   = tensDigit === unitsDigit && computed !== 100;
-                const fumble     = computed === 100 || (critical && !success);
+
+                const isDouble  = tensDigit === unitsDigit;
+                const critical  = computed === 1 || (success && isDouble);
+                const fumble    = computed === 100 || (!success && isDouble);
+
+                const toastAnimation = (computed === 1 || (success && isDouble)) ? 'glitter'
+                    : (computed === 100 || (!success && isDouble)) ? 'shake'
+                        : 'default';
 
                 return {
-                    value:       computed,
-                    allDice:     [computed],          // ← pour le renderer générique
-                    targetScore: targetScore ?? 0,
-                    modifier:    modifier ?? 0,
+                    value:          computed,
+                    allDice:        [computed],
+                    targetScore:    targetScore ?? 0,
+                    modifier:       modifier ?? 0,
                     success,
-                    critical:    critical && success,
+                    critical,
                     fumble,
-                    rollLabel:   rollLabel ?? '',
-                    successes:   success ? 1 : 0,
+                    rollLabel:      rollLabel ?? '',
+                    successes:      success ? 1 : 0,
+                    toastAnimation,
                 };
             }
 

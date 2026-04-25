@@ -151,13 +151,13 @@ const DiceModal = ({ ctx, character, sessionId, onClose, onSkillFailed }) => {
                             </p>
                             <div className="flex items-center justify-center gap-3">
                                 <button
-                                    onClick={() => adjustModifier(-5)}
+                                    onClick={() => adjustModifier(-20)}
                                     className="w-9 h-9 border border-default font-mono font-bold text-default hover:bg-danger/10 hover:border-danger hover:text-danger transition-colors"
-                                >−5</button>
+                                >−20</button>
                                 <button
-                                    onClick={() => adjustModifier(-1)}
+                                    onClick={() => adjustModifier(-10)}
                                     className="w-9 h-9 border border-default font-mono font-bold text-default hover:bg-danger/10 hover:border-danger hover:text-danger transition-colors"
-                                >−1</button>
+                                >−10</button>
 
                                 <input
                                     type="number"
@@ -167,13 +167,13 @@ const DiceModal = ({ ctx, character, sessionId, onClose, onSkillFailed }) => {
                                 />
 
                                 <button
-                                    onClick={() => adjustModifier(+1)}
+                                    onClick={() => adjustModifier(+10)}
                                     className="w-9 h-9 border border-default font-mono font-bold text-default hover:bg-success/10 hover:border-success hover:text-success transition-colors"
-                                >+1</button>
+                                >+10</button>
                                 <button
-                                    onClick={() => adjustModifier(+5)}
+                                    onClick={() => adjustModifier(+20)}
                                     className="w-9 h-9 border border-default font-mono font-bold text-default hover:bg-success/10 hover:border-success hover:text-success transition-colors"
-                                >+5</button>
+                                >+20</button>
                             </div>
                         </div>
 
