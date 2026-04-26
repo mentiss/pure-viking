@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 
-const IdentityCard = ({ character, editMode, onChange }) => {
+const IdentityCard = ({ character, editMode, onChange, onPatch }) => {
     const avatarRef = useRef(null);
 
     // Helper pour les champs texte standards
@@ -143,16 +143,8 @@ const IdentityCard = ({ character, editMode, onChange }) => {
                             />
                         </div>
                     ) : (
-                        <div className="text-center px-2 py-1.5 rounded"
-                             style={{
-                                 border: '2px double var(--ns-ornament)',
-                                 opacity: 0.75,
-                             }}>
-                            <p className="text-muted text-xs uppercase tracking-widest leading-none mb-0.5">An.</p>
-                            <p className="font-bold text-sm font-mono"
-                               style={{ color: 'var(--ns-ornament)' }}>
-                                {character.annee_campagne ?? 1881}
-                            </p>
+                        <div className="ns-year-stamp" title="Année de campagne">
+                            {character.annee_campagne ?? 1881}
                         </div>
                     )}
                 </div>
@@ -234,25 +226,37 @@ const IdentityCard = ({ character, editMode, onChange }) => {
             {/* ── Selvarins — accessible même hors editMode ────────────── */}
             <div className="flex gap-3">
                 <div className="flex-1">
-                    <label className="text-muted text-xs uppercase tracking-widest">
-                        ⊕ Selvarins
+                    <label className="ns-stat-label block">
+                        <span style={{ color: 'var(--ns-ornament)', marginRight: '0.25rem' }}>§</span>
+                        Selvarins
                     </label>
                     <input
                         type="number" min="0"
-                        className="w-full bg-surface-alt border border-default rounded px-2 py-1
-                                   text-default text-sm mt-1"
-                        value={character.selvarins_current ?? 0}
-                        onChange={e => onChange('selvarins_current', +e.target.value)}
+                        className="ns-input mt-1"
+                        defaultValue={character.selvarins_current ?? 0}
+                        key={`selvarins-${character.id}`}
+                        onBlur={e => {
+                            const val = +e.target.value;
+                            if (val !== (character.selvarins_current ?? 0))
+                                onPatch({ selvarins_current: val });
+                        }}
                     />
                 </div>
                 <div className="flex-1">
-                    <label className="text-muted text-xs uppercase tracking-widest">Revenu mensuel</label>
+                    <label className="ns-stat-label block">
+                        <span style={{ color: 'var(--ns-ornament)', marginRight: '0.25rem' }}>§</span>
+                        Revenu / mois
+                    </label>
                     <input
                         type="number" min="0"
-                        className="w-full bg-surface-alt border border-default rounded px-2 py-1
-                                   text-default text-sm mt-1"
-                        value={character.selvarins_month ?? 0}
-                        onChange={e => onChange('selvarins_month', +e.target.value)}
+                        className="ns-input mt-1"
+                        defaultValue={character.selvarins_month ?? 0}
+                        key={`selvarins-month-${character.id}`}
+                        onBlur={e => {
+                            const val = +e.target.value;
+                            if (val !== (character.selvarins_month ?? 0))
+                                onPatch({ selvarins_month: val });
+                        }}
                     />
                 </div>
             </div>

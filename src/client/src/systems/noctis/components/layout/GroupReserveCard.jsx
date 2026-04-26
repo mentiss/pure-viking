@@ -11,12 +11,16 @@ const REGLE_LABELS = {
 
 // ── Ligne principe ou interdit ────────────────────────────────────────────────
 const CodeLine = ({ text, variant }) => (
-    <li className="flex items-start gap-2 text-sm">
+    <li className="flex items-start gap-2">
         <span className={`shrink-0 mt-0.5 text-xs font-bold
-            ${variant === 'principe' ? 'text-accent' : 'text-danger'}`}>
+            ${variant === 'principe' ? 'text-accent' : 'text-danger'}`}
+              style={{ fontFamily: 'var(--ns-font-title)' }}>
             {variant === 'principe' ? '⚓' : '✕'}
         </span>
-        <span className="text-default leading-snug">{text}</span>
+        <span className="text-default leading-snug"
+              style={{ fontFamily: 'var(--ns-font-body)', fontSize: '0.95rem' }}>
+            {text}
+        </span>
     </li>
 );
 
@@ -100,8 +104,10 @@ const GroupReserveCard = ({ character }) => {
                 {/* Compteur proéminent */}
                 <div className="text-right">
                     <span
-                        className="font-bold text-4xl font-mono leading-none"
+                        className="font-bold text-4xl leading-none"
                         style={{
+                            fontFamily: 'var(--ns-font-tech)',
+                            fontWeight: 700,
                             color:      current > 0 ? 'var(--color-accent)' : 'var(--color-muted)',
                             textShadow: current > 0
                                 ? '0 0 12px color-mix(in srgb, var(--color-accent) 50%, transparent)'

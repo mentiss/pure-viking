@@ -45,12 +45,28 @@ const ReserveCard = ({ type, character, onPatch }) => {
             </div>
 
             {/* Manomètre */}
-            <div className={`ns-gauge-track border ${cfg.borderClass}`}>
-                <div
-                    className={`ns-gauge-fill ${cfg.fillClass}`}
-                    style={{ width: `${pct}%` }}
-                />
-            </div>
+            {max <= 18 ? (
+                <div className="ns-segments">
+                    {Array.from({ length: max }, (_, i) => (
+                        <div
+                            key={i}
+                            className={
+                                i < current
+                                    ? `ns-segment ns-segment-filled ${cfg.fillClass}`
+                                    : 'ns-segment ns-segment-empty'
+                            }
+                        />
+                    ))}
+                </div>
+            ) : (
+                /* Fallback barre continue pour max > 18 (Fracturés extrêmes) */
+                <div className={`ns-gauge-track border ${cfg.borderClass}`}>
+                    <div
+                        className={`ns-gauge-fill ${cfg.fillClass}`}
+                        style={{ width: `${pct}%` }}
+                    />
+                </div>
+            )}
 
             {/* Contrôles */}
             <div className="flex gap-1">

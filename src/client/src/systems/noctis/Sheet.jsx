@@ -19,6 +19,8 @@ import InventoryCard       from './components/layout/InventoryCard.jsx';
 import GroupReserveCard    from './components/layout/GroupReserveCard.jsx';
 import DiceModal           from './components/modals/DiceModal.jsx';
 import noctisConfig        from './config.jsx';
+import GearBackground from "./components/ui/GearBackground.jsx";
+import NoctisLogo from "./components/ui/NoctisLogo.jsx";
 
 const TABS = [
     { id: 'fiche',      label: 'Fiche' },
@@ -119,15 +121,13 @@ const Sheet = ({
     return (
         <div className="ns-page" data-theme={darkMode ? 'dark' : ''}>
 
+            <GearBackground />
+
             {/* ── Header ───────────────────────────────────────────────────── */}
             <header className="ns-header px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
                     <div className="flex items-baseline gap-3 min-w-0">
-                        <h1 className="text-lg font-semibold truncate shrink-0"
-                            style={{ fontFamily: 'var(--ns-font-title)',
-                                color: 'var(--ns-ornament)', letterSpacing: '0.06em' }}>
-                            {char.prenom} {char.nom}
-                        </h1>
+                        <NoctisLogo />
                         {char.activite && (
                             <span className="text-xs truncate hidden sm:block"
                                   style={{ color: 'color-mix(in srgb, var(--ns-ornament) 60%, var(--color-bg))',
@@ -147,7 +147,9 @@ const Sheet = ({
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                        <ThemeToggle darkMode={darkMode} onToggle={onToggleDarkMode} />
+                        <div className="mb-1">
+                            <ThemeToggle darkMode={darkMode} onToggle={onToggleDarkMode} />
+                        </div>
                         <button onClick={() => openDiceModal()} className="ns-btn-primary">
                             ⬡ Dés
                         </button>
@@ -214,53 +216,54 @@ const Sheet = ({
             </nav>
 
             {/* ── Contenu ──────────────────────────────────────────────────── */}
-            <main className="px-4 py-4 space-y-4">
+            <main className="px-4 py-3">
 
                 {activeTab === 'fiche' && (
-                    <>
-                        {/* Identité + Éclats & Santé */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="md:col-span-2">
-                                <IdentityCard character={char} editMode={editMode} onChange={set} />
+                    <div className="ns-sheet-layout">
+
+                        {/* ── Colonne principale ──────────────────────────── */}
+                        <div className="ns-sheet-main">
+
+                            {/* Identité — pleine largeur de la colonne principale */}
+                            <IdentityCard character={char} editMode={editMode} onChange={set} onPatch={handlePatch} />
+
+                            {/* Domaines — grille 2×2 */}
+                            <div className="ns-domains-grid">
+                                <DomainCard domaine="physique" character={char} editMode={editMode}
+                                            onChange={set} onRoll={editMode ? null : stat => openDiceModal(stat)} />
+                                <DomainCard domaine="manuel"   character={char} editMode={editMode}
+                                            onChange={set} onRoll={editMode ? null : stat => openDiceModal(stat)} />
+                                <DomainCard domaine="mental"   character={char} editMode={editMode}
+                                            onChange={set} onRoll={editMode ? null : stat => openDiceModal(stat)} />
+                                <DomainCard domaine="social"   character={char} editMode={editMode}
+                                            onChange={set} onRoll={editMode ? null : stat => openDiceModal(stat)} />
                             </div>
-                            <div className="flex flex-col gap-4">
-                                <EclatsCard character={char} onPatch={handlePatch} />
-                                <HealthCard character={char} onPatch={handlePatch} />
-                            </div>
+
+                            {/* Spécialités */}
+                            <SpecialtiesCard
+                                character={char}
+                                editMode={editMode}
+                                onChange={specialties => set('specialties', specialties)}
+                                onRoll={editMode ? null : spec => openDiceModal(null, spec)}
+                            />
+
+                            {/* Inventaire */}
+                            <InventoryCard
+                                character={char}
+                                editMode={editMode}
+                                onChange={items => set('items', items)}
+                            />
                         </div>
 
-                        {/* Domaines + Réserves */}
-                        <div className="grid grid-cols-3 gap-3">
-                            <DomainCard domaine="physique" character={char} editMode={editMode}
-                                        onChange={set} onRoll={editMode ? null : stat => openDiceModal(stat)} />
-                            <DomainCard domaine="manuel"   character={char} editMode={editMode}
-                                        onChange={set} onRoll={editMode ? null : stat => openDiceModal(stat)} />
+                        {/* ── Sidebar droite — ressources (sticky) ─────────── */}
+                        <aside className="ns-sheet-sidebar">
+                            <EclatsCard character={char} onPatch={handlePatch} editMode={editMode} />
+                            <HealthCard character={char} onPatch={handlePatch} />
                             <ReserveCard type="effort"    character={char} onPatch={handlePatch} />
-                            <DomainCard domaine="mental"  character={char} editMode={editMode}
-                                        onChange={set} onRoll={editMode ? null : stat => openDiceModal(stat)} />
-                            <DomainCard domaine="social"  character={char} editMode={editMode}
-                                        onChange={set} onRoll={editMode ? null : stat => openDiceModal(stat)} />
                             <ReserveCard type="sangfroid" character={char} onPatch={handlePatch} />
-                        </div>
-
-                        {/* Spécialités */}
-                        <SpecialtiesCard
-                            character={char}
-                            editMode={editMode}
-                            onChange={specialties => set('specialties', specialties)}
-                            onRoll={editMode ? null : spec => openDiceModal(null, spec)}
-                        />
-
-                        {/* Réserve de groupe */}
-                        <GroupReserveCard character={char} />
-
-                        {/* Inventaire */}
-                        <InventoryCard
-                            character={char}
-                            editMode={editMode}
-                            onChange={items => set('items', items)}
-                        />
-                    </>
+                            <GroupReserveCard character={char} />
+                        </aside>
+                    </div>
                 )}
 
                 {activeTab === 'historique' && (
@@ -284,6 +287,7 @@ const Sheet = ({
                     activeSession={activeGMSession}
                     preset={dicePreset}
                     onClose={closeDiceModal}
+                    onPatch={handlePatch}
                 />
             )}
 

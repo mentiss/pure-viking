@@ -6,6 +6,8 @@ import {
     DOMAINES, STAT_LABELS, SPECIALTY_TYPES, SPECIALTY_NIVEAUX,
     SPECIALTIES_REFERENCE, OMBRE_TYPES, computeReserveMax, computeInitiative,
 } from './config.jsx';
+import NoctisLogo from "./components/ui/NoctisLogo.jsx";
+import SteamTrainProgress from "./components/ui/SteamTrainProgress.jsx";
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
@@ -204,34 +206,87 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
     if (created) {
         return (
             <div
-                className="min-h-screen bg-bg flex items-center justify-center p-4"
+                className="ns-page min-h-screen flex items-center justify-center"
                 data-theme={darkMode ? 'dark' : ''}
             >
-                <div className="bg-surface border border-default rounded-xl p-8 max-w-md w-full text-center space-y-6">
-                    <div className="text-5xl">✦</div>
-                    <h2 className="text-primary font-bold text-2xl">
-                        {created.prenom} {created.nom} est né·e !
-                    </h2>
-                    <div className="bg-surface-alt border border-default rounded-lg p-6 space-y-3">
-                        <p className="text-muted text-sm">Votre code d'accès</p>
-                        <p className="font-mono text-4xl font-bold tracking-widest text-primary">
-                            {created.access_code}
+                <div className="ns-card ns-paper max-w-md w-full text-center space-y-6 mx-4"
+                     style={{ padding: '2.5rem' }}>
+
+                    {/* Médaillon */}
+                    <div style={{
+                        fontFamily: 'var(--ns-font-title)',
+                        fontSize:   '2.5rem',
+                        color:      'var(--ns-ornament)',
+                        lineHeight: 1,
+                    }}>✦</div>
+
+                    {/* Nom du personnage */}
+                    <div>
+                        <p style={{
+                            fontFamily:  'var(--ns-font-body)',
+                            fontSize:    '0.75rem',
+                            color:       'var(--color-muted)',
+                            letterSpacing: '0.12em',
+                            textTransform: 'uppercase',
+                            marginBottom: '0.4rem',
+                        }}>
+                            Personnage créé
                         </p>
+                        <h2 style={{
+                            fontFamily:  'var(--ns-font-title)',
+                            fontSize:    '1.6rem',
+                            fontWeight:  700,
+                            color:       'var(--color-default)',
+                            fontVariant: 'small-caps',
+                        }}>
+                            {created.prenom}{' '}
+                            <span style={{ color: 'var(--ns-ornament)' }}>{created.nom}</span>
+                        </h2>
+                    </div>
+
+                    <hr className="ns-divider-ornate" />
+
+                    {/* Code d'accès — style tampon officiel */}
+                    <div className="space-y-3">
+                        <p className="ns-section-label" style={{ textAlign: 'center' }}>
+                            Code d'accès
+                        </p>
+                        <div style={{
+                            fontFamily:    'var(--ns-font-tech)',
+                            fontSize:      '2.5rem',
+                            fontWeight:    700,
+                            letterSpacing: '0.3em',
+                            color:         'var(--ns-ornament)',
+                            textAlign:     'center',
+                            padding:       '1rem',
+                            background:    'var(--color-surface-alt)',
+                            border:        '2px solid var(--ns-ornament)',
+                            borderRadius:  '2px',
+                        }}>
+                            {created.access_code}
+                        </div>
                         <button
                             onClick={copyCode}
-                            className="px-4 py-1.5 text-sm border border-default rounded text-default hover:bg-surface"
+                            className="ns-btn-ghost w-full"
                         >
-                            {copied ? '✅ Copié !' : '📋 Copier le code'}
+                            {copied ? '✓ Code copié' : '⎘ Copier le code'}
                         </button>
-                        <p className="text-muted text-xs">
+                        <p style={{
+                            fontFamily: 'var(--ns-font-body)',
+                            fontStyle:  'italic',
+                            fontSize:   '0.8rem',
+                            color:      'var(--color-muted)',
+                        }}>
                             Conservez ce code — c'est votre clé d'accès permanente.
                         </p>
                     </div>
+
                     <button
                         onClick={() => navigate(`/${slug}/${created.access_url}`)}
-                        className="w-full py-3 rounded-lg bg-primary text-accent font-bold text-lg"
+                        className="ns-btn-primary w-full"
+                        style={{ fontSize: '0.75rem', padding: '0.75rem 1rem' }}
                     >
-                        Rejoindre la partie →
+                        ✦ Rejoindre la partie
                     </button>
                 </div>
             </div>
@@ -242,73 +297,66 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
 
     return (
         <div
-            className="min-h-screen bg-default text-default"
+            className="ns-page"
             data-theme={darkMode ? 'dark' : ''}
         >
             {/* Header */}
-            <header className="sticky top-0 z-40 bg-surface border-b border-default px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
+            <header className="ns-header px-4 flex items-center justify-between">
+                <div className="flex items-center gap-4">
                     <button
                         onClick={() => navigate(`/${slug}`)}
-                        className="text-muted hover:text-default text-sm"
+                        className="ns-btn-ghost"
+                        style={{ padding: '0.2rem 0.6rem', fontSize: '0.6rem' }}
                     >
                         ← Retour
                     </button>
-                    <h1 className="text-primary font-bold">Nouveau personnage</h1>
+                    <NoctisLogo />
+                    <div className="w-px h-5 shrink-0"
+                         style={{ background: 'color-mix(in srgb, var(--ns-ornament) 30%, transparent)' }} />
+                    <span style={{
+                        fontFamily: 'var(--ns-font-body)',
+                        fontSize:   '0.85rem',
+                        fontStyle:  'italic',
+                        color:      'var(--color-muted)',
+                    }}>
+                        Création de personnage
+                    </span>
                 </div>
                 <ThemeToggle darkMode={darkMode} onToggle={onToggleDarkMode} />
             </header>
 
             {/* Barre de progression */}
-            <div className="bg-surface border-b border-default px-4 py-2">
-                <div className="max-w-2xl mx-auto flex items-center gap-1">
-                    {STEPS.map((s, i) => (
-                        <div key={s.id} className="flex-1 flex flex-col items-center gap-1">
-                            <div className={`flex items-center gap-1.5 ${i <= step ? 'text-primary' : 'text-muted'}`}>
-                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2
-                                    ${i < step  ? 'bg-primary border-primary text-accent'
-                                    : i === step ? 'border-primary text-primary'
-                                        :              'border-default text-muted'}`}
-                                >
-                                    {i < step ? '✓' : i + 1}
-                                </div>
-                                <span className="text-center text-xs hidden sm:block">{s.label}</span>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-                {/* Barre de progression simple en dessous */}
-                <div className="max-w-2xl mx-auto mt-2 h-1 bg-surface-alt rounded-full overflow-hidden">
-                    <div
-                        className="h-full bg-primary rounded-full transition-all duration-300"
-                        style={{ width: `${(step / (STEPS.length - 1)) * 100}%` }}
-                    />
+            <div className="border-b px-6 pt-2 pb-0"
+                 style={{ borderColor: 'var(--color-border)',
+                     background:  'var(--color-surface-alt)' }}>
+                <div className="max-w-3xl mx-auto">
+                    <SteamTrainProgress steps={STEPS} currentStep={step} />
                 </div>
             </div>
 
             {/* Contenu de l'étape */}
-            <main className="max-w-6xl mx-auto mt-2 p-4 space-y-6">
+            <main className="max-w-3xl mx-auto mt-3 px-4 pb-6 space-y-4">
 
                 {/* ── Étape 1 : Identité ────────────────────────────────── */}
                 {step === 0 && (
                     <div className="space-y-4">
-                        <h2 className="text-primary font-bold text-xl">Identité</h2>
+                        <h2 className="ns-domain-header" style={{ color: 'var(--ns-ornament)', fontSize: '0.7rem' }}>Identité</h2>
 
-                        <div className="bg-surface border border-default rounded-lg p-4 space-y-3">
+                        <div className="ns-card ns-paper space-y-3">
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className="text-muted text-xs uppercase">Nom du joueur *</label>
+                                    <label className="ns-section-label">Nom du joueur *</label>
                                     <input
-                                        className="w-full bg-surface-alt border border-default rounded px-3 py-1.5 text-default text-sm mt-1"
+                                        className="ns-input mt-1"
                                         value={identity.player_name}
                                         onChange={e => setIdentity(p => ({ ...p, player_name: e.target.value }))}
                                         placeholder="Votre prénom"
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-muted text-xs uppercase">Activité / Métier</label>
+                                    <label className="ns-section-label">Activité / Métier</label>
                                     <input
-                                        className="w-full bg-surface-alt border border-default rounded px-3 py-1.5 text-default text-sm mt-1"
+                                        className="ns-input mt-1"
                                         value={identity.activite}
                                         onChange={e => setIdentity(p => ({ ...p, activite: e.target.value }))}
                                         placeholder="ex: Détective privé"
@@ -318,18 +366,18 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
 
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className="text-muted text-xs uppercase">Prénom du personnage *</label>
+                                    <label className="ns-section-label">Prénom du personnage *</label>
                                     <input
-                                        className="w-full bg-surface-alt border border-default rounded px-3 py-1.5 text-default text-sm mt-1"
+                                        className="ns-input mt-1"
                                         value={identity.prenom}
                                         onChange={e => setIdentity(p => ({ ...p, prenom: e.target.value }))}
                                         placeholder="ex: Elara"
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-muted text-xs uppercase">Nom du personnage *</label>
+                                    <label className="ns-section-label">Nom du personnage *</label>
                                     <input
-                                        className="w-full bg-surface-alt border border-default rounded px-3 py-1.5 text-default text-sm mt-1"
+                                        className="ns-input mt-1"
                                         value={identity.nom}
                                         onChange={e => setIdentity(p => ({ ...p, nom: e.target.value }))}
                                         placeholder="ex: Duskwood"
@@ -339,9 +387,9 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
 
                             <div className="grid grid-cols-4 gap-3">
                                 <div>
-                                    <label className="text-muted text-xs uppercase">Sexe</label>
+                                    <label className="ns-section-label">Sexe</label>
                                     <select
-                                        className="w-full bg-surface-alt border border-default rounded px-2 py-1.5 text-default text-sm mt-1"
+                                        className="ns-select mt-1"
                                         value={identity.sexe}
                                         onChange={e => setIdentity(p => ({ ...p, sexe: e.target.value }))}
                                     >
@@ -352,7 +400,7 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="text-muted text-xs uppercase">Âge</label>
+                                    <label className="ns-section-label">Âge</label>
                                     <input type="number" min="1"
                                            className="w-full bg-surface-alt border border-default rounded px-2 py-1.5 text-default text-sm mt-1"
                                            value={identity.age}
@@ -360,7 +408,7 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-muted text-xs uppercase">Taille (cm)</label>
+                                    <label className="ns-section-label">Taille (cm)</label>
                                     <input type="number" min="1"
                                            className="w-full bg-surface-alt border border-default rounded px-2 py-1.5 text-default text-sm mt-1"
                                            value={identity.taille}
@@ -368,7 +416,7 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-muted text-xs uppercase">Poids (kg)</label>
+                                    <label className="ns-section-label">Poids (kg)</label>
                                     <input type="number" min="1"
                                            className="w-full bg-surface-alt border border-default rounded px-2 py-1.5 text-default text-sm mt-1"
                                            value={identity.poids}
@@ -384,7 +432,7 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
                 {step === 1 && (
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-primary font-bold text-xl">Caractéristiques</h2>
+                            <h2 className="ns-domain-header" style={{ color: 'var(--ns-ornament)', fontSize: '0.7rem' }}>Caractéristiques</h2>
                             <div className={`text-sm font-bold px-3 py-1 rounded-full border ${
                                 pointsLeft === 0
                                     ? 'text-success border-success bg-success/10'
@@ -403,7 +451,7 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {Object.entries(DOMAINES).map(([domKey, domaine]) => (
-                                <div key={domKey} className="bg-surface border border-default rounded-lg p-4 space-y-3">
+                                <div key={domKey} className="ns-card ns-paper space-y-3">
                                     <h3 className={`text-${domaine.color} text-xs font-bold uppercase tracking-widest`}>
                                         {domaine.label}
                                         <span className={`ml-2 text-xs mt-1 ${
@@ -454,15 +502,15 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
                         {/* Valeurs dérivées */}
                         <div className="bg-surface border border-default rounded-lg p-4 grid grid-cols-3 gap-4 text-center">
                             <div>
-                                <p className="text-muted text-xs uppercase">Initiative</p>
+                                <p className="ns-section-label">Initiative</p>
                                 <p className="text-primary font-bold text-2xl">{initiative}</p>
                             </div>
                             <div>
-                                <p className="text-muted text-xs uppercase">Effort max</p>
+                                <p className="ns-section-label">Effort max</p>
                                 <p className="text-primary font-bold text-2xl">{reserves.effort}</p>
                             </div>
                             <div>
-                                <p className="text-muted text-xs uppercase">Sang-Froid max</p>
+                                <p className="ns-section-label">Sang-Froid max</p>
                                 <p className="text-primary font-bold text-2xl">{reserves.sangfroid}</p>
                             </div>
                         </div>
@@ -473,7 +521,7 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
                 {step === 2 && (
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-primary font-bold text-xl">Spécialités</h2>
+                            <h2 className="ns-domain-header" style={{ color: 'var(--ns-ornament)', fontSize: '0.7rem' }}>Spécialités</h2>
                             <div className={`text-sm font-bold px-3 py-1 rounded-full border ${
                                 specBudgetLeft === 0
                                     ? 'text-success border-success bg-success/10'
@@ -489,8 +537,8 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
                         </p>
 
                         {/* Formulaire ajout */}
-                        <div className="bg-surface border border-default rounded-lg p-4 space-y-3">
-                            <div className="relative">
+                        <div className="ns-card ns-paper space-y-3">
+                            <div className="relative z-50">
                                 <input
                                     placeholder="Rechercher ou nommer une spécialité…"
                                     className="w-full bg-surface-alt border border-default rounded px-3 py-1.5 text-default text-sm"
@@ -501,7 +549,7 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
                                     }}
                                 />
                                 {specSuggestions.length > 0 && (
-                                    <ul className="absolute z-10 w-full bg-surface border border-default rounded mt-1 shadow-lg">
+                                    <ul className="absolute z-[100] w-full bg-surface border border-default rounded mt-1 shadow-lg">
                                         {specSuggestions.map(s => (
                                             <li
                                                 key={s.name}
@@ -600,7 +648,7 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
                 {/* ── Étape 4 : Éclats & Ombres ─────────────────────────── */}
                 {step === 3 && (
                     <div className="space-y-4">
-                        <h2 className="text-primary font-bold text-xl">Éclats & Ombres</h2>
+                        <h2 className="ns-domain-header" style={{ color: 'var(--ns-ornament)', fontSize: '0.7rem' }}>Éclats & Ombres</h2>
 
                         <p className="text-muted text-sm">
                             Tous les personnages commencent avec 1 Éclat. Vous pouvez en acquérir
@@ -609,7 +657,7 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
                         </p>
 
                         {/* Choix éclats */}
-                        <div className="bg-surface border border-default rounded-lg p-4 space-y-3">
+                        <div className="ns-card ns-paper space-y-3">
                             <p className="text-default text-sm font-semibold">Nombre d'Éclats</p>
                             <div className="flex gap-3">
                                 {[1, 2, 3].map(val => (
@@ -636,7 +684,7 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
 
                         {/* Ombres */}
                         {ombres.map((o, i) => (
-                            <div key={i} className="bg-surface border border-default rounded-lg p-4 space-y-3">
+                            <div key={i} className="ns-card ns-paper space-y-3">
                                 <p className="text-secondary font-semibold text-sm">
                                     Ombre {i + 1}
                                 </p>
@@ -658,7 +706,7 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
                                 <textarea
                                     rows={2}
                                     placeholder="Décrivez cette ombre en quelques mots…"
-                                    className="w-full bg-surface-alt border border-default rounded px-2 py-1.5 text-default text-sm resize-none"
+                                    className="ns-textarea mt-1"
                                     value={o.description}
                                     onChange={e => handleOmbreChange(i, 'description', e.target.value)}
                                 />
@@ -670,10 +718,10 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
                 {/* ── Étape 5 : Récapitulatif ───────────────────────────── */}
                 {step === 4 && (
                     <div className="space-y-4">
-                        <h2 className="text-primary font-bold text-xl">Récapitulatif</h2>
+                        <h2 className="ns-domain-header" style={{ color: 'var(--ns-ornament)', fontSize: '0.7rem' }}>Récapitulatif</h2>
 
                         {/* Identité */}
-                        <div className="bg-surface border border-default rounded-lg p-4 space-y-1">
+                        <div className="ns-card ns-paper space-y-1">
                             <p className="text-muted text-xs uppercase mb-2">Identité</p>
                             <p className="text-default">
                                 <span className="text-muted text-xs">Joueur</span> {identity.player_name}
@@ -735,8 +783,8 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
                         </div>
 
                         {/* Éclats & Ombres */}
-                        <div className="bg-surface border border-default rounded-lg p-4 space-y-2">
-                            <p className="text-muted text-xs uppercase">Éclats & Ombres</p>
+                        <div className="ns-card ns-paper space-y-2">
+                            <p className="ns-section-label">Éclats & Ombres</p>
                             <p className="text-accent font-bold">{'✦'.repeat(eclatsMax)} {eclatsMax} Éclat{eclatsMax > 1 ? 's' : ''}</p>
                             {ombres.map((o, i) => (
                                 <p key={i} className="text-sm">
@@ -759,7 +807,7 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
                     {step > 0 && (
                         <button
                             onClick={() => setStep(s => s - 1)}
-                            className="flex-1 py-2.5 rounded-lg border border-default text-muted font-semibold"
+                            className="ns-btn-ghost flex-1"
                         >
                             ← Précédent
                         </button>
@@ -768,7 +816,7 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
                         <button
                             onClick={() => setStep(s => s + 1)}
                             disabled={!canNext()}
-                            className="flex-1 py-2.5 rounded-lg bg-primary text-surface font-bold disabled:opacity-40"
+                            className="ns-btn-primary flex-1 disabled:opacity-40"
                         >
                             Suivant →
                         </button>
@@ -776,7 +824,7 @@ const Creation = ({ darkMode, onToggleDarkMode }) => {
                         <button
                             onClick={handleSubmit}
                             disabled={loading}
-                            className="flex-1 py-2.5 rounded-lg bg-primary text-surface font-bold disabled:opacity-50"
+                            className="ns-btn-primary flex-1 disabled:opacity-50"
                         >
                             {loading ? 'Création…' : '✦ Créer le personnage'}
                         </button>

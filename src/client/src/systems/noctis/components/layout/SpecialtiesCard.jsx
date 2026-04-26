@@ -7,6 +7,11 @@ import {
 
 const TYPE_OPTIONS  = Object.entries(SPECIALTY_TYPES);
 const NIVEAU_OPTIONS = Object.entries(SPECIALTY_NIVEAUX);
+const NIVEAU_COLORS = {
+    debutant: 'var(--color-muted)',
+    confirme: 'var(--ns-ornament)',
+    expert:   'var(--color-accent)',
+};
 
 // ── Ligne spécialité ──────────────────────────────────────────────────────────
 const SpecialtyRow = ({ spec, editMode, onRemove, onChangeNiveau, onToggleDormant, onRoll }) => {
@@ -31,21 +36,26 @@ const SpecialtyRow = ({ spec, editMode, onRemove, onChangeNiveau, onToggleDorman
                 ) : null}
 
                 {/* Nom */}
-                <span className={`flex-1 text-sm leading-snug
-                    ${isDormant      ? 'text-muted italic'
-                    : isFractureType ? ''
-                        :                  'text-default'}`}
-                      style={isFractureType && !isDormant
-                          ? { color: 'var(--ns-fracture)' }
-                          : undefined}
+                <span className={`ns-item-name flex-1 leading-snug
+                    ${isDormant ? 'italic' : ''}`}
+                      style={{
+                          ...(isFractureType && !isDormant ? { color: 'var(--ns-fracture)' }   : {}),
+                          ...(isDormant                   ? { color: 'var(--color-muted)' }    : {}),
+                          ...(!isFractureType && !isDormant ? { color: 'var(--color-default)' } : {}),
+                      }}
                 >
                     {spec.name}
                 </span>
 
                 {/* Niveau */}
-                <span className="text-muted text-xs shrink-0">
-                    {niveauData?.label}{' '}
-                    <span className="text-primary font-bold">+{niveauData?.bonus ?? 0}D</span>
+                <span
+                    className="ns-niveau-badge shrink-0"
+                    style={{
+                        color:       NIVEAU_COLORS[spec.niveau] ?? 'var(--color-muted)',
+                        borderColor: NIVEAU_COLORS[spec.niveau] ?? 'var(--color-border)',
+                    }}
+                >
+                    {niveauData?.label}&nbsp;+{niveauData?.bonus ?? 0}D
                 </span>
 
                 {/* Notes toggle */}
@@ -169,7 +179,7 @@ const SpecialtiesCard = ({ character, editMode, onChange, onRoll }) => {
             <div className="flex items-center justify-between">
                 <h3 className="ns-domain-header text-primary">Spécialités</h3>
                 <div className="flex items-center gap-3">
-                    {character.is_fracture && (
+                    {!!character.is_fracture && (
                         <span className="text-xs"
                               style={{ color: 'var(--ns-fracture)', opacity: 0.85 }}>
                             Fracture {fractureCount}/{limiteCorruption}
@@ -212,8 +222,7 @@ const SpecialtiesCard = ({ character, editMode, onChange, onRoll }) => {
                 <>
                     {normalSpecs.length > 0 && <hr className="ns-divider" />}
                     <div>
-                        <p className="text-xs uppercase tracking-widest mb-2 font-bold"
-                           style={{ color: 'var(--ns-fracture)', letterSpacing: '0.15em' }}>
+                        <p className="ns-section-label" style={{ color: 'var(--ns-fracture)' }}>
                             ⬡ Pouvoirs des Anciens
                         </p>
                         <ul className="space-y-1">
@@ -238,22 +247,23 @@ const SpecialtiesCard = ({ character, editMode, onChange, onRoll }) => {
 
             {/* ── État vide ─────────────────────────────────────────────── */}
             {specialties.length === 0 && !adding && (
-                <p className="text-muted text-xs italic text-center py-2">
-                    Aucune spécialité.
+                <p className="text-center py-3"
+                   style={{ fontFamily: 'var(--ns-font-body)', fontStyle: 'italic',
+                       color: 'var(--color-muted)', fontSize: '0.85rem', opacity: 0.7 }}>
+                    — Aucune spécialité acquise —
                 </p>
             )}
 
             {/* ── Formulaire d'ajout ────────────────────────────────────── */}
             {adding && (
-                <div className="space-y-2 pt-2 border-t border-default">
+                <div className="ns-add-form space-y-2">
 
                     {/* Recherche avec suggestions */}
                     <div className="relative">
                         <input
                             type="text"
                             placeholder="Nom de la spécialité…"
-                            className="w-full bg-surface-alt border border-default rounded px-2 py-1.5
-                                       text-default text-sm"
+                            className="ns-input"
                             value={search || draft.name}
                             onChange={e => {
                                 setSearch(e.target.value);
@@ -262,8 +272,12 @@ const SpecialtiesCard = ({ character, editMode, onChange, onRoll }) => {
                             autoFocus
                         />
                         {suggestions.length > 0 && (
-                            <ul className="absolute top-full left-0 right-0 z-10 bg-surface border border-default
-                                           rounded shadow-lg mt-0.5 divide-y divide-default/30">
+                            <ul className="absolute top-full left-0 right-0 z-10 shadow-lg mt-0.5
+                                           divide-y divide-default/30"
+                                style={{ background: 'var(--color-surface)',
+                                    border: '1px solid var(--ns-ornament)',
+                                    borderTop: '2px solid var(--ns-ornament)',
+                                    borderRadius: '0 0 2px 2px' }}>
                                 {suggestions.map(s => (
                                     <li key={s.name}>
                                         <button
@@ -271,12 +285,13 @@ const SpecialtiesCard = ({ character, editMode, onChange, onRoll }) => {
                                                 setDraft(d => ({ ...d, name: s.name, type: s.type }));
                                                 setSearch('');
                                             }}
-                                            className="w-full text-left px-3 py-1.5 text-sm text-default
+                                            className="w-full text-left px-3 py-1.5 text-default
                                                        hover:bg-surface-alt transition-colors flex items-center justify-between"
+                                            style={{ fontFamily: 'var(--ns-font-body)', fontSize: '0.9rem' }}
                                         >
                                             <span>{s.name}</span>
                                             {s.type !== 'normale' && (
-                                                <span className="text-xs text-muted">
+                                                <span className="ns-item-meta">
                                                     [{SPECIALTY_TYPES[s.type]?.badge}]
                                                 </span>
                                             )}
@@ -289,8 +304,7 @@ const SpecialtiesCard = ({ character, editMode, onChange, onRoll }) => {
 
                     <div className="grid grid-cols-2 gap-2">
                         <select
-                            className="bg-surface-alt border border-default rounded px-2 py-1
-                                       text-default text-sm"
+                            className="ns-select"
                             value={draft.type}
                             onChange={e => setDraft(d => ({ ...d, type: e.target.value }))}
                         >
@@ -301,8 +315,7 @@ const SpecialtiesCard = ({ character, editMode, onChange, onRoll }) => {
                                 ))}
                         </select>
                         <select
-                            className="bg-surface-alt border border-default rounded px-2 py-1
-                                       text-default text-sm"
+                            className="ns-select"
                             value={draft.niveau}
                             onChange={e => setDraft(d => ({ ...d, niveau: e.target.value }))}
                         >
@@ -315,8 +328,7 @@ const SpecialtiesCard = ({ character, editMode, onChange, onRoll }) => {
                     <input
                         type="text"
                         placeholder="Notes (optionnel)"
-                        className="w-full bg-surface-alt border border-default rounded px-2 py-1
-                                   text-default text-sm"
+                        className="ns-input"
                         value={draft.notes}
                         onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))}
                     />
@@ -332,10 +344,9 @@ const SpecialtiesCard = ({ character, editMode, onChange, onRoll }) => {
                         onClick={handleAdd}
                         disabled={!draft.name.trim() ||
                             (draft.type === 'fracture' && fractureCount >= limiteCorruption)}
-                        className="w-full py-1.5 text-sm rounded bg-primary text-bg font-bold
-                                   disabled:opacity-30 transition-opacity"
+                        className="ns-btn-primary w-full"
                     >
-                        Ajouter
+                        ✓ Ajouter la spécialité
                     </button>
                 </div>
             )}

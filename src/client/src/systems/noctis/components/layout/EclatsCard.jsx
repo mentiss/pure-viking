@@ -30,7 +30,7 @@ const OmbreRow = ({ ombre }) => {
 };
 
 // ── Composant principal ───────────────────────────────────────────────────────
-const EclatsCard = ({ character, onPatch }) => {
+const EclatsCard = ({ character, onPatch, editMode = false  }) => {
     const current = character.eclats_current ?? 1;
     const max     = character.eclats_max     ?? 1;
 
@@ -43,6 +43,36 @@ const EclatsCard = ({ character, onPatch }) => {
                 <span className="text-muted text-xs font-mono">{current}/{max}</span>
             </div>
 
+            {editMode && (
+                <div className="flex items-center gap-2">
+                    <span className="ns-stat-label">Maximum</span>
+                    <div className="flex items-center gap-2 ml-auto">
+                        <button
+                            onClick={() => onPatch({
+                                eclats_max:     Math.max(1, max - 1),
+                                eclats_current: Math.min(current, Math.max(1, max - 1)),
+                            })}
+                            disabled={max <= 1}
+                            className="ns-btn-ghost disabled:opacity-30"
+                            style={{ padding: '0.1rem 0.5rem', fontSize: '0.8rem' }}
+                        >−</button>
+                        <span style={{
+                            fontFamily: 'var(--ns-font-tech)',
+                            fontWeight: 700,
+                            fontSize:   '1.1rem',
+                            color:      'var(--ns-ornament)',
+                            minWidth:   '1.5rem',
+                            textAlign:  'center',
+                        }}>{max}</span>
+                        <button
+                            onClick={() => onPatch({ eclats_max: max + 1 })}
+                            className="ns-btn-ghost"
+                            style={{ padding: '0.1rem 0.5rem', fontSize: '0.8rem' }}
+                        >+</button>
+                    </div>
+                </div>
+            )}
+
             {/* ── Tokens médaille ────────────────────────────────────────── */}
             <div className="flex items-center gap-3">
                 <button
@@ -54,11 +84,15 @@ const EclatsCard = ({ character, onPatch }) => {
                     −
                 </button>
 
-                <div className="flex gap-2">
+                <div className="flex gap-1.5 flex-wrap">
                     {Array.from({ length: max }, (_, i) => (
-                        i < current
-                            ? <div key={i} className="ns-eclat-token" title={`Éclat ${i + 1}`} />
-                            : <div key={i} className="ns-eclat-token-empty" title="Vide" />
+                        <div
+                            key={i}
+                            className={`ns-eclat-hex ${i < current ? 'ns-eclat-hex-filled' : 'ns-eclat-hex-empty'}`}
+                            title={i < current ? `Éclat ${i + 1}` : 'Vide'}
+                        >
+                            <div className="ns-eclat-hex-inner" />
+                        </div>
                     ))}
                 </div>
 

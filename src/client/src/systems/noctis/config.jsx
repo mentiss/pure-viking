@@ -166,21 +166,16 @@ const noctisConfig = {
             };
         },
 
-        buildAnimationSequence: (raw, ctx) => {
-            const values = raw.groups[0].values;
-            return {
-                waves: [{
-                    dice: values.map((face, i) => ({
-                        dieType:  'd10',
-                        face,
-                        // Or sur 10, vert sur 7-9, rouge sinon
-                        color: face >= 10 ? '#bf9b30'
-                            : face >= 7  ? '#3a8a3a'
-                                : '#a61c1c',
-                    })),
-                }],
-            };
-        },
+        buildAnimationSequence: (raw, ctx, result) => ({
+            mode: 'single',
+            groups: [{
+                id:       'main',
+                diceType: 'd10',
+                color:    'default',
+                label:    ctx.label ?? 'Jet',
+                waves:    [{ dice: result.values }],
+            }],
+        }),
 
         renderHistoryEntry: (entry) => {
             const result = entry.roll_result ?? {};
@@ -231,6 +226,23 @@ const noctisConfig = {
                 </div>
             );
         },
+    },
+
+    diceConfigDefault: {
+        mode:   'custom',
+        custom: {
+            foreground: '#e8dfc8',   /* Crème parchemin — chiffres lisibles */
+            background: '#7a5820',   /* Laiton foncé — fond du dé */
+            outline:    '#2a1a08',   /* Brun encre — contour */
+            edge:       '#c9a84c',   /* Or laiton — arêtes */
+            texture:    '',
+            material:   'metal',
+        },
+        lightColor:       '#c9a84c',   /* Lumière lampe à gaz */
+        strength:         5,
+        gravity:          450,
+        sounds:           false,
+        animationEnabled: true,
     },
 
     // Pas de combat géré en v1

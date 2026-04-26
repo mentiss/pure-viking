@@ -260,13 +260,14 @@ router.patch('/:id', authenticate, requireOwnerOrGM, (req, res) => {
             'sante_touche_current', 'sante_blesse_current', 'sante_tue_current',
             'reserve_effort_current', 'reserve_sangfroid_current',
             'selvarins_current', 'selvarins_month',
-        ];
-        // Champs réservés au GM
-        const gmOnly = [
             'eclats_max',
             'sante_touche_max', 'sante_blesse_max', 'sante_tue_max',
             'reserve_effort_max', 'reserve_sangfroid_max',
             'is_fracture', 'xp_total', 'xp_spent',
+        ];
+        // Champs réservés au GM
+        const gmOnly = [
+
         ];
 
         const fields = Object.keys(req.body).filter(k =>
